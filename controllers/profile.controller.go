@@ -1,0 +1,851 @@
+package controllers
+
+import (
+	"encoding/json"
+	"fmt"
+	"hyperpage/initializers"
+	"hyperpage/models"
+	"hyperpage/utils"
+	"strconv"
+	"strings"
+
+	"github.com/jackc/pgtype"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+)
+
+// func GetAllProfile(c *fiber.Ctx) error {
+
+// 	var profiles []models.Profile
+// 	query := initializers.DB.
+// 		Order("created_at DESC").
+// 		Preload("Guilds").
+// 		Preload("Hashtags").
+// 		Preload("City").
+// 		Preload("Photos").
+// 		Preload("User").
+// 		Joins("JOIN users ON profiles.user_id = users.id").
+// 		Where("Users.filled = ?", true)
+
+// 	err := utils.Paginate(c, query.Find(&profiles), &profiles)
+// 	if err != nil {
+// 		return err
+// 	}
+
+//     return nil
+
+// }
+
+func GetAllProfile(c *fiber.Ctx) error {
+
+	var profiles []models.Profile
+	query := initializers.DB.
+		Order("created_at DESC").
+		Preload("Guilds").
+		Preload("Hashtags").
+		Preload("City").
+		Preload("Photos").
+		Preload("User.Blogs").
+		Preload("User.Blogs.Photos").
+		Preload("User").
+		Joins("JOIN users ON profiles.user_id = users.id").
+		Where("Users.filled = ?", true).
+		Where("Telegram_Activated = ?", true)
+
+	// Get the query parameters
+	city := c.Query("city")
+	hashtags := c.Query("hashtag")
+	category := c.Query("category")
+	title := c.Query("title")
+	money := c.Query("money")
+
+	if money != "" && money != "all" {
+		if strings.Contains(money, "-") {
+			alphabeticRange := strings.Split(money, "-")
+			if len(alphabeticRange) != 2 {
+				return fmt.Errorf("invalid alphabetic range format")
+			}
+
+			lowerAlpha := strings.TrimSpace(alphabeticRange[0])
+			upperAlpha := strings.TrimSpace(alphabeticRange[1])
+			query = query.Where("(LOWER(SUBSTR(Firstname, 1, 1)) >= ? AND LOWER(SUBSTR(Firstname, 1, 1)) <= ?) AND (LOWER(SUBSTR(Lastname, 1, 1)) >= ? AND LOWER(SUBSTR(Lastname, 1, 1)) <= ?)", lowerAlpha, upperAlpha, lowerAlpha, upperAlpha)
+
+		} else {
+			alphabeticRange := strings.Split(money, "-")
+
+			lowerAlpha := strings.TrimSpace(alphabeticRange[0])
+
+			query = query.Where("LOWER(SUBSTR(Firstname, 1, 1)) = ?", lowerAlpha)
+		}
+	}
+
+	if city != "" && city != "all" {
+		cityValues := strings.Split(city, ",")
+
+		query = query.Joins("JOIN profiles_city ON profiles.id = profiles_city.profile_id").
+			Joins("JOIN cities ON profiles_city.city_id = cities.id").
+			Where("cities.name = ?", cityValues)
+	}
+
+	if title != "" && title != "all" {
+		query = query.Where("LOWER(Descr) LIKE ?", "%"+title+"%")
+	}
+
+	if category != "" && category != "all" {
+		catValues := strings.Split(category, ",")
+		query = query.Joins("JOIN profiles_guilds ON profiles.id = profiles_guilds.profile_id").
+			Joins("JOIN guilds ON profiles_guilds.guilds_id = guilds.id").
+			Where("guilds.name = ?", catValues)
+	}
+
+	if hashtags != "" && hashtags != "all" {
+		// Split the hashtags into separate values
+		hashtagValues := strings.Split(hashtags, ",")
+
+		// Join the hashtag values with the '#' character
+		hashtagValuesWithPrefix := make([]string, len(hashtagValues))
+		for i, tag := range hashtagValues {
+			hashtagValuesWithPrefix[i] = strings.TrimSpace(tag)
+		}
+
+		// Add the hashtags filter to the query
+		query = query.Joins("JOIN profiles_hashtags ON profiles.id = profiles_hashtags.profile_id").
+			Joins("JOIN hashtagsprofiles ON profiles_hashtags.hashtagsprofile_id = hashtagsprofiles.id").
+			Where("hashtagsprofiles.hashtag IN (?)", hashtagValuesWithPrefix)
+
+	}
+
+	var count int64
+	if err := query.Model(&models.Profile{}).Count(&count).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not retrieve data",
+		})
+	}
+
+	limit := c.Query("limit", "10")
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid limit parameter",
+		})
+	}
+
+	err = utils.Paginate(c, query.Limit(limitInt).Find(&profiles), &profiles)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   profiles,
+		"meta": fiber.Map{
+			"total": count,
+			"limit": limitInt,
+		},
+	})
+
+}
+
+func GetProfile(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+
+	var profile models.Profile
+	if err := initializers.DB.Preload("Guilds").Preload("Hashtags").Preload("City").Preload("Photos").First(&profile, "user_id = ?", user.ID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Profile not found",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve profile",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   profile,
+	})
+}
+
+func GetProfileGuest(c *fiber.Ctx) error {
+
+	var access_token string
+	authorization := c.Get("Authorization")
+
+	if strings.HasPrefix(authorization, "Bearer ") {
+		access_token = strings.TrimPrefix(authorization, "Bearer ")
+	} else if c.Cookies("access_token") != "" {
+		access_token = c.Cookies("access_token")
+	}
+
+	config, _ := initializers.LoadConfig(".")
+
+	if access_token != "" && access_token != "undefined" {
+		tokenClaims, err := utils.ValidateToken(access_token, config.AccessTokenPublicKey)
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+		}
+
+		name := c.Params("name")
+		var profile models.User
+		if err := initializers.DB.Preload("Followers").Preload("Followings").Preload("Followings.Followers").Preload("Profile.Guilds").Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City").Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+					"status":  "error",
+					"message": "Profile not found",
+				})
+			}
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to retrieve profile",
+			})
+		}
+
+		response := fiber.Map{
+			"status": "success",
+			"data":   profile,
+		}
+
+		// Convert UUID to string for comparison
+		profileIDString := profile.ID.String()
+
+		response["canFollow"] = true
+
+		// Check if the profile UserID matches tokenClaims.UserID
+		if tokenClaims.UserID != "" && tokenClaims.UserID != profileIDString {
+			for _, following := range profile.Followings {
+				if following.ID.String() == tokenClaims.UserID {
+					// If the user is already following, set canFollow to false
+					response["canFollow"] = false
+					break
+				}
+			}
+		} else {
+			response["canFollow"] = false
+		}
+
+		return c.JSON(response)
+
+	} else {
+
+		name := c.Params("name")
+		var profile models.User
+		if err := initializers.DB.Preload("Followings").Preload("Followers").Preload("Profile.Guilds").Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City").Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+					"status":  "error",
+					"message": "Profile not found",
+				})
+			}
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to retrieve profile",
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"data":   profile,
+		})
+
+	}
+
+}
+
+func UpdateProfileAdditional(c *fiber.Ctx) error {
+	type RequestBody struct {
+		Additional string `json:"additional"`
+	}
+
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+
+	user := c.Locals("user").(models.UserResponse)
+
+	profile := models.Profile{}
+	err := initializers.DB.Where("user_id = ?", user.ID).First(&profile).Error
+	if err != nil {
+		_ = err
+		// Handle the error appropriately (e.g., return an error response)
+	}
+
+	// Update the "Additional" field in the profile
+	profile.Additional = requestBody.Additional
+
+	// Save the updated profile back to the database
+	err = initializers.DB.Save(&profile).Error
+	if err != nil {
+		_ = err
+		// Handle the error appropriately (e.g., return an error response)
+	}
+
+	// Return a success response
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Profile updated successfully",
+	})
+}
+
+func UpdateProfile(c *fiber.Ctx) error {
+	type RequestBody struct {
+		Firstname  string `json:"firstname"`
+		Descr      string `json:"descr"`
+		Tcid       int64  `json:"tcid"`
+		Additional string `json:"additional"`
+		City       []struct {
+			ID uint64 `json:"id"`
+		} `json:"city"`
+		Guilds []struct {
+			ID uint64 `json:"id"`
+		} `json:"guilds"`
+		Hashtags []struct {
+			ID uint64 `json:"id"`
+		} `json:"hashtags"`
+	}
+
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+	user := c.Locals("user").(models.UserResponse)
+
+	var profile models.Profile
+	if err := initializers.DB.Preload("Guilds").Preload("Hashtags").Preload("City").Preload("Photos").First(&profile, "user_id = ?", user.ID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Profile not found",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve profile",
+		})
+	}
+
+	// Create a new slice to store the updated list of cities
+	updatedCities := []models.City{}
+
+	// Iterate over the requestBody.City and create City objects from the IDs
+	for _, cityID := range requestBody.City {
+		city := models.City{
+			ID: uint(cityID.ID),
+		}
+		updatedCities = append(updatedCities, city)
+	}
+
+	// Remove existing cities from profile.City that are not present in updatedCities
+	existingCities := profile.City
+
+	for i := len(existingCities) - 1; i >= 0; i-- {
+		found := false
+		for _, updatedCity := range updatedCities {
+			if existingCities[i].ID == updatedCity.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			profile.City = append(profile.City[:i], profile.City[i+1:]...)
+		}
+	}
+
+	// Create a new slice to store the updated list of guilds
+	updatedGuilds := []models.Guilds{}
+
+	// Iterate over the requestBody.Guilds and create Guild objects from the IDs
+	for _, guildID := range requestBody.Guilds {
+		guild := models.Guilds{
+			ID: uint(guildID.ID),
+		}
+		updatedGuilds = append(updatedGuilds, guild)
+	}
+
+	// Remove existing guilds from profile.Guilds that are not present in updatedGuilds
+	existingGuilds := profile.Guilds
+
+	for i := len(existingGuilds) - 1; i >= 0; i-- {
+		found := false
+		for _, updatedGuild := range updatedGuilds {
+			if existingGuilds[i].ID == updatedGuild.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			profile.Guilds = append(profile.Guilds[:i], profile.Guilds[i+1:]...)
+		}
+	}
+
+	// Create a new slice to store the updated list of hashtags
+	updatedHashtags := []models.Hashtagsprofile{}
+
+	// Iterate over the requestBody.Hashtags and create Hashtagsprofile objects from the IDs
+	for _, hashtagID := range requestBody.Hashtags {
+		hashtag := models.Hashtagsprofile{
+			ID: uint(hashtagID.ID),
+		}
+		updatedHashtags = append(updatedHashtags, hashtag)
+	}
+
+	// Remove existing hashtags from profile.Hashtags that are not present in updatedHashtags
+	existingHashtags := profile.Hashtags
+
+	for i := len(existingHashtags) - 1; i >= 0; i-- {
+		found := false
+		for _, updatedHashtag := range updatedHashtags {
+			if existingHashtags[i].ID == updatedHashtag.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			profile.Hashtags = append(profile.Hashtags[:i], profile.Hashtags[i+1:]...)
+		}
+	}
+
+	// Assign firsstname, lastname, and middlen values from the requestBody to profile object
+	profile.Firstname = requestBody.Firstname
+	// profile.Lastname = requestBody.Lastname
+	// profile.MiddleN = requestBody.MiddleN
+	profile.Descr = requestBody.Descr
+
+	// Save the updated profile to the database
+	if err := initializers.DB.Save(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update profile",
+		})
+	}
+
+	// Update the city associations in the database
+	if err := initializers.DB.Model(&profile).Association("City").Replace(updatedCities); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update city associations",
+		})
+	}
+
+	// Update the guild associations in the database
+	if err := initializers.DB.Model(&profile).Association("Guilds").Replace(updatedGuilds); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update guild associations",
+		})
+	}
+
+	// Update the hashtags associations in the database
+	if err := initializers.DB.Model(&profile).Association("Hashtags").Replace(updatedHashtags); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update hashtags associations",
+		})
+	}
+
+	var newUser models.User
+
+	// Find the corresponding user record based on user.ID
+	if err := initializers.DB.First(&newUser, "id = ?", user.ID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve user record",
+		})
+	}
+
+	// Update the filled field of the user record to true
+	newUser.Filled = true
+
+	// Save the changes to the user record in the database
+	if err := initializers.DB.Save(&newUser).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update user record",
+		})
+	}
+
+	// The user record has been successfully updated with filled = true
+	fmt.Println("User record has been updated successfully")
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   profile,
+	})
+}
+
+func GetDocuments(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+	// Retrieve all documents for the specified user profile ID
+	var documents []models.ProfileDocuments
+	err := initializers.DB.Where("profile_id = ?", user.Profile[0].ID).Find(&documents).Error
+	if err != nil {
+		// Handle the error if any
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve documents",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   documents,
+	})
+
+}
+
+func UpdateProfileDocuments(c *fiber.Ctx) error {
+
+	type File struct {
+		Filename string `json:"filename"`
+	}
+
+	type RequestBody struct {
+		ID           int    `json:"ID"`
+		Name         string `json:"name"`
+		Organization string `json:"organization"`
+		Specified    string `json:"specified"`
+		Year         int    `json:"year"`
+		Descr        string `json:"descr"`
+		Files        []File `json:"files"`
+	}
+
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+
+	// Serialize the Files field as JSON
+	filesJSON, err := json.Marshal(requestBody.Files)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to serialize profile document files",
+		})
+	}
+
+	// Find the existing document in the database by its ID
+	documentID := requestBody.ID
+	var existingDocument models.ProfileDocuments
+	if err := initializers.DB.First(&existingDocument, documentID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to find the profile document",
+		})
+	}
+
+	// Update the document fields with the new values
+	existingDocument.Name = requestBody.Name
+	existingDocument.Organization = requestBody.Organization
+	existingDocument.Descr = requestBody.Descr
+	// existingDocument.Additional = requestBody.Additional
+
+	existingDocument.Files = pgtype.JSONB{Bytes: filesJSON, Status: pgtype.Present}
+
+	// Save the updated document to the database
+	if err := initializers.DB.Save(&existingDocument).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update profile document",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success updated",
+		"data":   "ok",
+	})
+}
+
+func DeleteProfileDocuments(c *fiber.Ctx) error {
+	// Retrieve the document ID from the URL route parameter
+	documentID := c.Params("id")
+
+	// Find the existing document in the database by its ID
+	var existingDocument models.ProfileDocuments
+	if err := initializers.DB.First(&existingDocument, documentID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// Document not found, return appropriate error response
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Profile document not found",
+			})
+		}
+
+		// Error occurred while finding the document, return internal server error response
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to find the profile document",
+		})
+	}
+
+	// Convert the Files field to a JSONB value
+	filesJSON, err := json.Marshal(existingDocument.Files)
+	if err != nil {
+		// Handle the error if the conversion fails
+		// For example, you can return an error response
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Error converting files to JSON",
+		})
+	}
+
+	var filesJSONB pgtype.JSONB
+	if err := filesJSONB.Set(filesJSON); err != nil {
+		// Handle the error if the conversion fails
+		// For example, you can return an error response
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Error converting files to JSONB",
+		})
+	}
+
+	// Delete the document from the database
+	if err := initializers.DB.Delete(&existingDocument).Error; err != nil {
+		// Error occurred while deleting the document, return internal server error response
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete profile document",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   "ok",
+	})
+}
+
+func NewProfileDocuments(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+
+	type File struct {
+		Filename string `json:"filename"`
+	}
+
+	type RequestBody struct {
+		Name         string `json:"name"`
+		Organization string `json:"organization"`
+		Specified    string `json:"specified"`
+		Year         int    `json:"year"`
+		Descr        string `json:"descr"`
+		Files        []File `json:"files"`
+	}
+
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+
+	// Serialize the Files field as JSON
+	filesJSON, err := json.Marshal(requestBody.Files)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to serialize profile document files",
+		})
+	}
+
+	document := models.ProfileDocuments{
+		ProfileID:    user.Profile[0].ID,
+		Name:         requestBody.Name,
+		Organization: requestBody.Organization,
+		Descr:        requestBody.Descr,
+		Files:        pgtype.JSONB{Bytes: filesJSON, Status: pgtype.Present},
+	}
+
+	// Save the document to the database using your preferred database ORM or query builder
+	// For example, using GORM:
+	if err := initializers.DB.Create(&document).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to save profile document",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   document,
+	})
+
+}
+
+func UpdateProfilePhotos(c *fiber.Ctx) error {
+
+	isUpdate := c.Query("update")
+	user := c.Locals("user").(models.UserResponse)
+
+	if isUpdate == "true" {
+
+		var updatePhotos models.ProfilePhoto
+
+		if err := c.BodyParser(&updatePhotos); err != nil {
+			// Handle parsing error
+			return err
+		}
+
+		var existingPhoto models.ProfilePhoto
+		err := initializers.DB.Where("profile_id = ?", updatePhotos.ProfileID).First(&existingPhoto).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				// Handle the case when the profile photo does not exist
+				return fmt.Errorf("profile photo not found for ProfileID: %d", updatePhotos.ProfileID)
+			}
+			// Handle other database errors
+			return err
+		}
+
+		existingFiles := existingPhoto.Files
+
+		existingPhoto.Files = updatePhotos.Files
+		err = initializers.DB.Save(&existingPhoto).Error
+		if err != nil {
+			// Handle the error when updating the record
+			return err
+		}
+
+		deleteRemovedFiles(existingFiles, updatePhotos.Files)
+
+		return c.JSON(existingPhoto)
+
+	}
+
+	var files []struct {
+		Path string `json:"path"`
+	}
+
+	if err := c.BodyParser(&files); err != nil {
+		// Handle parsing error
+		return err
+	}
+
+	type File struct {
+		Path string `json:"path"`
+	}
+
+	// Iterate over the files
+	for _, file := range files {
+		var existingPhoto models.ProfilePhoto
+		err := initializers.DB.Where("profile_id = ?", user.Profile[0].ID).First(&existingPhoto).Error
+		if err == gorm.ErrRecordNotFound {
+			// Photo does not exist, add a new record
+			newPhoto := models.ProfilePhoto{
+				ProfileID: user.Profile[0].ID,
+			}
+
+			// Append the file path to the existing Files field
+			var existingFiles []File
+			if err := existingPhoto.Files.AssignTo(&existingFiles); err != nil {
+				// Handle the error when assigning existing files
+				fmt.Println("Error assigning existing files:", err)
+			}
+			existingFiles = append(existingFiles, File{Path: file.Path})
+			newFiles, err := json.Marshal(existingFiles)
+			if err != nil {
+				// Handle the error when marshaling new files
+				fmt.Println("Error marshaling new files:", err)
+			}
+			newPhoto.Files.Set(newFiles)
+
+			err = initializers.DB.Create(&newPhoto).Error
+			if err != nil {
+				// Handle the error when creating a new record
+				fmt.Println("Error creating new profile photo:", err)
+			} else {
+				fmt.Println("Added new profile photo:", newPhoto.ID)
+			}
+		} else if err != nil {
+			// Handle other database errors
+			fmt.Println("Error querying profile photos:", err)
+		} else {
+			// Photo already exists, update the record if needed
+			// Append the file path to the existing Files field
+			var existingFiles []File
+			if err := existingPhoto.Files.AssignTo(&existingFiles); err != nil {
+				// Handle the error when assigning existing files
+				fmt.Println("Error assigning existing files:", err)
+			}
+			existingFiles = append(existingFiles, File{Path: file.Path})
+			newFiles, err := json.Marshal(existingFiles)
+			if err != nil {
+				// Handle the error when marshaling new files
+				fmt.Println("Error marshaling new files:", err)
+			}
+			existingPhoto.Files.Set(newFiles)
+
+			err = initializers.DB.Save(&existingPhoto).Error
+			if err != nil {
+				// Handle the error when updating the record
+				fmt.Println("Error updating profile photo:", err)
+			} else {
+				fmt.Println("Updated existing profile photo:", existingPhoto.ID)
+			}
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   "hashtag",
+	})
+}
+
+func AddHashTagProfile(c *fiber.Ctx) error {
+
+	var hashtag models.Hashtagsprofile
+	if err := c.BodyParser(&hashtag); err != nil {
+		return err
+	}
+
+	// Save the hashtag to the database
+	if err := initializers.DB.Create(&hashtag).Error; err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   hashtag,
+	})
+}
+
+func SearchHashTagProfile(c *fiber.Ctx) error {
+
+	// Get the name query parameter
+	name := c.Query("name")
+	// Check if the name is provided
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Name parameter is required",
+		})
+	}
+
+	// Find the cities with names similar to the search query (case-insensitive)
+	var hashtags []models.Hashtagsprofile
+	if err := initializers.DB.Where("hashtag ILIKE ?", "%"+name+"%").Find(&hashtags).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch cities from database",
+		})
+	}
+
+	// Return the matched cities as a JSON response
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   hashtags,
+	})
+}
