@@ -24,7 +24,6 @@ require (
 )
 
 require (
-	github.com/SevereCloud/vksdk/v2 v2.16.0 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/bitly/go-hostpool v0.1.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -56,7 +55,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/nikita-vanyasin/tinkoff v1.0.5 // indirect
+	github.com/nikita-vanyasin/tinkoff v1.0.5 // direct
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
