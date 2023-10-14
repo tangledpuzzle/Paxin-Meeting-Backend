@@ -96,7 +96,7 @@ type blogResponse struct {
 	CreatedAt  time.Time          `json:"createdAt"`
 	UpdatedAt  time.Time          `json:"updatedAt"`
 	User       userResponse       `json:"user"`
-	City       string             `json:"city"`
+	City       []string           `json:"city"`
 	Pined      bool               `json:"pined"`
 	Catygory   string             `json:"catygory"`
 	UniqId     string             `json:"uniqId"`
@@ -109,7 +109,7 @@ func GetAllBlogs(c *fiber.Ctx) error {
 	isArchive := c.Query("isArchive")
 
 	var blogs []models.Blog
-	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags")
+	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags").Preload("City")
 
 	if isArchive == "true" {
 		query = query.Where("status = ?", "ARCHIVED")
@@ -238,11 +238,25 @@ func CreateBlog(c *fiber.Ctx) error {
 	// Assign the retrieved Hashtags to the Blog instance
 	blog.Hashtags = hashtags
 
+	cities := []models.City{}
+	for _, cityName := range blog.City {
+
+		// Retrieve the City record from the database based on cityName
+		city := models.City{}
+		if err := initializers.DB.Where("name = ?", cityName.Name).First(&city).Error; err != nil {
+			// Handle the error if the city is not found
+			_ = err
+		}
+		cities = append(cities, city)
+	}
+
+	blog.City = cities
+
 	// Validate the required fields in the blog object
 
 	//blog.Content == "" ||
 
-	if blog.Descr == "" || blog.Title == "" || blog.City == "" || blog.Days == 0 || blog.Catygory == "" {
+	if blog.Descr == "" || blog.Title == "" || blog.Days == 0 || blog.Catygory == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Missing required fields in the request body",
@@ -375,7 +389,7 @@ func CreateBlog(c *fiber.Ctx) error {
 		}
 
 		forbot := forBot{
-			City:     blog.City,
+			// City:     blog.City,
 			Cat:      Data.Catygory,
 			Name:     Data.Title,
 			Total:    Data.Total,
@@ -937,7 +951,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 		}
 
 		forbot := forBot{
-			City:     blog.City,
+			// City:     blog.City,
 			Cat:      blog.Catygory,
 			Name:     blog.Title,
 			Total:    blog.Total,
@@ -1147,6 +1161,11 @@ func GetBlogById(c *fiber.Ctx) error {
 			hashtags[i] = tag.Hashtag
 		}
 
+		cities := make([]string, len(b.City))
+		for i, city := range b.City {
+			cities[i] = city.Name
+		}
+
 		userOnlineHours := make(TimeEntryScanner, len(b.User.OnlineHours))
 		for i, entry := range b.User.OnlineHours {
 			userOnlineHours[i] = TimeEntry{
@@ -1173,7 +1192,7 @@ func GetBlogById(c *fiber.Ctx) error {
 			Status:     b.Status,
 			Total:      b.Total,
 			Content:    b.Content,
-			City:       b.City,
+			City:       cities,
 			Views:      b.Views,
 			UserAvatar: b.UserAvatar,
 			Photos:     b.Photos,
@@ -1447,6 +1466,11 @@ func GetAll(c *fiber.Ctx) error {
 			}
 		}
 
+		cities := make([]string, len(b.City))
+		for i, city := range b.City {
+			cities[i] = city.Name
+		}
+
 		blogRes := &blogResponse{
 			ID:         b.ID,
 			Title:      b.Title,
@@ -1455,7 +1479,7 @@ func GetAll(c *fiber.Ctx) error {
 			Status:     b.Status,
 			Total:      b.Total,
 			Content:    b.Content,
-			City:       b.City,
+			City:       cities,
 			UserAvatar: b.UserAvatar,
 			Views:      b.Views,
 			Photos:     b.Photos,
@@ -1525,7 +1549,7 @@ func EditBlogGetId(c *fiber.Ctx) error {
 
 	var blog []models.Blog
 
-	err := utils.Paginate(c, initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
+	err := utils.Paginate(c, initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Preload("City").Preload("User"), &blog)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
@@ -1586,6 +1610,11 @@ func EditBlogGetId(c *fiber.Ctx) error {
 			}
 		}
 
+		cities := make([]string, len(b.City))
+		for i, city := range b.City {
+			cities[i] = city.Name
+		}
+
 		blogRes := &blogResponse{
 			ID:         b.ID,
 			Title:      b.Title,
@@ -1594,7 +1623,7 @@ func EditBlogGetId(c *fiber.Ctx) error {
 			Status:     b.Status,
 			Total:      b.Total,
 			Content:    b.Content,
-			City:       b.City,
+			City:       cities,
 			UserAvatar: b.UserAvatar,
 			Photos:     b.Photos,
 			CreatedAt:  b.CreatedAt,
@@ -1672,7 +1701,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 	type RequestBody struct {
 		Title    string   `json:"title"`
 		Descr    string   `json:"descr"`
-		City     string   `json:"city"`
+		City     []string `json:"city"`
 		Total    float64  `json:"total"`
 		Pined    bool     `json:"Pined"`
 		Hashtags []string `json:"hashtags"`
@@ -1752,11 +1781,32 @@ func UpdateBlog(c *fiber.Ctx) error {
 		updatedHashtags = append(updatedHashtags, hashtag)
 	}
 
+	// Retrieve or create new cities based on the request body
+	updatedCities := []models.City{}
+	for _, cityName := range requestBody.City {
+		city := models.City{}
+		if err := initializers.DB.Where("name = ?", cityName).First(&city, models.City{Name: cityName}).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Could not retrieve or create cities",
+			})
+		}
+		updatedCities = append(updatedCities, city)
+	}
+
 	// Remove the existing hashtags from the blog's association
 	if err := initializers.DB.Model(&blog).Association("Hashtags").Clear(); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Could not clear existing hashtags",
+		})
+	}
+
+	// Remove the existing city from the blog's association
+	if err := initializers.DB.Model(&blog).Association("City").Clear(); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not clear existing city",
 		})
 	}
 
@@ -1766,7 +1816,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 	blog.Catygory = requestBody.Catygory
 	blog.Title = requestBody.Title
 	blog.Descr = requestBody.Descr
-	blog.City = requestBody.City
+	blog.City = updatedCities
 	blog.Total = requestBody.Total
 	blog.Pined = requestBody.Pined
 

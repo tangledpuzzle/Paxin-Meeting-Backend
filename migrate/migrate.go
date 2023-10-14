@@ -38,6 +38,7 @@ func main() {
 	initializers.DB.AutoMigrate(&models.City{})
 	initializers.DB.AutoMigrate(&models.Payments{})
 	initializers.DB.AutoMigrate(&models.Guilds{})
+	initializers.DB.AutoMigrate(&models.GuildTranslation{})
 	initializers.DB.AutoMigrate(&models.Profile{})
 	initializers.DB.AutoMigrate(&models.OnlineStorage{})
 	initializers.DB.AutoMigrate(&models.Codes{})
@@ -203,23 +204,68 @@ func main() {
 
 	}
 
-	fileGuilds, err := ioutil.ReadFile("migrate/guilds.json")
+	// Считать данные из guilds.json
+	fileGuilds, err := os.ReadFile("migrate/guilds.json")
 	if err != nil {
 		log.Fatal("Could not read guilds.json file:", err)
 	}
 
-	var Guilds []models.Guilds
-	err = json.Unmarshal(fileGuilds, &Guilds)
+	var guildsData []struct {
+		ID  uint   `json:"id"`
+		Hex string `json:"hex"`
+	}
+
+	err = json.Unmarshal(fileGuilds, &guildsData)
 	if err != nil {
 		log.Fatal("Could not parse guilds.json file:", err)
 	}
 
-	for _, station := range Guilds {
-		err := initializers.DB.Create(&station).Error
+	// Создать записи в таблице Guilds
+	for _, guildData := range guildsData {
+		guild := models.Guilds{
+			ID:        guildData.ID,
+			Hex:       guildData.Hex,
+			UpdatedAt: time.Now(), // Укажите соответствующее время
+		}
+		err := initializers.DB.Create(&guild).Error
 		if err != nil {
-			log.Fatalf("Could not create station %s: %s", station.Name, err)
+			log.Fatalf("Could not create guild with ID %d: %s", guildData.ID, err)
 		}
 	}
+
+	// Считать данные из guilds_trans.json
+	fileTranslations, err := os.ReadFile("migrate/guilds_tr.json")
+	if err != nil {
+		log.Fatal("Could not read guilds_trans.json file:", err)
+	}
+
+	var translationsData []struct {
+		ID       uint   `json:"id"`
+		GuildID  uint   `json:"GuildID"`
+		Language string `json:"Language"`
+		Name     string `json:"Name"`
+	}
+
+	err = json.Unmarshal(fileTranslations, &translationsData)
+	if err != nil {
+		log.Fatal("Could not parse guilds_trans.json file:", err)
+	}
+
+	// Создать записи в таблице GuildTranslation
+	for _, translationData := range translationsData {
+		translation := models.GuildTranslation{
+			ID:       translationData.ID,
+			GuildID:  translationData.GuildID,
+			Language: translationData.Language,
+			Name:     translationData.Name,
+		}
+		err := initializers.DB.Create(&translation).Error
+		if err != nil {
+			log.Fatalf("Could not create translation with ID %d: %s", translationData.ID, err)
+		}
+	}
+
+	fmt.Println("✅ Guilds and translations saved successfully")
 
 	fmt.Println("✅ Guilds saved successfully")
 

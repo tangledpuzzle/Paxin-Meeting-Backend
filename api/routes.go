@@ -52,7 +52,17 @@ func Register(micro *fiber.App) {
 		router.Post("/setvip", middleware.DeserializeUser, controllers.SetVipUser)
 
 		router.Post("/sendrequestcall", controllers.SendBotCallRequest)
-		router.Get("/me", middleware.DeserializeUser, controllers.GetMe)
+		// router.Get("/me", middleware.DeserializeUser, controllers.GetMe)
+		router.Get("/me", func(c *fiber.Ctx) error {
+			// Capture the language from the URL, headers, or any other source.
+			language := c.Query("language") // Example: ?language=en
+
+			// Set the language in the context for middleware.
+			c.Locals("language", language)
+
+			// Call the DeserializeUser middleware.
+			return middleware.DeserializeUser(c)
+		}, controllers.GetMe)
 		router.Get("/getmefirst", middleware.DeserializeUser, controllers.GetMeFirst)
 		router.Post("/addbalance", middleware.DeserializeUser, controllers.AddBalance)
 		router.Post("/plan", middleware.DeserializeUser, controllers.Plan)

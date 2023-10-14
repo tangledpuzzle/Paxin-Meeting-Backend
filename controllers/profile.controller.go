@@ -39,10 +39,12 @@ import (
 
 func GetAllProfile(c *fiber.Ctx) error {
 
+	language := c.Query("language")
+
 	var profiles []models.Profile
 	query := initializers.DB.
 		Order("created_at DESC").
-		Preload("Guilds").
+		Preload("Guilds.Translations", "language = ?", language).
 		Preload("Hashtags").
 		Preload("City").
 		Preload("Photos").
@@ -94,9 +96,16 @@ func GetAllProfile(c *fiber.Ctx) error {
 
 	if category != "" && category != "all" {
 		catValues := strings.Split(category, ",")
+		// Subquery to fetch the translated guild name
+		subquery := initializers.DB.Model(&models.GuildTranslation{}).
+			Select("guild_id, name").
+			Where("language = ?", language) // Replace "your_language" with the desired language code
+
+		// Main query to join profiles with guilds and use the translated name
 		query = query.Joins("JOIN profiles_guilds ON profiles.id = profiles_guilds.profile_id").
 			Joins("JOIN guilds ON profiles_guilds.guilds_id = guilds.id").
-			Where("guilds.name = ?", catValues)
+			Joins("JOIN (?) as translated_guilds ON guilds.id = translated_guilds.guild_id", subquery).
+			Where("translated_guilds.name IN (?)", catValues)
 	}
 
 	if hashtags != "" && hashtags != "all" {
@@ -151,9 +160,10 @@ func GetAllProfile(c *fiber.Ctx) error {
 
 func GetProfile(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
+	language := c.Query("language")
 
 	var profile models.Profile
-	if err := initializers.DB.Preload("Guilds").Preload("Hashtags").Preload("City").Preload("Photos").First(&profile, "user_id = ?", user.ID).Error; err != nil {
+	if err := initializers.DB.Preload("Guilds.Translations", "language = ?", language).Preload("Hashtags").Preload("City").Preload("Photos").First(&profile, "user_id = ?", user.ID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"status":  "error",
@@ -174,6 +184,7 @@ func GetProfile(c *fiber.Ctx) error {
 
 func GetProfileGuest(c *fiber.Ctx) error {
 
+	language := c.Query("language")
 	var access_token string
 	authorization := c.Get("Authorization")
 
@@ -193,7 +204,7 @@ func GetProfileGuest(c *fiber.Ctx) error {
 
 		name := c.Params("name")
 		var profile models.User
-		if err := initializers.DB.Preload("Followers").Preload("Followings").Preload("Followings.Followers").Preload("Profile.Guilds").Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City").Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
+		if err := initializers.DB.Preload("Followers").Preload("Followings").Preload("Followings.Followers").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City").Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 					"status":  "error",
@@ -235,7 +246,7 @@ func GetProfileGuest(c *fiber.Ctx) error {
 
 		name := c.Params("name")
 		var profile models.User
-		if err := initializers.DB.Preload("Followings").Preload("Followers").Preload("Profile.Guilds").Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City").Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
+		if err := initializers.DB.Preload("Followings").Preload("Followers").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City").Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 					"status":  "error",

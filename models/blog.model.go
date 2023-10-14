@@ -9,32 +9,31 @@ import (
 )
 
 type Blog struct {
-	ID          uint64        `gorm:"primaryKey"`
-	Title       string        `gorm:"not null"`
-	Descr       string        `gorm:"not null"`
-	Slug        string        `gorm:"not null"`
-	Content     string        `gorm:"null"`
-	Status      string        `gorm:"not null"`
-	Sticker     string        `gorm:"not null;default:standart"`
-	City        string        `gorm:"not null"`
-	Catygory    string        `gorm:"not null;default:0"`
-	UniqId      string        `gorm:"not null;default:0"`
-	Days        int           `gorm:"not null;default:3"`
-	Views       int           `gorm:"not null;default:0"`
-	Total       float64       `gorm:"null"`
-	TmId        float64       `gorm:"not null;default:0"`
-	Photos      []BlogPhoto   `json:"photos"`
-	transaction []Transaction `gorm:"not null"`
-	NotAds      bool          `gorm:"not null;default:true"`
-	User        User          `gorm:"foreignKey:UserID"`
-	UserAvatar  string        `gorm:"not null"`
-	Pined		bool		  `gorm:"not null;default:false"`
-	UserID      uuid.UUID     `gorm:"type:uuid;not null"`
-	CreatedAt   time.Time     `gorm:"not null"`
-	UpdatedAt   time.Time     `gorm:"not null"`
-	DeletedAt   *time.Time    `gorm:"index"`
-	ExpiredAt   *time.Time    `gorm:"index"`
-	Hashtags    []Hashtags    `gorm:"many2many:blog_hashtags;"`
+	ID         uint64      `gorm:"primaryKey"`
+	Title      string      `gorm:"not null"`
+	Descr      string      `gorm:"not null"`
+	Slug       string      `gorm:"not null"`
+	Content    string      `gorm:"null"`
+	Status     string      `gorm:"not null"`
+	Sticker    string      `gorm:"not null;default:standart"`
+	City       []City      `gorm:"many2many:blog_city;"`
+	Catygory   string      `gorm:"not null;default:0"`
+	UniqId     string      `gorm:"not null;default:0"`
+	Days       int         `gorm:"not null;default:3"`
+	Views      int         `gorm:"not null;default:0"`
+	Total      float64     `gorm:"null"`
+	TmId       float64     `gorm:"not null;default:0"`
+	Photos     []BlogPhoto `json:"photos"`
+	NotAds     bool        `gorm:"not null;default:true"`
+	User       User        `gorm:"foreignKey:UserID"`
+	UserAvatar string      `gorm:"not null"`
+	Pined      bool        `gorm:"not null;default:false"`
+	UserID     uuid.UUID   `gorm:"type:uuid;not null"`
+	CreatedAt  time.Time   `gorm:"not null"`
+	UpdatedAt  time.Time   `gorm:"not null"`
+	DeletedAt  *time.Time  `gorm:"index"`
+	ExpiredAt  *time.Time  `gorm:"index"`
+	Hashtags   []Hashtags  `gorm:"many2many:blog_hashtags;"`
 }
 
 type BlogResponse struct {
@@ -48,10 +47,10 @@ type BlogResponse struct {
 	Content   string       `json:"content"`
 	Status    string       `json:"status"`
 	UniqId    string       `json:"uniqId"`
-	City      string       `json:"city"`
+	City      []string     `json:"city"`
 	Sticker   string       `json:"sticker"`
 	Total     float64      `json:"total"`
-	Pined 	  bool 	       `json:"pined"`
+	Pined     bool         `json:"pined"`
 	UserID    uuid.UUID    `json:"userId"`
 	TmId      float64      `gorm:"tId"`
 	CreatedAt time.Time    `json:"createdAt"`
@@ -70,7 +69,7 @@ type CreateBlogInput struct {
 	Total    float64     `json:"total" validate:"min=2,max=100"`
 	Status   string      `json:"status" validate:"required,min=10"`
 	Descr    string      `json:"descr" validate:"required,min=10,max=300"`
-	City     string      `json:"city" validate:"required"`
+	City     []string    `json:"city" validate:"required"`
 	Slug     string      `json:"slug" validate:"required"`
 	Catygory string      `json:"category" validate:"required"`
 	Days     int         `json:"days" validate:"required"`

@@ -65,8 +65,8 @@ type User struct {
 	Plan               string     `gorm:"not null;default:standart"`
 	Signed             bool       `gorm:"not null;default:false"`
 	ExpiredPlanAt      *time.Time `gorm:"index"`
-	Tcid			   int64	  `gorm:"null;"`
-	TotalFollowers	   int64	  `gorm:"null;default:0"`
+	Tcid               int64      `gorm:"null;"`
+	TotalFollowers     int64      `gorm:"null;default:0"`
 	VerificationCode   string
 	PasswordResetToken string
 	TelegramActivated  bool `gorm:"not null;default:false"`
@@ -90,13 +90,10 @@ type User struct {
 	LimitStorage       int              `gorm:"not null;default:20"`
 	LastOnline         time.Time        `json:"last_online"`
 	Online             bool             `json:"online"`
-	Domains  		   []Domain		    `json:"domains"`
-    Followings 		   []*User 			`gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id"`
-    Followers          []*User 			`gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id"`
-
-
+	Domains            []Domain         `json:"domains"`
+	Followings         []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id"`
+	Followers          []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id"`
 }
-
 
 type Role string
 
@@ -118,15 +115,12 @@ type SignInInput struct {
 	Password string `json:"password"  validate:"required"`
 }
 
-
-
-
 type DomainResponse struct {
-    ID       uint64        `json:"id"`
-    UserID   string        `json:"user_id"`
-    Username string        `json:"username"`
-    Name     string        `json:"name"`
-    Settings map[string]interface{} `json:"settings"`
+	ID       uint64                 `json:"id"`
+	UserID   string                 `json:"user_id"`
+	Username string                 `json:"username"`
+	Name     string                 `json:"name"`
+	Settings map[string]interface{} `json:"settings"`
 }
 
 type UserResponse struct {
@@ -156,28 +150,33 @@ type UserResponse struct {
 	Online            bool              `bool:"online"`
 	TotalBlogs        int               `json:"totalblogs"`
 	TotalRestBlogs    int               `json:"totalrestblog"`
-    Domains 		  []Domain          `json:"domains"`
-	Followings 		  []*User 			`json:"followings"`
-    Followers         []*User 			`json:"followers"`
+	Domains           []Domain          `json:"domains"`
+	Followings        []*User           `json:"followings"`
+	Followers         []*User           `json:"followers"`
 	TotalFollowers    int64             `json:"totalfollowers"`
-
 }
 
-func FilterUserRecord(user *User) UserResponse {
+func FilterUserRecord(user *User, language string) UserResponse {
 	var profileResponses []ProfileResponse
 
 	for _, profile := range user.Profile {
 		profileResponse := ProfileResponse{
-			ID:       profile.ID,
+			ID: profile.ID,
 			// Lastname: profile.Lastname,
 			// MiddleN:  profile.MiddleN,
-			Descr:    profile.Descr,
+			Descr: profile.Descr,
 		}
 
 		guilds := make([]string, 0, len(profile.Guilds))
+
 		for _, guild := range profile.Guilds {
-			guilds = append(guilds, guild.Name)
+			for _, translation := range guild.Translations {
+				if translation.Language == language {
+					guilds = append(guilds, translation.Name)
+				}
+			}
 		}
+
 		profileResponse.Guilds = guilds
 
 		hashtags := make([]string, 0, len(profile.Hashtags))
@@ -226,7 +225,7 @@ func FilterUserRecord(user *User) UserResponse {
 		ExpiredPlanAt:     user.ExpiredPlanAt,
 		Signed:            user.Signed,
 		TotalRestBlogs:    user.TotalRestBlogs,
-		Followings: 	   user.Followings,
+		Followings:        user.Followings,
 		Followers:         user.Followers,
 		TotalFollowers:    user.TotalFollowers,
 	}

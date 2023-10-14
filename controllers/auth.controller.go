@@ -150,7 +150,7 @@ func SignUpUser(c *fiber.Ctx) error {
 
 	utils.SendEmail(&newUser, &emailData, "base.html")
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser)}})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, "ru")}})
 }
 
 func VerifyEmail(c *fiber.Ctx) error {
