@@ -1332,7 +1332,7 @@ func DeleteBlog(c *fiber.Ctx) error {
 func GetAll(c *fiber.Ctx) error {
 	var blogs []models.Blog
 
-	query := initializers.DB.Order("created_at DESC").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
+	query := initializers.DB.Order("created_at DESC").Preload("City").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
 
 	// Get the query parameters
 	city := c.Query("city")
