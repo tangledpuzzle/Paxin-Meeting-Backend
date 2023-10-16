@@ -17,7 +17,7 @@ type Blog struct {
 	Status     string      `gorm:"not null"`
 	Sticker    string      `gorm:"not null;default:standart"`
 	City       []City      `gorm:"many2many:blog_city;"`
-	Catygory   string      `gorm:"not null;default:0"`
+	Catygory   []Guilds    `gorm:"many2many:blog_guilds;"`
 	UniqId     string      `gorm:"not null;default:0"`
 	Days       int         `gorm:"not null;default:3"`
 	Views      int         `gorm:"not null;default:0"`
@@ -39,7 +39,7 @@ type Blog struct {
 type BlogResponse struct {
 	ID        uint64       `json:"id"`
 	Title     string       `json:"title"`
-	Catygory  string       `json:"catygory"`
+	Catygory  []string     `json:"catygory"`
 	Days      int          `json:"days"`
 	Views     int          `json:"views"`
 	Descr     string       `json:"descr"`

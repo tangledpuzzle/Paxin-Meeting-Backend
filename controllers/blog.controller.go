@@ -98,7 +98,7 @@ type blogResponse struct {
 	User       userResponse       `json:"user"`
 	City       []string           `json:"city"`
 	Pined      bool               `json:"pined"`
-	Catygory   string             `json:"catygory"`
+	Catygory   []string           `json:"catygory"`
 	UniqId     string             `json:"uniqId"`
 	Sticker    string             `json:"sticker"`
 	Hashtags   []string           `json:"hashtags"`
@@ -107,9 +107,10 @@ type blogResponse struct {
 func GetAllBlogs(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 	isArchive := c.Query("isArchive")
+	language := c.Query("language")
 
 	var blogs []models.Blog
-	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags").Preload("City")
+	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags").Preload("City").Preload("Catygory.Translations", "language = ?", language)
 
 	if isArchive == "true" {
 		query = query.Where("status = ?", "ARCHIVED")
@@ -256,7 +257,7 @@ func CreateBlog(c *fiber.Ctx) error {
 
 	//blog.Content == "" ||
 
-	if blog.Descr == "" || blog.Title == "" || blog.Days == 0 || blog.Catygory == "" {
+	if blog.Descr == "" || blog.Title == "" || blog.Days == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Missing required fields in the request body",
@@ -390,7 +391,7 @@ func CreateBlog(c *fiber.Ctx) error {
 
 		forbot := forBot{
 			// City:     blog.City,
-			Cat:      Data.Catygory,
+			// Cat:      Data.Catygory,
 			Name:     Data.Title,
 			Total:    Data.Total,
 			Url:      "https://paxintrade.com/" + Data.UniqId + "/" + Data.Slug,
@@ -952,7 +953,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 
 		forbot := forBot{
 			// City:     blog.City,
-			Cat:      blog.Catygory,
+			// Cat:      blog.Catygory,
 			Name:     blog.Title,
 			Total:    blog.Total,
 			Hashtags: hashtags,
@@ -1166,6 +1167,11 @@ func GetBlogById(c *fiber.Ctx) error {
 			cities[i] = city.Name
 		}
 
+		categories := make([]string, len(b.Catygory))
+		for i, category := range b.Catygory {
+			categories[i] = strconv.Itoa(int(category.ID))
+		}
+
 		userOnlineHours := make(TimeEntryScanner, len(b.User.OnlineHours))
 		for i, entry := range b.User.OnlineHours {
 			userOnlineHours[i] = TimeEntry{
@@ -1198,7 +1204,7 @@ func GetBlogById(c *fiber.Ctx) error {
 			Photos:     b.Photos,
 			CreatedAt:  b.CreatedAt,
 			UpdatedAt:  b.UpdatedAt,
-			Catygory:   b.Catygory,
+			Catygory:   categories,
 			Sticker:    b.Sticker,
 			User: userResponse{
 				TId:              b.User.Tid,
@@ -1332,7 +1338,7 @@ func DeleteBlog(c *fiber.Ctx) error {
 func GetAll(c *fiber.Ctx) error {
 	var blogs []models.Blog
 
-	query := initializers.DB.Order("created_at DESC").Preload("City").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
+	query := initializers.DB.Order("created_at DESC").Preload("Catygory").Preload("City").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
 
 	// Get the query parameters
 	city := c.Query("city")
@@ -1471,6 +1477,11 @@ func GetAll(c *fiber.Ctx) error {
 			cities[i] = city.Name
 		}
 
+		categories := make([]string, len(b.Catygory))
+		for i, category := range b.Catygory {
+			categories[i] = strconv.Itoa(int(category.ID))
+		}
+
 		blogRes := &blogResponse{
 			ID:         b.ID,
 			Title:      b.Title,
@@ -1486,7 +1497,7 @@ func GetAll(c *fiber.Ctx) error {
 			CreatedAt:  b.CreatedAt,
 			UpdatedAt:  b.UpdatedAt,
 			Pined:      b.Pined,
-			Catygory:   b.Catygory,
+			Catygory:   categories,
 			UniqId:     b.UniqId,
 			Sticker:    b.Sticker,
 			User: userResponse{
@@ -1615,6 +1626,11 @@ func EditBlogGetId(c *fiber.Ctx) error {
 			cities[i] = city.Name
 		}
 
+		categories := make([]string, len(b.Catygory))
+		for i, category := range b.Catygory {
+			categories[i] = strconv.Itoa(int(category.ID))
+		}
+
 		blogRes := &blogResponse{
 			ID:         b.ID,
 			Title:      b.Title,
@@ -1628,7 +1644,7 @@ func EditBlogGetId(c *fiber.Ctx) error {
 			Photos:     b.Photos,
 			CreatedAt:  b.CreatedAt,
 			UpdatedAt:  b.UpdatedAt,
-			Catygory:   b.Catygory,
+			Catygory:   categories,
 			Sticker:    b.Sticker,
 			User: userResponse{
 				TId:              b.User.Tid,
@@ -1813,7 +1829,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 	// Assign the updated Hashtags to the Blog instance
 	blog.Hashtags = updatedHashtags
 
-	blog.Catygory = requestBody.Catygory
+	// blog.Catygory = requestBody.Catygory
 	blog.Title = requestBody.Title
 	blog.Descr = requestBody.Descr
 	blog.City = updatedCities
