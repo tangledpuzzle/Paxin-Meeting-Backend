@@ -158,7 +158,6 @@ type UserResponse struct {
 
 func FilterUserRecord(user *User, language string) UserResponse {
 	var profileResponses []ProfileResponse
-
 	for _, profile := range user.Profile {
 		profileResponse := ProfileResponse{
 			ID: profile.ID,
@@ -168,11 +167,12 @@ func FilterUserRecord(user *User, language string) UserResponse {
 		}
 
 		guilds := make([]string, 0, len(profile.Guilds))
-
 		for _, guild := range profile.Guilds {
 			for _, translation := range guild.Translations {
+
 				if translation.Language == language {
-					guilds = append(guilds, translation.Name)
+					pair := fmt.Sprintf(`{"id": "%d", "name": "%s"}`, translation.GuildID, translation.Name)
+					guilds = append(guilds, pair)
 				}
 			}
 		}
@@ -187,7 +187,8 @@ func FilterUserRecord(user *User, language string) UserResponse {
 
 		cities := make([]string, 0, len(profile.City))
 		for _, city := range profile.City {
-			cities = append(cities, city.Name)
+			pair := fmt.Sprintf(`{"id": "%d", "name": "%s"}`, city.ID, city.Name)
+			cities = append(cities, pair)
 		}
 		profileResponse.City = cities
 

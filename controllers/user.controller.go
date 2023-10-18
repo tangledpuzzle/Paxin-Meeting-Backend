@@ -304,6 +304,8 @@ func GetMe(c *fiber.Ctx) error {
 
 	user := c.Locals("user").(models.UserResponse)
 
+	fmt.Println(user)
+
 	billing := models.Billing{}
 	result := initializers.DB.Where("user_id = ?", user.ID).First(&billing)
 	if result.Error != nil {

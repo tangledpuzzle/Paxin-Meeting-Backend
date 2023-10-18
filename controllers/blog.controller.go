@@ -239,21 +239,23 @@ func CreateBlog(c *fiber.Ctx) error {
 	// Assign the retrieved Hashtags to the Blog instance
 	blog.Hashtags = hashtags
 
-	cities := []models.City{}
-	for _, cityName := range blog.City {
+	// cities := []models.City{}
+	// for _, cityName := range blog.City {
 
-		// Retrieve the City record from the database based on cityName
-		city := models.City{}
-		if err := initializers.DB.Where("name = ?", cityName.Name).First(&city).Error; err != nil {
-			// Handle the error if the city is not found
-			_ = err
-		}
-		cities = append(cities, city)
-	}
+	// 	// Retrieve the City record from the database based on cityName
+	// 	city := models.City{}
+	// 	if err := initializers.DB.Where("name = ?", cityName.Name).First(&city).Error; err != nil {
+	// 		// Handle the error if the city is not found
+	// 		_ = err
+	// 	}
+	// 	cities = append(cities, city)
+	// }
 
-	blog.City = cities
+	// blog.City = cities
 
 	// Validate the required fields in the blog object
+
+	// Assuming you have a field in the blog struct to store these translations, set it here.
 
 	//blog.Content == "" ||
 
@@ -1337,8 +1339,9 @@ func DeleteBlog(c *fiber.Ctx) error {
 // }
 func GetAll(c *fiber.Ctx) error {
 	var blogs []models.Blog
+	language := c.Query("language")
 
-	query := initializers.DB.Order("created_at DESC").Preload("Catygory").Preload("City").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
+	query := initializers.DB.Order("created_at DESC").Preload("Catygory.Translations", "language = ?", language).Preload("City").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
 
 	// Get the query parameters
 	city := c.Query("city")
