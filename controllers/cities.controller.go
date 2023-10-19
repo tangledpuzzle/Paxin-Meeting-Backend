@@ -26,29 +26,29 @@ func GetCities(c *fiber.Ctx) error {
 
 func GetName(c *fiber.Ctx) error {
 	// Get the name query parameter
+	// Get the name and lang query parameters
 	name := c.Query("name")
+	lang := c.Query("lang")
 
-	// Check if the name is provided
-	if name == "" {
+	// Check if the name and lang parameters are provided
+	if name == "" || lang == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Name parameter is required",
+			"message": "Both 'name' and 'lang' parameters are required",
 		})
 	}
 
-	// Find the cities with names similar to the search query (case-insensitive)
 	var cities []models.City
-	if err := initializers.DB.Where("name ILIKE ?", "%"+name+"%").Find(&cities).Error; err != nil {
+	if err := initializers.DB.
+		Joins("JOIN city_translations ON cities.id = city_translations.city_id").
+		Preload("Translations", "language = ?", lang).
+		Where("city_translations.name ILIKE ? AND city_translations.language = ?", "%"+name+"%", lang).
+		Find(&cities).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Failed to fetch cities from database",
+			"message": "Failed to fetch cities from the database",
 		})
 	}
-	// var cityNames []string
-	// for _, city := range cities {
-	// 	cityNames = append(cityNames, city.Name)
-	// }
-
 
 	// Return the matched cities as a JSON response
 	return c.JSON(fiber.Map{

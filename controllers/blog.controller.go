@@ -82,6 +82,16 @@ type userResponse struct {
 	TotalRestBlogs   int              `json:"totalrestblog"`
 }
 
+type CategoryJSON struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
+type CityJSON struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
 type blogResponse struct {
 	ID         uint64             `json:"id"`
 	Title      string             `json:"title"`
@@ -96,9 +106,9 @@ type blogResponse struct {
 	CreatedAt  time.Time          `json:"createdAt"`
 	UpdatedAt  time.Time          `json:"updatedAt"`
 	User       userResponse       `json:"user"`
-	City       []string           `json:"city"`
+	City       []CityJSON         `json:"city"`
 	Pined      bool               `json:"pined"`
-	Catygory   []string           `json:"catygory"`
+	Catygory   []CategoryJSON     `json:"catygory"`
 	UniqId     string             `json:"uniqId"`
 	Sticker    string             `json:"sticker"`
 	Hashtags   []string           `json:"hashtags"`
@@ -110,7 +120,7 @@ func GetAllBlogs(c *fiber.Ctx) error {
 	language := c.Query("language")
 
 	var blogs []models.Blog
-	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags").Preload("City").Preload("Catygory.Translations", "language = ?", language)
+	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags").Preload("City.Translations", "language = ?", language).Preload("Catygory.Translations", "language = ?", language)
 
 	if isArchive == "true" {
 		query = query.Where("status = ?", "ARCHIVED")
@@ -1141,10 +1151,11 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 func GetBlogById(c *fiber.Ctx) error {
 	blogID := c.Params("id")
 	uniqId := c.Get("name")
+	language := c.Query("language")
 
 	var blog []models.Blog
 
-	err := utils.Paginate(c, initializers.DB.Where("slug = ? AND uniq_id = ?", blogID, uniqId).First(&blog).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
+	err := utils.Paginate(c, initializers.DB.Where("slug = ? AND uniq_id = ?", blogID, uniqId).First(&blog).Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
@@ -1164,14 +1175,22 @@ func GetBlogById(c *fiber.Ctx) error {
 			hashtags[i] = tag.Hashtag
 		}
 
-		cities := make([]string, len(b.City))
+		cities := make([]CityJSON, len(b.City))
 		for i, city := range b.City {
-			cities[i] = city.Name
+			cityJSON := CityJSON{
+				ID:   city.ID,
+				Name: city.Translations[i].Name,
+			}
+			cities[i] = cityJSON
 		}
 
-		categories := make([]string, len(b.Catygory))
+		categories := make([]CategoryJSON, len(b.Catygory))
 		for i, category := range b.Catygory {
-			categories[i] = strconv.Itoa(int(category.ID))
+			categoryJSON := CategoryJSON{
+				ID:   category.ID,
+				Name: category.Translations[i].Name,
+			}
+			categories[i] = categoryJSON
 		}
 
 		userOnlineHours := make(TimeEntryScanner, len(b.User.OnlineHours))
@@ -1341,7 +1360,7 @@ func GetAll(c *fiber.Ctx) error {
 	var blogs []models.Blog
 	language := c.Query("language")
 
-	query := initializers.DB.Order("created_at DESC").Preload("Catygory.Translations", "language = ?", language).Preload("City").Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
+	query := initializers.DB.Order("created_at DESC").Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
 
 	// Get the query parameters
 	city := c.Query("city")
@@ -1475,14 +1494,22 @@ func GetAll(c *fiber.Ctx) error {
 			}
 		}
 
-		cities := make([]string, len(b.City))
+		cities := make([]CityJSON, len(b.City))
 		for i, city := range b.City {
-			cities[i] = city.Name
+			cityJSON := CityJSON{
+				ID:   city.ID,
+				Name: city.Translations[i].Name,
+			}
+			cities[i] = cityJSON
 		}
 
-		categories := make([]string, len(b.Catygory))
+		categories := make([]CategoryJSON, len(b.Catygory))
 		for i, category := range b.Catygory {
-			categories[i] = strconv.Itoa(int(category.ID))
+			categoryJSON := CategoryJSON{
+				ID:   category.ID,
+				Name: category.Translations[i].Name,
+			}
+			categories[i] = categoryJSON
 		}
 
 		blogRes := &blogResponse{
@@ -1563,7 +1590,7 @@ func EditBlogGetId(c *fiber.Ctx) error {
 
 	var blog []models.Blog
 
-	err := utils.Paginate(c, initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Preload("City").Preload("User"), &blog)
+	err := utils.Paginate(c, initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Preload("City.Translations", "language = ?", "en").Preload("Catygory.Translations", "language = ?", "en").Preload("User"), &blog)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
@@ -1624,14 +1651,22 @@ func EditBlogGetId(c *fiber.Ctx) error {
 			}
 		}
 
-		cities := make([]string, len(b.City))
+		cities := make([]CityJSON, len(b.City))
 		for i, city := range b.City {
-			cities[i] = city.Name
+			cityJSON := CityJSON{
+				ID:   city.ID,
+				Name: city.Translations[i].Name,
+			}
+			cities[i] = cityJSON
 		}
 
-		categories := make([]string, len(b.Catygory))
+		categories := make([]CategoryJSON, len(b.Catygory))
 		for i, category := range b.Catygory {
-			categories[i] = strconv.Itoa(int(category.ID))
+			categoryJSON := CategoryJSON{
+				ID:   category.ID,
+				Name: category.Translations[i].Name,
+			}
+			categories[i] = categoryJSON
 		}
 
 		blogRes := &blogResponse{
@@ -1700,7 +1735,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 
 	var blog models.Blog
 
-	err := initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Error
+	err := initializers.DB.Where("id = ?", blogID).First(&blog).Preload("City").Preload("Hashtags").Preload("Photos").Error
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
@@ -1724,8 +1759,9 @@ func UpdateBlog(c *fiber.Ctx) error {
 		Total    float64  `json:"total"`
 		Pined    bool     `json:"Pined"`
 		Hashtags []string `json:"hashtags"`
-		Catygory string   `json:"catygory"`
-		Photos   []struct {
+		Catygory []string `json:"catygory"`
+
+		Photos []struct {
 			ID        int64  `json:"ID"`
 			BlogID    int64  `json:"BlogID"`
 			CreatedAt string `json:"CreatedAt"`
@@ -1800,18 +1836,18 @@ func UpdateBlog(c *fiber.Ctx) error {
 		updatedHashtags = append(updatedHashtags, hashtag)
 	}
 
-	// Retrieve or create new cities based on the request body
-	updatedCities := []models.City{}
-	for _, cityName := range requestBody.City {
-		city := models.City{}
-		if err := initializers.DB.Where("name = ?", cityName).First(&city, models.City{Name: cityName}).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"status":  "error",
-				"message": "Could not retrieve or create cities",
-			})
-		}
-		updatedCities = append(updatedCities, city)
-	}
+	// // Retrieve or create new cities based on the request body
+	// updatedCities := []models.City{}
+	// for _, cityName := range requestBody.City {
+	// 	city := models.City{}
+	// 	if err := initializers.DB.Where("name = ?", cityName).First(&city, models.City{Name: cityName}).Error; err != nil {
+	// 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 			"status":  "error",
+	// 			"message": "Could not retrieve or create cities",
+	// 		})
+	// 	}
+	// 	updatedCities = append(updatedCities, city)
+	// }
 
 	// Remove the existing hashtags from the blog's association
 	if err := initializers.DB.Model(&blog).Association("Hashtags").Clear(); err != nil {
@@ -1835,7 +1871,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 	// blog.Catygory = requestBody.Catygory
 	blog.Title = requestBody.Title
 	blog.Descr = requestBody.Descr
-	blog.City = updatedCities
+	// blog.City = updatedCities
 	blog.Total = requestBody.Total
 	blog.Pined = requestBody.Pined
 

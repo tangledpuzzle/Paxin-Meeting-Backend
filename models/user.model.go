@@ -160,16 +160,13 @@ func FilterUserRecord(user *User, language string) UserResponse {
 	var profileResponses []ProfileResponse
 	for _, profile := range user.Profile {
 		profileResponse := ProfileResponse{
-			ID: profile.ID,
-			// Lastname: profile.Lastname,
-			// MiddleN:  profile.MiddleN,
+			ID:    profile.ID,
 			Descr: profile.Descr,
 		}
 
 		guilds := make([]string, 0, len(profile.Guilds))
 		for _, guild := range profile.Guilds {
 			for _, translation := range guild.Translations {
-
 				if translation.Language == language {
 					pair := fmt.Sprintf(`{"id": "%d", "name": "%s"}`, translation.GuildID, translation.Name)
 					guilds = append(guilds, pair)
@@ -187,9 +184,15 @@ func FilterUserRecord(user *User, language string) UserResponse {
 
 		cities := make([]string, 0, len(profile.City))
 		for _, city := range profile.City {
-			pair := fmt.Sprintf(`{"id": "%d", "name": "%s"}`, city.ID, city.Name)
-			cities = append(cities, pair)
+			for _, translation := range city.Translations {
+
+				if translation.Language == language {
+					pair := fmt.Sprintf(`{"id": "%d", "name": "%s"}`, translation.CityID, translation.Name)
+					cities = append(cities, pair)
+				}
+			}
 		}
+
 		profileResponse.City = cities
 
 		profileResponse.Photos = profile.Photos

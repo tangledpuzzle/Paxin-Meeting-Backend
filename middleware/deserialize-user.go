@@ -40,7 +40,13 @@ func DeserializeUser(c *fiber.Ctx) error {
 	}
 
 	var user models.User
-	err = initializers.DB.Preload("Followings").Preload("Followers").Preload("Profile.City").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Hashtags").Preload("Profile.Photos").First(&user, "id = ?", tokenClaims.UserID).Error
+	err = initializers.DB.Preload("Followings").
+		Preload("Followers").
+		Preload("Profile.City.Translations", "language = ?", language).
+		Preload("Profile.Guilds.Translations", "language = ?", language).
+		Preload("Profile.Hashtags").
+		Preload("Profile.Photos").
+		First(&user, "id = ?", tokenClaims.UserID).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": "the user belonging to this token no longer exists"})

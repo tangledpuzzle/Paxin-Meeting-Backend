@@ -18,11 +18,9 @@ func (j JSONB) Value() (interface{}, error) {
 }
 
 type Profile struct {
-	ID        uint64    `gorm:"primaryKey"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null"`
-	Firstname string    `gorm:"not null"`
-	// Lastname   string        `gorm:"not null"`
-	// MiddleN    string        `gorm:"not null"`
+	ID        uint64             `gorm:"primaryKey"`
+	UserID    uuid.UUID          `gorm:"type:uuid;not null"`
+	Firstname string             `gorm:"not null"`
 	Tcid      int64              `gorm:"null;"`
 	Descr     string             `gorm:"not null"`
 	City      []City             `gorm:"many2many:profiles_city;"`
@@ -40,10 +38,8 @@ type Profile struct {
 }
 
 type ProfileResponse struct {
-	ID        uint64 `gorm:"not null"`
-	Firstname string `gorm:"not null"`
-	// Lastname  string         `gorm:"not null"`
-	// MiddleN   string         `gorm:"not null"`
+	ID         uint64             `gorm:"not null"`
+	Firstname  string             `gorm:"not null"`
 	Descr      string             `gorm:"not null"`
 	Tcid       int64              `gorm:"null"`
 	City       []string           `gorm:"city"`

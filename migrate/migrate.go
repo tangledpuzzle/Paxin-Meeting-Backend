@@ -6,7 +6,6 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 	"hyperpage/utils"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -36,6 +35,7 @@ func main() {
 	initializers.DB.AutoMigrate(&models.Blog{})
 	initializers.DB.AutoMigrate(&models.BlogPhoto{})
 	initializers.DB.AutoMigrate(&models.City{})
+	initializers.DB.AutoMigrate(&models.CityTranslation{})
 	initializers.DB.AutoMigrate(&models.Payments{})
 	initializers.DB.AutoMigrate(&models.Guilds{})
 	initializers.DB.AutoMigrate(&models.GuildTranslation{})
@@ -182,29 +182,72 @@ func main() {
 
 		fmt.Println("✅ Billing record and online storage created")
 
-		file, err := ioutil.ReadFile("migrate/city.json")
-		if err != nil {
-			log.Fatal("Could not read city.json file:", err)
-		}
-
-		var cities []models.City
-		err = json.Unmarshal(file, &cities)
-		if err != nil {
-			log.Fatal("Could not parse city.json file:", err)
-		}
-
-		for _, city := range cities {
-			err := initializers.DB.Create(&city).Error
-			if err != nil {
-				log.Fatalf("Could not create city %s: %s", city.Name, err)
-			}
-		}
-
-		fmt.Println("✅ Cities record created")
-
 	}
 
-	// Считать данные из guilds.json
+	// Read data from city.json
+	fileCity, err := os.ReadFile("migrate/city.json")
+	if err != nil {
+		log.Fatal("Could not read city.json file:", err)
+	}
+
+	var cityData []struct {
+		ID  uint   `json:"id"`
+		Hex string `json:"hex"`
+	}
+	err = json.Unmarshal(fileCity, &cityData)
+	if err != nil {
+		log.Fatal("Could not parse city.json file:", err)
+	}
+
+	// Create records in the City table
+	for _, cityData := range cityData {
+		city := models.City{
+			ID:        cityData.ID,
+			Hex:       cityData.Hex,
+			UpdatedAt: time.Now(), // Provide the appropriate timestamp
+		}
+		err := initializers.DB.Create(&city).Error
+		if err != nil {
+			log.Fatalf("Could not create city with ID %d: %s", cityData.ID, err)
+		}
+	}
+
+	// Read data from city_trans.json
+	fileTranslations, err := os.ReadFile("migrate/city_trans.json")
+	if err != nil {
+		log.Fatal("Could not read city_trans.json file:", err)
+	}
+
+	var translationsData []struct {
+		ID       uint   `json:"id"`
+		CityID   uint   `json:"CityID"`
+		Language string `json:"Language"`
+		Name     string `json:"Name"`
+	}
+
+	err = json.Unmarshal(fileTranslations, &translationsData)
+	if err != nil {
+		log.Fatal("Could not parse city_trans.json file:", err)
+	}
+
+	// Create records in the CityTranslation table
+	for _, translationData := range translationsData {
+		translation := models.CityTranslation{
+			ID:       translationData.ID,
+			CityID:   translationData.CityID,
+			Language: translationData.Language,
+			Name:     translationData.Name,
+		}
+		err := initializers.DB.Create(&translation).Error
+		if err != nil {
+			log.Fatalf("Could not create translation with ID %d: %s", translationData.ID, err)
+		}
+	}
+
+	fmt.Println("✅ City records created")
+
+	// Now, repeat a similar process for Guilds and GuildTranslations
+	// Read data from guilds.json
 	fileGuilds, err := os.ReadFile("migrate/guilds.json")
 	if err != nil {
 		log.Fatal("Could not read guilds.json file:", err)
@@ -220,12 +263,12 @@ func main() {
 		log.Fatal("Could not parse guilds.json file:", err)
 	}
 
-	// Создать записи в таблице Guilds
+	// Create records in the Guilds table
 	for _, guildData := range guildsData {
 		guild := models.Guilds{
 			ID:        guildData.ID,
 			Hex:       guildData.Hex,
-			UpdatedAt: time.Now(), // Укажите соответствующее время
+			UpdatedAt: time.Now(), // Provide the appropriate timestamp
 		}
 		err := initializers.DB.Create(&guild).Error
 		if err != nil {
@@ -233,26 +276,26 @@ func main() {
 		}
 	}
 
-	// Считать данные из guilds_trans.json
-	fileTranslations, err := os.ReadFile("migrate/guilds_tr.json")
+	// Read data from guilds_trans.json
+	fileTranslations, err = os.ReadFile("migrate/guilds_trans.json")
 	if err != nil {
 		log.Fatal("Could not read guilds_trans.json file:", err)
 	}
 
-	var translationsData []struct {
+	var guildTranslationsData []struct {
 		ID       uint   `json:"id"`
 		GuildID  uint   `json:"GuildID"`
 		Language string `json:"Language"`
 		Name     string `json:"Name"`
 	}
 
-	err = json.Unmarshal(fileTranslations, &translationsData)
+	err = json.Unmarshal(fileTranslations, &guildTranslationsData)
 	if err != nil {
 		log.Fatal("Could not parse guilds_trans.json file:", err)
 	}
 
-	// Создать записи в таблице GuildTranslation
-	for _, translationData := range translationsData {
+	// Create records in the GuildTranslation table
+	for _, translationData := range guildTranslationsData {
 		translation := models.GuildTranslation{
 			ID:       translationData.ID,
 			GuildID:  translationData.GuildID,
@@ -265,6 +308,7 @@ func main() {
 		}
 	}
 
+	fmt.Println("✅ Guilds records created")
 	fmt.Println("✅ Guilds and translations saved successfully")
 
 	fmt.Println("✅ Guilds saved successfully")
