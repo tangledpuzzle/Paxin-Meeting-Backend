@@ -1587,10 +1587,11 @@ func GetRandom(c *fiber.Ctx) error {
 func EditBlogGetId(c *fiber.Ctx) error {
 
 	blogID := c.Params("id")
+	language := c.Query("language")
 
 	var blog []models.Blog
 
-	err := utils.Paginate(c, initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Preload("City.Translations", "language = ?", "en").Preload("Catygory.Translations", "language = ?", "en").Preload("User"), &blog)
+	err := utils.Paginate(c, initializers.DB.Where("id = ?", blogID).First(&blog).Preload("Hashtags").Preload("Photos").Preload("City.Translations", "language = ?", language).Preload("Catygory.Translations", "language = ?", language).Preload("User"), &blog)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
@@ -1735,7 +1736,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 
 	var blog models.Blog
 
-	err := initializers.DB.Where("id = ?", blogID).First(&blog).Preload("City").Preload("Hashtags").Preload("Photos").Error
+	err := initializers.DB.Where("id = ?", blogID).First(&blog).Preload("City").Preload("Catygory").Preload("Hashtags").Preload("Photos").Error
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
@@ -1753,14 +1754,17 @@ func UpdateBlog(c *fiber.Ctx) error {
 
 	// Parse the request body
 	type RequestBody struct {
-		Title    string   `json:"title"`
-		Descr    string   `json:"descr"`
-		City     []string `json:"city"`
+		Title string `json:"title"`
+		Descr string `json:"descr"`
+		City  []struct {
+			ID uint64 `json:"id"`
+		} `json:"city"`
 		Total    float64  `json:"total"`
 		Pined    bool     `json:"Pined"`
 		Hashtags []string `json:"hashtags"`
-		Catygory []string `json:"catygory"`
-
+		Catygory []struct {
+			ID uint64 `json:"id"`
+		} `json:"Catygory"`
 		Photos []struct {
 			ID        int64  `json:"ID"`
 			BlogID    int64  `json:"BlogID"`
@@ -1836,17 +1840,37 @@ func UpdateBlog(c *fiber.Ctx) error {
 		updatedHashtags = append(updatedHashtags, hashtag)
 	}
 
-	// // Retrieve or create new cities based on the request body
-	// updatedCities := []models.City{}
-	// for _, cityName := range requestBody.City {
-	// 	city := models.City{}
-	// 	if err := initializers.DB.Where("name = ?", cityName).First(&city, models.City{Name: cityName}).Error; err != nil {
-	// 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-	// 			"status":  "error",
-	// 			"message": "Could not retrieve or create cities",
-	// 		})
+	// Create a new slice to store the updated list of cities
+	updatedCities := []models.City{}
+
+	// Iterate over the requestBody.City and create City objects from the IDs
+	for _, cityID := range requestBody.City {
+		city := models.City{
+			ID: uint(cityID.ID),
+		}
+		updatedCities = append(updatedCities, city)
+	}
+
+	// Create a new slice to store the updated list of catygory
+	updatedCatygory := []models.Guilds{}
+
+	// Iterate over the requestBody.catygory and create Catygory objects from the IDs
+	for _, catygoryData := range requestBody.Catygory {
+		catygory := models.Guilds{
+			ID: uint(catygoryData.ID),
+		}
+		updatedCatygory = append(updatedCatygory, catygory)
+	}
+
+	// // Create a new slice to store the updated list of categories
+	// updatedCategories := []models.Guilds{}
+
+	// // Iterate over the requestBody.Category and create Category objects from the IDs
+	// for _, categoryID := range requestBody.Catygory {
+	// 	category := models.Guilds{
+	// 		ID: uint(categoryID.ID),
 	// 	}
-	// 	updatedCities = append(updatedCities, city)
+	// 	updatedCategories = append(updatedCategories, category)
 	// }
 
 	// Remove the existing hashtags from the blog's association
@@ -1865,13 +1889,29 @@ func UpdateBlog(c *fiber.Ctx) error {
 		})
 	}
 
+	// Remove the existing city from the blog's association
+	if err := initializers.DB.Model(&blog).Association("Catygory").Clear(); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not clear existing guilds",
+		})
+	}
+
+	// // Remove the existing guilds from the blog's association
+	// if err := initializers.DB.Model(&blog).Association("Guilds").Clear(); err != nil {
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 		"status":  "error",
+	// 		"message": "Could not clear existing Guilds",
+	// 	})
+	// }
+
 	// Assign the updated Hashtags to the Blog instance
 	blog.Hashtags = updatedHashtags
 
-	// blog.Catygory = requestBody.Catygory
+	blog.Catygory = updatedCatygory
 	blog.Title = requestBody.Title
 	blog.Descr = requestBody.Descr
-	// blog.City = updatedCities
+	blog.City = updatedCities
 	blog.Total = requestBody.Total
 	blog.Pined = requestBody.Pined
 
