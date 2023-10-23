@@ -29,7 +29,35 @@ func GetName(c *fiber.Ctx) error {
 	// Get the name and lang query parameters
 	name := c.Query("name")
 	lang := c.Query("lang")
+	mode := c.Query("mode")
 
+	if mode == "translate" {
+		var cityTranslation models.CityTranslation
+		if err := initializers.DB.
+			Where("name ILIKE ?", "%"+name+"%").
+			First(&cityTranslation).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to fetch city translation from the database",
+			})
+		}
+
+		var translatedCity models.CityTranslation
+		if err := initializers.DB.
+			Where("city_id = ? AND language = ?", cityTranslation.CityID, lang). // Replace "EN" with your target language code
+			First(&translatedCity).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to fetch translated city name from the database",
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"data":   translatedCity.Name,
+		})
+
+	}
 	// Check if the name and lang parameters are provided
 	if name == "" || lang == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{

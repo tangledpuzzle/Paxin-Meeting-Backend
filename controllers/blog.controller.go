@@ -1381,16 +1381,41 @@ func GetAll(c *fiber.Ctx) error {
 		}
 
 		// Add the hashtags filter to the query
-		query = query.Joins("JOIN blog_hashtags ON blogs.id = blog_hashtags.blog_id").
-			Joins("JOIN hashtags ON blog_hashtags.hashtags_id = hashtags.id").
-			Where("hashtags.hashtag IN (?)", hashtagValuesWithPrefix)
-		// Add DISTINCT to the query to eliminate duplicate records
-		query = query.Distinct()
+		query = query.Joins("JOIN blog_hashtags bh ON blogs.id = bh.blog_id").
+			Joins("JOIN hashtags h ON bh.hashtags_id = h.id").
+			Where("h.hashtag IN (?)", hashtagValuesWithPrefix)
 	}
 
 	if city != "" && city != "all" {
-		query = query.Where("city = ?", city)
+		// Сначала найдем city_id для указанного города и языка
+		var cityTranslation models.CityTranslation
+		initializers.DB.Where("name = ? AND language = ?", city, language).First(&cityTranslation)
+
+		if cityTranslation.ID != 0 {
+			// Создадим подзапрос для поиска всех blog_id, связанных с указанным city_id
+			subQuery := initializers.DB.Table("blog_city").
+				Select("blog_id").
+				Where("city_id = ?", cityTranslation.CityID)
+
+			// Добавим условие, чтобы ваш основной запрос включал только записи с blog_id из подзапроса
+			query = query.Where("blogs.id IN (?)", subQuery) // Specify the table alias for "blogs.id"
+		}
 	}
+
+	if category != "" && category != "all" {
+		var guildTranslation models.GuildTranslation
+		initializers.DB.Where("name = ? AND language = ?", category, language).First(&guildTranslation)
+		if guildTranslation.ID != 0 {
+			// Создадим подзапрос для поиска всех blog_id, связанных с указанным guild_id
+			subQuery := initializers.DB.Table("blog_guilds").
+				Select("blog_id").
+				Where("guilds_id = ?", guildTranslation.GuildID)
+
+			// Добавим условие, чтобы ваш основной запрос включил только записи с blog_id из подзапроса
+			query = query.Where("blogs.id IN (?)", subQuery)
+		}
+	}
+
 	if title != "" && title != "all" {
 		query = query.Where("LOWER(title) LIKE ?", "%"+title+"%")
 	}
@@ -1419,9 +1444,6 @@ func GetAll(c *fiber.Ctx) error {
 			}
 			query = query.Where("total >= ?", totalInt)
 		}
-	}
-	if category != "" && category != "all" {
-		query = query.Where("catygory = ?", category)
 	}
 
 	var count int64

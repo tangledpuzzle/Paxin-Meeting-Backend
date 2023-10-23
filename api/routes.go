@@ -83,6 +83,8 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/guilds", func(router fiber.Router) {
 		router.Get("/all", controllers.GetGuilds)
+		router.Get("/name", controllers.GetGuildName)
+
 	})
 
 	micro.Route("/profile", func(router fiber.Router) {
