@@ -1360,7 +1360,13 @@ func GetAll(c *fiber.Ctx) error {
 	var blogs []models.Blog
 	language := c.Query("language")
 
-	query := initializers.DB.Order("created_at DESC").Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User").Where("status = ?", "ACTIVE")
+	query := initializers.DB.Order("created_at DESC").
+		Preload("Catygory.Translations", "language = ?", language).
+		Preload("City.Translations", "language = ?", language).
+		Preload("Hashtags").
+		Preload("Photos").
+		Preload("User").
+		Where("status = ?", "ACTIVE")
 
 	// Get the query parameters
 	city := c.Query("city")

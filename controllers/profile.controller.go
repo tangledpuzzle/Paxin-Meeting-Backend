@@ -83,11 +83,18 @@ func GetAllProfile(c *fiber.Ctx) error {
 	}
 
 	if city != "" && city != "all" {
-		cityValues := strings.Split(city, ",")
+		// Сначала найдем city_id для указанного города и языка
+		var cityTranslation models.CityTranslation
+		initializers.DB.Where("name = ? AND language = ?", city, language).First(&cityTranslation)
 
-		query = query.Joins("JOIN profiles_city ON profiles.id = profiles_city.profile_id").
-			Joins("JOIN cities ON profiles_city.city_id = cities.id").
-			Where("cities.name = ?", cityValues)
+		if cityTranslation.ID != 0 {
+			subQuery := initializers.DB.Table("profiles_city").
+				Select("profile_id").
+				Where("city_id = ?", cityTranslation.CityID)
+
+			// Добавим условие, чтобы ваш основной запрос включал только записи с blog_id из подзапроса
+			query = query.Where("profiles.id IN (?)", subQuery) // Specify the table alias for "blogs.id"
+		}
 	}
 
 	if title != "" && title != "all" {
@@ -95,17 +102,17 @@ func GetAllProfile(c *fiber.Ctx) error {
 	}
 
 	if category != "" && category != "all" {
-		catValues := strings.Split(category, ",")
-		// Subquery to fetch the translated guild name
-		subquery := initializers.DB.Model(&models.GuildTranslation{}).
-			Select("guild_id, name").
-			Where("language = ?", language) // Replace "your_language" with the desired language code
+		var guildTranslation models.GuildTranslation
+		initializers.DB.Where("name = ? AND language = ?", category, language).First(&guildTranslation)
+		if guildTranslation.ID != 0 {
+			// Создадим подзапрос для поиска всех blog_id, связанных с указанным guild_id
+			subQuery := initializers.DB.Table("profiles_guilds").
+				Select("profile_id").
+				Where("guilds_id = ?", guildTranslation.GuildID)
 
-		// Main query to join profiles with guilds and use the translated name
-		query = query.Joins("JOIN profiles_guilds ON profiles.id = profiles_guilds.profile_id").
-			Joins("JOIN guilds ON profiles_guilds.guilds_id = guilds.id").
-			Joins("JOIN (?) as translated_guilds ON guilds.id = translated_guilds.guild_id", subquery).
-			Where("translated_guilds.name IN (?)", catValues)
+			// Добавим условие, чтобы ваш основной запрос включил только записи с blog_id из подзапроса
+			query = query.Where("profiles.id IN (?)", subQuery)
+		}
 	}
 
 	if hashtags != "" && hashtags != "all" {
