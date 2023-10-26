@@ -22,6 +22,7 @@ import (
 
 func SignUpUser(c *fiber.Ctx) error {
 	var payload *models.SignUpInput
+	language := c.Query("language")
 
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": err.Error()})
@@ -107,7 +108,17 @@ func SignUpUser(c *fiber.Ctx) error {
 	emailData := utils.EmailData{
 		URL:       "https://" + config.ClientOrigin + "/passport/verify/" + verification_code,
 		FirstName: firstName,
-		Subject:   "Ссылка на активацию аккаунта",
+	}
+
+	switch language {
+	case "en":
+		emailData.Subject = "Paxintrade account activation"
+	case "ru":
+		emailData.Subject = "Paxintrade активация аккаунта"
+	case "ke":
+		emailData.Subject = "Paxintrade ანგარიშის გააქტიურება"
+	default:
+		emailData.Subject = "Paxintrade account activation"
 	}
 
 	billing := models.Billing{
@@ -148,9 +159,9 @@ func SignUpUser(c *fiber.Ctx) error {
 	initializers.DB.Create(&billing)
 	// initializers.DB.Create(&profileId)
 
-	utils.SendEmail(&newUser, &emailData, "base.html")
+	utils.SendEmail(&newUser, &emailData, "verificationCode", language)
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, "ru")}})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language)}})
 }
 
 func VerifyEmail(c *fiber.Ctx) error {
@@ -352,6 +363,7 @@ func RefreshAccessToken(c *fiber.Ctx) error {
 }
 
 func ForgotPassword(c *fiber.Ctx) error {
+	language := c.Query("language")
 
 	// Get the email from the request body
 	type RequestBody struct {
@@ -409,10 +421,20 @@ func ForgotPassword(c *fiber.Ctx) error {
 	emailData := utils.EmailData{
 		URL:       "https://" + config.ClientOrigin + "/passport/resetpassword/" + user.PasswordResetToken,
 		FirstName: firstName,
-		Subject:   "Запрос на сброс пароля (доступно 10мин)",
 	}
 
-	utils.SendEmail(user, &emailData, "resetPassword.html")
+	switch language {
+	case "en":
+		emailData.Subject = "Password reset request (available for 10 minutes)"
+	case "ru":
+		emailData.Subject = "Запрос на сброс пароля (доступно 10 мин)"
+	case "ke":
+		emailData.Subject = "პაროლის გადატვირთვის მოთხოვნა (ხელმისაწვდომია 10 წთ)"
+	default:
+		emailData.Subject = "Password reset request (available for 10 minutes)"
+	}
+
+	utils.SendEmail(user, &emailData, "resetPassword", language)
 
 	return c.Status(http.StatusOK).JSON(fiber.Map{
 		"message": "Password reset email sent",

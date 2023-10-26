@@ -3,15 +3,16 @@ package utils
 import (
 	"bytes"
 	"crypto/tls"
+	"fmt"
 	"html/template"
 	"log"
 	"os"
 	"path/filepath"
-	"fmt"
 
-	"github.com/k3a/html2text"
 	"hyperpage/initializers"
 	"hyperpage/models"
+
+	"github.com/k3a/html2text"
 
 	"gopkg.in/gomail.v2"
 )
@@ -43,13 +44,12 @@ func ParseTemplateDir(dir string) (*template.Template, error) {
 	return template.ParseFiles(paths...)
 }
 
-func SendEmail(user *models.User, data *EmailData, emailTemp string) {
+func SendEmail(user *models.User, data *EmailData, emailTemplatePrefix string, language string) {
 	config, err := initializers.LoadConfig(".")
 
 	if err != nil {
 		log.Fatal("could not load config", err)
 	}
-
 
 	// Sender data.
 	from := config.EmailFrom
@@ -61,15 +61,16 @@ func SendEmail(user *models.User, data *EmailData, emailTemp string) {
 
 	var body bytes.Buffer
 
+	emailTemplate := emailTemplatePrefix + "_" + language + ".html"
+
 	template, err := ParseTemplateDir("templates")
 	if err != nil {
 		log.Fatal("Could not parse template", err)
 	}
 
-	template.ExecuteTemplate(&body, emailTemp, &data)
+	template.ExecuteTemplate(&body, emailTemplate, &data)
 
 	m := gomail.NewMessage()
-
 
 	m.SetHeader("From", from)
 	m.SetHeader("To", to)
