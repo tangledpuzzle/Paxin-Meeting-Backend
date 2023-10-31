@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -360,10 +361,60 @@ func GetMe(c *fiber.Ctx) error {
 
 }
 
+func extractDirectoryName(path string) string {
+	// Unmarshal the path as JSON
+	var pathInfo struct {
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal([]byte(path), &pathInfo); err != nil {
+		// Handle the error
+		return ""
+	}
+
+	// Split the path and get the first part as the directory name
+	parts := strings.Split(pathInfo.Path, "/")
+	if len(parts) > 0 {
+		return parts[0]
+	}
+
+	return ""
+}
+
+func deleteDirectory(directoryName string) error {
+	// Construct the full path to the directory on your server
+	// fullPath := "/path/to/your/server/" + directoryName
+	fullPath := filepath.Join("../images/", directoryName)
+
+	// Perform the directory deletion
+	err := os.RemoveAll(fullPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Define the route for deleting a user and its relations
 // Define the route for deleting a user and its relations
 func DeleteUserWithRelations(c *fiber.Ctx) error {
 	userId := c.Locals("user").(models.UserResponse)
+
+	// Fetch the paths for profile_photos to be deleted
+	var paths []string
+	if err := initializers.DB.Table("profile_photos").Where("profile_id = ?", userId.ID).Pluck("path", &paths).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve profile photo paths"})
+	}
+
+	// Delete the directories on the server
+	for _, path := range paths {
+		directoryName := extractDirectoryName(path)
+		if directoryName != "" {
+			err := deleteDirectory(directoryName)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete directories on the server"})
+			}
+		}
+	}
 
 	// Fetch the user from the database
 	var user models.User
@@ -400,6 +451,11 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 	}
 
 	if err := tx.Exec("DELETE FROM billings WHERE user_id = ?", userId.ID).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
+	}
+
+	if err := tx.Exec("DELETE FROM profile_photos WHERE profile_id = ?", profileID).Error; err != nil {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
 	}
