@@ -378,6 +378,32 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 	// Begin a database transaction
 	tx := initializers.DB.Begin()
 
+	var profileID string
+	if err := initializers.DB.Model(&models.Profile{}).Where("user_id = ?", userId.ID).Select("id").Row().Scan(&profileID); err != nil {
+		// Handle the error (e.g., profile not found)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User's profile not found"})
+	}
+
+	if err := tx.Exec("DELETE FROM profiles_guilds WHERE profile_id = ?", profileID).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_guilds"})
+	}
+
+	if err := tx.Exec("DELETE FROM profiles_city WHERE profile_id = ?", profileID).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
+	}
+
+	if err := tx.Exec("DELETE FROM profiles_hashtags WHERE profile_id = ?", profileID).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
+	}
+
+	if err := tx.Exec("DELETE FROM billings WHERE user_id = ?", userId.ID).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
+	}
+
 	// Delete the associated profiles records
 	if err := tx.Delete(&user.Profile).Error; err != nil {
 		// Rollback the transaction if an error occurs
@@ -392,11 +418,11 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
 	}
 
-	// Manually delete dependent records from the "billings" table
-	if err := tx.Where("user_id = ?", userId.ID).Delete(&models.Billing{}).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related billings"})
-	}
+	// // Manually delete dependent records from the "billings" table
+	// if err := tx.Where("user_id = ?", userId.ID).Delete(&models.Billing{}).Error; err != nil {
+	// 	tx.Rollback()
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related billings"})
+	// }
 
 	// Manually delete dependent records from the "billings" table
 	if err := tx.Where("user_id = ?", userId.ID).Delete(&models.Transaction{}).Error; err != nil {
