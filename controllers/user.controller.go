@@ -399,23 +399,6 @@ func deleteDirectory(directoryName string) error {
 func DeleteUserWithRelations(c *fiber.Ctx) error {
 	userId := c.Locals("user").(models.UserResponse)
 
-	// Fetch the paths for profile_photos to be deleted
-	var paths []string
-	if err := initializers.DB.Table("profile_photos").Where("profile_id = ?", userId.ID).Pluck("path", &paths).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve profile photo paths"})
-	}
-
-	// Delete the directories on the server
-	for _, path := range paths {
-		directoryName := extractDirectoryName(path)
-		if directoryName != "" {
-			err := deleteDirectory(directoryName)
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete directories on the server"})
-			}
-		}
-	}
-
 	// Fetch the user from the database
 	var user models.User
 	if err := initializers.DB.
@@ -433,6 +416,23 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 	if err := initializers.DB.Model(&models.Profile{}).Where("user_id = ?", userId.ID).Select("id").Row().Scan(&profileID); err != nil {
 		// Handle the error (e.g., profile not found)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User's profile not found"})
+	}
+
+	// Fetch the paths for profile_photos to be deleted
+	var files []string
+	if err := initializers.DB.Table("profile_photos").Where("profile_id = ?", profileID).Pluck("files", &files).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve profile photo paths"})
+	}
+
+	// Delete the directories on the server
+	for _, path := range files {
+		directoryName := extractDirectoryName(path)
+		if directoryName != "" {
+			err := deleteDirectory(directoryName)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete directories on the server"})
+			}
+		}
 	}
 
 	if err := tx.Exec("DELETE FROM profiles_guilds WHERE profile_id = ?", profileID).Error; err != nil {
