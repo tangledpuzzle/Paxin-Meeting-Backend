@@ -1285,6 +1285,24 @@ func DeleteBlog(c *fiber.Ctx) error {
 		})
 	}
 
+	// Delete all blog guilds associated with the blog post using raw SQL query
+	query_guilds := "DELETE FROM blog_guilds WHERE blog_id = ?"
+	if err := initializers.DB.Exec(query_guilds, blogID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not delete element",
+		})
+	}
+
+	// Delete all blog city associated with the blog post using raw SQL query
+	query_city := "DELETE FROM blog_city WHERE blog_id = ?"
+	if err := initializers.DB.Exec(query_city, blogID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not delete element",
+		})
+	}
+
 	// Delete all photos associated with the blog post
 	var blogPhotos []models.BlogPhoto
 	if err := initializers.DB.Where("blog_id = ?", blogID).Find(&blogPhotos).Error; err != nil {
