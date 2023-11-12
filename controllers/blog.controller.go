@@ -1378,6 +1378,10 @@ func GetAll(c *fiber.Ctx) error {
 	var blogs []models.Blog
 	language := c.Query("language")
 
+	if language == "" {
+		language = "en"
+	}
+
 	query := initializers.DB.Order("created_at DESC").
 		Preload("Catygory.Translations", "language = ?", language).
 		Preload("City.Translations", "language = ?", language).
