@@ -288,9 +288,9 @@ func SignInUser(c *fiber.Ctx) error {
 		Path:     "/",
 		SameSite: "Lax",
 		MaxAge:   config.AccessTokenMaxAge * 60,
-		// Secure:   true,
-		// HTTPOnly: true,
-		Domain: config.ClientOrigin,
+		Secure:   false,
+		HTTPOnly: false,
+		Domain:   config.ClientOrigin,
 	})
 
 	c.Cookie(&fiber.Cookie{
