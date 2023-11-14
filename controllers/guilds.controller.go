@@ -3,6 +3,7 @@ package controllers
 import (
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -54,6 +55,60 @@ func GetGuildName(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   "",
+	})
+}
+
+func GetGuildsAdmin(c *fiber.Ctx) error {
+	// Get query parameters for pagination
+	limit := c.Query("limit", "10")
+	skip := c.Query("skip", "0") // Use skip directly from the query parameters
+
+	limitNumber, err := strconv.Atoi(limit)
+	if err != nil || limitNumber < 1 {
+		limitNumber = 10
+	}
+
+	skipNumber, err := strconv.Atoi(skip)
+	if err != nil || skipNumber < 0 {
+		skipNumber = 0
+	}
+
+	// get count of all cities in the database
+	var total int64
+	if err := initializers.DB.Model(&models.Guilds{}).Count(&total).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch guilds count from the database",
+		})
+	}
+
+	// get paginated city names from the database with translations
+	var guilds []models.Guilds
+	db := initializers.DB.
+		Joins("JOIN guild_translations ON guilds.id = guild_translations.guild_id").
+		Preload("Translations").
+		Offset(skipNumber).Limit(limitNumber).
+		Find(&guilds)
+
+	if db.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch paginated cities from the database",
+			"error":   db.Error.Error(),
+		})
+	}
+
+	// fmt.Println(db.Statement.SQL.String()) // Log the generated SQL
+
+	// return the paginated city names and metadata as a JSON response
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   guilds,
+		"meta": fiber.Map{
+			"limit": limitNumber,
+			"skip":  skipNumber,
+			"total": total,
+		},
 	})
 }
 
