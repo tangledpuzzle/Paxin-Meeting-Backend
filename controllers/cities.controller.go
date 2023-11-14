@@ -8,19 +8,22 @@ import (
 )
 
 func GetCities(c *fiber.Ctx) error {
-	// get all city names from the database
-	var cityNames []string
-	if err := initializers.DB.Model(&models.City{}).Pluck("name", &cityNames).Error; err != nil {
+	// get all city names from the database with translations
+	var cities []models.City
+	if err := initializers.DB.
+		Joins("JOIN city_translations ON cities.id = city_translations.city_id").
+		Preload("Translations"). // Preload all translations
+		Find(&cities).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Could not fetch city names from database",
+			"message": "Failed to fetch cities from the database",
 		})
 	}
 
 	// return the city names as a JSON response
 	return c.JSON(fiber.Map{
 		"status": "success",
-		"data":   cityNames,
+		"data":   cities,
 	})
 }
 
