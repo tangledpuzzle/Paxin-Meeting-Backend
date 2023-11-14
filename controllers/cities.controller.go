@@ -12,15 +12,8 @@ import (
 
 func GetCities(c *fiber.Ctx) error {
 	// Get query parameters for pagination
-	page := c.Query("page", "1")
 	limit := c.Query("limit", "10")
 	skip := c.Query("skip", "0") // Use skip directly from the query parameters
-
-	// Convert page, limit, and skip to integers
-	pageNumber, err := strconv.Atoi(page)
-	if err != nil || pageNumber < 1 {
-		pageNumber = 1
-	}
 
 	limitNumber, err := strconv.Atoi(limit)
 	if err != nil || limitNumber < 1 {
@@ -64,7 +57,6 @@ func GetCities(c *fiber.Ctx) error {
 		"status": "success",
 		"data":   cities,
 		"meta": fiber.Map{
-			"page":  pageNumber,
 			"limit": limitNumber,
 			"skip":  skipNumber,
 			"total": total,
