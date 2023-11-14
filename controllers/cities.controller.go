@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,8 +14,9 @@ func GetCities(c *fiber.Ctx) error {
 	// Get query parameters for pagination
 	page := c.Query("page", "1")
 	limit := c.Query("limit", "10")
+	skip := c.Query("skip", "0") // Use skip directly from the query parameters
 
-	// Convert page and limit to integers
+	// Convert page, limit, and skip to integers
 	pageNumber, err := strconv.Atoi(page)
 	if err != nil || pageNumber < 1 {
 		pageNumber = 1
@@ -25,8 +27,10 @@ func GetCities(c *fiber.Ctx) error {
 		limitNumber = 10
 	}
 
-	// Calculate offset for skipping records
-	offset := (pageNumber - 1) * limitNumber
+	skipNumber, err := strconv.Atoi(skip)
+	if err != nil || skipNumber < 0 {
+		skipNumber = 0
+	}
 
 	// get count of all cities in the database
 	var total int64
@@ -39,16 +43,21 @@ func GetCities(c *fiber.Ctx) error {
 
 	// get paginated city names from the database with translations
 	var cities []models.City
-	if err := initializers.DB.
+	db := initializers.DB.
 		Joins("JOIN city_translations ON cities.id = city_translations.city_id").
 		Preload("Translations").
-		Offset(offset).Limit(limitNumber).
-		Find(&cities).Error; err != nil {
+		Offset(skipNumber).Limit(limitNumber).
+		Find(&cities)
+
+	if db.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to fetch paginated cities from the database",
+			"error":   db.Error.Error(),
 		})
 	}
+
+	fmt.Println(db.Statement.SQL.String()) // Log the generated SQL
 
 	// return the paginated city names and metadata as a JSON response
 	return c.JSON(fiber.Map{
@@ -57,6 +66,7 @@ func GetCities(c *fiber.Ctx) error {
 		"meta": fiber.Map{
 			"page":  pageNumber,
 			"limit": limitNumber,
+			"skip":  skipNumber,
 			"total": total,
 		},
 	})
