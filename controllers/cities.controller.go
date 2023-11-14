@@ -1,37 +1,65 @@
 package controllers
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 
 	"hyperpage/initializers"
 	"hyperpage/models"
-	"hyperpage/utils"
 )
 
 func GetCities(c *fiber.Ctx) error {
-	// get all city names from the database with translations
+	// Get query parameters for pagination
+	page := c.Query("page", "1")
+	limit := c.Query("limit", "10")
+
+	// Convert page and limit to integers
+	pageNumber, err := strconv.Atoi(page)
+	if err != nil || pageNumber < 1 {
+		pageNumber = 1
+	}
+
+	limitNumber, err := strconv.Atoi(limit)
+	if err != nil || limitNumber < 1 {
+		limitNumber = 10
+	}
+
+	// Calculate offset for skipping records
+	offset := (pageNumber - 1) * limitNumber
+
+	// get count of all cities in the database
+	var total int64
+	if err := initializers.DB.Model(&models.City{}).Count(&total).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch cities count from the database",
+		})
+	}
+
+	// get paginated city names from the database with translations
 	var cities []models.City
 	if err := initializers.DB.
 		Joins("JOIN city_translations ON cities.id = city_translations.city_id").
-		Preload("Translations"). // Preload all translations
+		Preload("Translations").
+		Offset(offset).Limit(limitNumber).
 		Find(&cities).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Failed to fetch cities from the database",
+			"message": "Failed to fetch paginated cities from the database",
 		})
 	}
-	// use the pagination utility function
-	err := utils.Paginate(c, initializers.DB, &cities)
-	if err != nil {
-		return err
-	}
 
-	return nil
-	// // return the city names as a JSON response
-	// return c.JSON(fiber.Map{
-	// 	"status": "success",
-	// 	"data":   cities,
-	// })
+	// return the paginated city names and metadata as a JSON response
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   cities,
+		"meta": fiber.Map{
+			"page":  pageNumber,
+			"limit": limitNumber,
+			"total": total,
+		},
+	})
 }
 
 func GetName(c *fiber.Ctx) error {
