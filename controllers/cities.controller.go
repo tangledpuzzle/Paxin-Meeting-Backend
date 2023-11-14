@@ -5,6 +5,7 @@ import (
 
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"hyperpage/utils"
 )
 
 func GetCities(c *fiber.Ctx) error {
@@ -19,12 +20,18 @@ func GetCities(c *fiber.Ctx) error {
 			"message": "Failed to fetch cities from the database",
 		})
 	}
+	// use the pagination utility function
+	err := utils.Paginate(c, initializers.DB, &cities)
+	if err != nil {
+		return err
+	}
 
-	// return the city names as a JSON response
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   cities,
-	})
+	return nil
+	// // return the city names as a JSON response
+	// return c.JSON(fiber.Map{
+	// 	"status": "success",
+	// 	"data":   cities,
+	// })
 }
 
 func GetName(c *fiber.Ctx) error {
