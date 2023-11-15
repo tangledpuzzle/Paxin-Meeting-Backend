@@ -320,7 +320,7 @@ func SignInUser(c *fiber.Ctx) error {
 func CheckTokenExp(c *fiber.Ctx) error {
 	message := "could not find access token"
 
-	token := c.Get("access_token")
+	token := c.Query("access_token")
 	if token == "" {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": message})
 	}
