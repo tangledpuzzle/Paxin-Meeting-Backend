@@ -117,11 +117,10 @@ func main() {
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Access-Control-Allow-Headers, Session",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Access-Control-Allow-Headers, Session, Mode",
 		AllowMethods:     "GET, POST, PATCH, DELETE",
 		AllowCredentials: true,
 	}))
-
 	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
 
 		// Timeout client 5min.
