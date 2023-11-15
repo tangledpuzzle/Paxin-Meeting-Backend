@@ -26,7 +26,7 @@ func Register(micro *fiber.App) {
 		router.Get("/verifyemail/:verificationCode", controllers.VerifyEmail)
 		router.Get("/logout", controllers.LogoutUser)
 		router.Get("/refresh/:refreshToken", controllers.RefreshAccessToken)
-		router.Get("/checkTokenExp", controllers.CheckTokenExp)
+		router.Post("/checkTokenExp", controllers.CheckTokenExp)
 
 	})
 
