@@ -290,13 +290,13 @@ func CreateBlog(c *fiber.Ctx) error {
 
 	uniqueID := generateUniqueID()
 
-	sessionID := c.Query("session")
+	// sessionID := c.Query("session")
 
-	if sessionID == "" {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid session ID",
-		})
-	}
+	// if sessionID == "" {
+	// 	return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+	// 		"message": "Invalid session ID",
+	// 	})
+	// }
 
 	userId := c.Locals("user")
 	userResp := userId.(models.UserResponse)
@@ -1810,6 +1810,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 			ID uint64 `json:"id"`
 		} `json:"city"`
 		Total    float64  `json:"total"`
+		Content  string   `json:"content"`
 		Pined    bool     `json:"Pined"`
 		Hashtags []string `json:"hashtags"`
 		Catygory []struct {
@@ -1964,6 +1965,7 @@ func UpdateBlog(c *fiber.Ctx) error {
 	blog.City = updatedCities
 	blog.Total = requestBody.Total
 	blog.Pined = requestBody.Pined
+	blog.Content = requestBody.Content
 
 	if err := initializers.DB.Save(&blog).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
