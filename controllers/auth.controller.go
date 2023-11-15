@@ -317,6 +317,35 @@ func SignInUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "access_token": accessTokenDetails.Token, "refresh_token": refreshTokenDetails})
 }
 
+func CheckTokenExp(c *fiber.Ctx) error {
+	message := "could not find access token"
+
+	token := c.Params("access_token")
+	if token == "" {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": message})
+	}
+
+	config, _ := initializers.LoadConfig(".")
+
+	tokenClaims, err := utils.ValidateToken(token, config.AccessTokenPublicKey)
+	if err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+	}
+
+	var user models.User
+	err = initializers.DB.First(&user, "id = ?", tokenClaims.UserID).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": "the user belonging to this token no longer exists"})
+		} else {
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "access token is valid"})
+}
+
 func RefreshAccessToken(c *fiber.Ctx) error {
 	message := "could not refresh access token"
 
