@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -50,7 +49,7 @@ func GetCities(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Println(db.Statement.SQL.String()) // Log the generated SQL
+	// fmt.Println(db.Statement.SQL.String()) // Log the generated SQL
 
 	// return the paginated city names and metadata as a JSON response
 	return c.JSON(fiber.Map{
