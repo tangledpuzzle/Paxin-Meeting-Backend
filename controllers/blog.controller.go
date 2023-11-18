@@ -119,6 +119,10 @@ func GetAllBlogs(c *fiber.Ctx) error {
 	isArchive := c.Query("isArchive")
 	language := c.Query("language")
 
+	if language == "" {
+		language = "en"
+	}
+
 	var blogs []models.Blog
 	query := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC").Preload("Photos").Preload("Hashtags").Preload("City.Translations", "language = ?", language).Preload("Catygory.Translations", "language = ?", language)
 
@@ -1153,6 +1157,10 @@ func GetBlogById(c *fiber.Ctx) error {
 	uniqId := c.Get("name")
 	language := c.Query("language")
 
+	if language == "" {
+		language = "en"
+	}
+
 	var blog []models.Blog
 
 	err := utils.Paginate(c, initializers.DB.Where("slug = ? AND uniq_id = ?", blogID, uniqId).First(&blog).Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
@@ -1638,6 +1646,10 @@ func EditBlogGetId(c *fiber.Ctx) error {
 
 	blogID := c.Params("id")
 	language := c.Query("language")
+
+	if language == "" {
+		language = "en"
+	}
 
 	var blog []models.Blog
 

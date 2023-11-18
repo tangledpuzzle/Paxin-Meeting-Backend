@@ -14,6 +14,13 @@ import (
 
 func Register(micro *fiber.App) {
 
+	micro.Route("/settings", func(router fiber.Router) {
+		router.Get("/langs", controllers.Langs)
+		router.Post("/addlang", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.AddLang)
+		router.Delete("/deletelang", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.DeleteLang)
+		router.Patch("/updatelang", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateLang)
+	})
+
 	micro.Route("/auth", func(router fiber.Router) {
 
 		router.Post("/register", controllers.SignUpUser)

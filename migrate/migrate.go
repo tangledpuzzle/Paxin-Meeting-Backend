@@ -47,6 +47,7 @@ func main() {
 	initializers.DB.AutoMigrate(&models.ProfilePhoto{})
 	initializers.DB.AutoMigrate(&models.ProfileDocuments{})
 	initializers.DB.AutoMigrate(&models.ProfileService{})
+	initializers.DB.AutoMigrate(&models.Langs{})
 
 	// Check if there are any users in the database
 	var userCount int64
