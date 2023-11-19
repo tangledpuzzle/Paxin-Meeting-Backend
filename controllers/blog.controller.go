@@ -1233,6 +1233,7 @@ func GetBlogById(c *fiber.Ctx) error {
 			ID:         b.ID,
 			Title:      b.Title,
 			Descr:      b.Descr,
+			Lang:       b.Lang,
 			Slug:       b.Slug,
 			Status:     b.Status,
 			Total:      b.Total,
