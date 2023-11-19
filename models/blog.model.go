@@ -8,14 +8,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type MultilangTitle struct {
-	En string `gorm:"null"`
-	Ru string `gorm:"null"`
-	Ka string `gorm:"null"`
-
-	// Add more language fields as needed
-}
-
 type Blog struct {
 	ID               uint64         `gorm:"primaryKey"`
 	Title            string         `gorm:"not null"`

@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgtype"
 
+	gt "github.com/bas24/googletranslatefree"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
@@ -296,6 +297,27 @@ func UpdateProfileAdditional(c *fiber.Ctx) error {
 		// Handle the error appropriately (e.g., return an error response)
 	}
 
+	// Fetch languages from the database
+	var langs []models.Langs
+	err = initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
+	if err != nil {
+		return err
+	}
+
+	translations := make(map[string]string)
+
+	for _, lang := range langs {
+
+		result, _ := gt.Translate(requestBody.Additional, profile.Lang, lang.Code)
+		translations[lang.Code] = result
+
+	}
+
+	// Set the translated values in the TitleLangs field
+	profile.MultilangAdditional.En = translations["en"]
+	profile.MultilangAdditional.Ru = translations["ru"]
+	profile.MultilangAdditional.Ka = translations["ka"]
+
 	// Update the "Additional" field in the profile
 	profile.Additional = requestBody.Additional
 
@@ -352,6 +374,27 @@ func UpdateProfile(c *fiber.Ctx) error {
 			"message": "Failed to retrieve profile",
 		})
 	}
+
+	// Fetch languages from the database
+	var langs []models.Langs
+	err := initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
+	if err != nil {
+		return err
+	}
+
+	translations := make(map[string]string)
+
+	for _, lang := range langs {
+
+		result, _ := gt.Translate(requestBody.Descr, profile.Lang, lang.Code)
+		translations[lang.Code] = result
+
+	}
+
+	// Set the translated values in the TitleLangs field
+	profile.MultilangDescr.En = translations["en"]
+	profile.MultilangDescr.Ru = translations["ru"]
+	profile.MultilangDescr.Ka = translations["ka"]
 
 	// Create a new slice to store the updated list of cities
 	updatedCities := []models.City{}
