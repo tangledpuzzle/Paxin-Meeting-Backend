@@ -15,6 +15,7 @@ type Blog struct {
 	Slug       string      `gorm:"not null"`
 	Content    string      `gorm:"null"`
 	Status     string      `gorm:"not null"`
+	Lang       string      `gorm:"not null;default:en"`
 	Sticker    string      `gorm:"not null;default:standart"`
 	City       []City      `gorm:"many2many:blog_city;"`
 	Catygory   []Guilds    `gorm:"many2many:blog_guilds;"`
@@ -47,6 +48,7 @@ type BlogResponse struct {
 	Content   string       `json:"content"`
 	Status    string       `json:"status"`
 	UniqId    string       `json:"uniqId"`
+	Lang      string       `json:"lang"`
 	City      []string     `json:"city"`
 	Sticker   string       `json:"sticker"`
 	Total     float64      `json:"total"`
@@ -66,6 +68,7 @@ type BlogResponse struct {
 type CreateBlogInput struct {
 	Title    string      `json:"title" validate:"required,min=3,max=80"`
 	Content  string      `json:"content"`
+	Lant     string      `json:"lang"`
 	Total    float64     `json:"total" validate:"min=2,max=100"`
 	Status   string      `json:"status" validate:"required,min=10"`
 	Descr    string      `json:"descr" validate:"required,min=10,max=300"`

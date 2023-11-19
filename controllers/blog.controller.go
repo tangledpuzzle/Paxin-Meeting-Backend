@@ -25,6 +25,7 @@ import (
 	"hyperpage/models"
 	"hyperpage/utils"
 
+	gt "github.com/bas24/googletranslatefree"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -100,6 +101,7 @@ type blogResponse struct {
 	Status     string             `json:"status"`
 	Total      float64            `json:"total"`
 	Content    string             `json:"content"`
+	Lang       string             `json:"lang"`
 	Views      int                `json:"views"`
 	UserAvatar string             `json:"userAvatar"`
 	Photos     []models.BlogPhoto `json:"photos"`
@@ -237,6 +239,14 @@ func CreateBlog(c *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
+
+	const text string = `Hello, World!`
+	// you can use "auto" for source language
+	// so, translator will detect language
+	result, _ := gt.Translate(text, "en", "es")
+	fmt.Println(result)
+
+	fmt.Println(blog)
 
 	// Retrieve associated Hashtags from the database
 	hashtags := []models.Hashtags{}
@@ -1573,6 +1583,7 @@ func GetAll(c *fiber.Ctx) error {
 		blogRes := &blogResponse{
 			ID:         b.ID,
 			Title:      b.Title,
+			Lang:       b.Lang,
 			Descr:      b.Descr,
 			Slug:       b.Slug,
 			Status:     b.Status,
