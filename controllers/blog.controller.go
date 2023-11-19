@@ -94,26 +94,29 @@ type CityJSON struct {
 }
 
 type blogResponse struct {
-	ID         uint64             `json:"id"`
-	Title      string             `json:"title"`
-	Descr      string             `json:"descr"`
-	Slug       string             `json:"slug"`
-	Status     string             `json:"status"`
-	Total      float64            `json:"total"`
-	Content    string             `json:"content"`
-	Lang       string             `json:"lang"`
-	Views      int                `json:"views"`
-	UserAvatar string             `json:"userAvatar"`
-	Photos     []models.BlogPhoto `json:"photos"`
-	CreatedAt  time.Time          `json:"createdAt"`
-	UpdatedAt  time.Time          `json:"updatedAt"`
-	User       userResponse       `json:"user"`
-	City       []CityJSON         `json:"city"`
-	Pined      bool               `json:"pined"`
-	Catygory   []CategoryJSON     `json:"catygory"`
-	UniqId     string             `json:"uniqId"`
-	Sticker    string             `json:"sticker"`
-	Hashtags   []string           `json:"hashtags"`
+	ID               uint64                `json:"id"`
+	Title            string                `json:"title"`
+	Descr            string                `json:"descr"`
+	Slug             string                `json:"slug"`
+	Status           string                `json:"status"`
+	MultilangTitle   models.MultilangTitle `json:"multilangtitle"`
+	MultilangDescr   models.MultilangTitle `json:"multilangdescr"`
+	MultilangContent models.MultilangTitle `json:"multilangcontent"`
+	Total            float64               `json:"total"`
+	Content          string                `json:"content"`
+	Lang             string                `json:"lang"`
+	Views            int                   `json:"views"`
+	UserAvatar       string                `json:"userAvatar"`
+	Photos           []models.BlogPhoto    `json:"photos"`
+	CreatedAt        time.Time             `json:"createdAt"`
+	UpdatedAt        time.Time             `json:"updatedAt"`
+	User             userResponse          `json:"user"`
+	City             []CityJSON            `json:"city"`
+	Pined            bool                  `json:"pined"`
+	Catygory         []CategoryJSON        `json:"catygory"`
+	UniqId           string                `json:"uniqId"`
+	Sticker          string                `json:"sticker"`
+	Hashtags         []string              `json:"hashtags"`
 }
 
 func GetAllBlogs(c *fiber.Ctx) error {
@@ -240,13 +243,43 @@ func CreateBlog(c *fiber.Ctx) error {
 		})
 	}
 
-	const text string = `Hello, World!`
-	// you can use "auto" for source language
-	// so, translator will detect language
-	result, _ := gt.Translate(text, "en", "es")
-	fmt.Println(result)
+	// Fetch languages from the database
+	var langs []models.Langs
+	err := initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
+	if err != nil {
+		return err
+	}
 
-	fmt.Println(blog)
+	translations := make(map[string]string)
+	translationsDescr := make(map[string]string)
+	translationsContent := make(map[string]string)
+
+	for _, lang := range langs {
+
+		result, _ := gt.Translate(blog.Title, blog.Lang, lang.Code)
+		translations[lang.Code] = result
+
+		resultDescr, _ := gt.Translate(blog.Descr, blog.Lang, lang.Code)
+		translationsDescr[lang.Code] = resultDescr
+
+		resultContent, _ := gt.Translate(blog.Content, blog.Lang, lang.Code)
+		translationsContent[lang.Code] = resultContent
+	}
+
+	// Set the translated values in the TitleLangs field
+	blog.MultilangTitle.En = translations["en"]
+	blog.MultilangTitle.Ru = translations["ru"]
+	blog.MultilangTitle.Ka = translations["ka"]
+
+	// Set the translated values in the TitleLangs field
+	blog.MultilangDescr.En = translationsDescr["en"]
+	blog.MultilangDescr.Ru = translationsDescr["ru"]
+	blog.MultilangDescr.Ka = translationsDescr["ka"]
+
+	// Set the translated values in the TitleLangs field
+	blog.MultilangContent.En = translationsContent["en"]
+	blog.MultilangContent.Ru = translationsContent["ru"]
+	blog.MultilangContent.Ka = translationsContent["ka"]
 
 	// Retrieve associated Hashtags from the database
 	hashtags := []models.Hashtags{}
@@ -1230,8 +1263,12 @@ func GetBlogById(c *fiber.Ctx) error {
 		}
 
 		blogRes := &blogResponse{
-			ID:         b.ID,
-			Title:      b.Title,
+			ID:               b.ID,
+			Title:            b.Title,
+			MultilangTitle:   b.MultilangTitle,
+			MultilangDescr:   b.MultilangDescr,
+			MultilangContent: b.MultilangContent,
+
 			Descr:      b.Descr,
 			Lang:       b.Lang,
 			Slug:       b.Slug,
@@ -1582,24 +1619,25 @@ func GetAll(c *fiber.Ctx) error {
 		}
 
 		blogRes := &blogResponse{
-			ID:         b.ID,
-			Title:      b.Title,
-			Lang:       b.Lang,
-			Descr:      b.Descr,
-			Slug:       b.Slug,
-			Status:     b.Status,
-			Total:      b.Total,
-			Content:    b.Content,
-			City:       cities,
-			UserAvatar: b.UserAvatar,
-			Views:      b.Views,
-			Photos:     b.Photos,
-			CreatedAt:  b.CreatedAt,
-			UpdatedAt:  b.UpdatedAt,
-			Pined:      b.Pined,
-			Catygory:   categories,
-			UniqId:     b.UniqId,
-			Sticker:    b.Sticker,
+			ID:             b.ID,
+			Title:          b.Title,
+			MultilangTitle: b.MultilangTitle,
+			Lang:           b.Lang,
+			Descr:          b.Descr,
+			Slug:           b.Slug,
+			Status:         b.Status,
+			Total:          b.Total,
+			Content:        b.Content,
+			City:           cities,
+			UserAvatar:     b.UserAvatar,
+			Views:          b.Views,
+			Photos:         b.Photos,
+			CreatedAt:      b.CreatedAt,
+			UpdatedAt:      b.UpdatedAt,
+			Pined:          b.Pined,
+			Catygory:       categories,
+			UniqId:         b.UniqId,
+			Sticker:        b.Sticker,
 			User: userResponse{
 
 				TId:              b.User.Tid,

@@ -8,59 +8,73 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type MultilangTitle struct {
+	En string `gorm:"null"`
+	Ru string `gorm:"null"`
+	Ka string `gorm:"null"`
+
+	// Add more language fields as needed
+}
+
 type Blog struct {
-	ID         uint64      `gorm:"primaryKey"`
-	Title      string      `gorm:"not null"`
-	Descr      string      `gorm:"not null"`
-	Slug       string      `gorm:"not null"`
-	Content    string      `gorm:"null"`
-	Status     string      `gorm:"not null"`
-	Lang       string      `gorm:"not null;default:en"`
-	Sticker    string      `gorm:"not null;default:standart"`
-	City       []City      `gorm:"many2many:blog_city;"`
-	Catygory   []Guilds    `gorm:"many2many:blog_guilds;"`
-	UniqId     string      `gorm:"not null;default:0"`
-	Days       int         `gorm:"not null;default:3"`
-	Views      int         `gorm:"not null;default:0"`
-	Total      float64     `gorm:"null"`
-	TmId       float64     `gorm:"not null;default:0"`
-	Photos     []BlogPhoto `json:"photos"`
-	NotAds     bool        `gorm:"not null;default:true"`
-	User       User        `gorm:"foreignKey:UserID"`
-	UserAvatar string      `gorm:"not null"`
-	Pined      bool        `gorm:"not null;default:false"`
-	UserID     uuid.UUID   `gorm:"type:uuid;not null"`
-	CreatedAt  time.Time   `gorm:"not null"`
-	UpdatedAt  time.Time   `gorm:"not null"`
-	DeletedAt  *time.Time  `gorm:"index"`
-	ExpiredAt  *time.Time  `gorm:"index"`
-	Hashtags   []Hashtags  `gorm:"many2many:blog_hashtags;"`
+	ID               uint64         `gorm:"primaryKey"`
+	Title            string         `gorm:"not null"`
+	MultilangTitle   MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_title_"`
+	Descr            string         `gorm:"not null"`
+	MultilangDescr   MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_descr_"`
+	Slug             string         `gorm:"not null"`
+	Content          string         `gorm:"null"`
+	MultilangContent MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_content_"`
+	Status           string         `gorm:"not null"`
+	Lang             string         `gorm:"not null;default:en"`
+	Sticker          string         `gorm:"not null;default:standart"`
+	City             []City         `gorm:"many2many:blog_city;"`
+	Catygory         []Guilds       `gorm:"many2many:blog_guilds;"`
+	UniqId           string         `gorm:"not null;default:0"`
+	Days             int            `gorm:"not null;default:3"`
+	Views            int            `gorm:"not null;default:0"`
+	Total            float64        `gorm:"null"`
+	TmId             float64        `gorm:"not null;default:0"`
+	Photos           []BlogPhoto    `json:"photos"`
+	NotAds           bool           `gorm:"not null;default:true"`
+	User             User           `gorm:"foreignKey:UserID"`
+	UserAvatar       string         `gorm:"not null"`
+	Pined            bool           `gorm:"not null;default:false"`
+	UserID           uuid.UUID      `gorm:"type:uuid;not null"`
+	CreatedAt        time.Time      `gorm:"not null"`
+	UpdatedAt        time.Time      `gorm:"not null"`
+	DeletedAt        *time.Time     `gorm:"index"`
+	ExpiredAt        *time.Time     `gorm:"index"`
+	Hashtags         []Hashtags     `gorm:"many2many:blog_hashtags;"`
 }
 
 type BlogResponse struct {
-	ID        uint64       `json:"id"`
-	Title     string       `json:"title"`
-	Catygory  []string     `json:"catygory"`
-	Days      int          `json:"days"`
-	Views     int          `json:"views"`
-	Descr     string       `json:"descr"`
-	Slug      string       `json:"slug"`
-	Content   string       `json:"content"`
-	Status    string       `json:"status"`
-	UniqId    string       `json:"uniqId"`
-	Lang      string       `json:"lang"`
-	City      []string     `json:"city"`
-	Sticker   string       `json:"sticker"`
-	Total     float64      `json:"total"`
-	Pined     bool         `json:"pined"`
-	UserID    uuid.UUID    `json:"userId"`
-	TmId      float64      `gorm:"tId"`
-	CreatedAt time.Time    `json:"createdAt"`
-	UpdatedAt time.Time    `json:"updatedAt"`
-	DeletedAt *time.Time   `json:"deletedAt"`
-	ExpiredAt *time.Time   `json:"expiredAt"`
-	Photos    []BlogPhoto  `json:"photos"`
-	User      UserResponse `json:"user"`
+	ID               uint64         `json:"id"`
+	Title            string         `json:"title"`
+	MultilangTitle   MultilangTitle `json:"multilangtitle"`
+	MultilangDescr   MultilangTitle `json:"multilangdescr"`
+	MultilangContent MultilangTitle `json:"multilangcontent"`
+	Catygory         []string       `json:"catygory"`
+	Days             int            `json:"days"`
+	Views            int            `json:"views"`
+	Descr            string         `json:"descr"`
+	Slug             string         `json:"slug"`
+	Content          string         `json:"content"`
+	Status           string         `json:"status"`
+	UniqId           string         `json:"uniqId"`
+	Lang             string         `json:"lang"`
+	City             []string       `json:"city"`
+	Sticker          string         `json:"sticker"`
+	Total            float64        `json:"total"`
+	Pined            bool           `json:"pined"`
+	UserID           uuid.UUID      `json:"userId"`
+	TmId             float64        `gorm:"tId"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	UpdatedAt        time.Time      `json:"updatedAt"`
+	DeletedAt        *time.Time     `json:"deletedAt"`
+	ExpiredAt        *time.Time     `json:"expiredAt"`
+	Photos           []BlogPhoto    `json:"photos"`
+	User             UserResponse   `json:"user"`
 
 	Hashtags []string `json:"hashtags"`
 }
