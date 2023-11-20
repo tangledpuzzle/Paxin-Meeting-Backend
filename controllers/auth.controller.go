@@ -282,16 +282,16 @@ func SignInUser(c *fiber.Ctx) error {
 	// 	Domain:   config.ClientOrigin,
 	// })
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    *accessTokenDetails.Token,
-		Path:     "/",
-		SameSite: "Lax",
-		MaxAge:   config.AccessTokenMaxAge * 60,
-		Secure:   false,
-		HTTPOnly: false,
-		Domain:   config.ClientOrigin,
-	})
+	// c.Cookie(&fiber.Cookie{
+	// 	Name:     "access_token",
+	// 	Value:    *accessTokenDetails.Token,
+	// 	Path:     "/",
+	// 	SameSite: "Lax",
+	// 	MaxAge:   config.AccessTokenMaxAge * 60,
+	// 	Secure:   false,
+	// 	HTTPOnly: false,
+	// 	Domain:   config.ClientOrigin,
+	// })
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "user_id",
@@ -580,25 +580,27 @@ func LogoutUser(c *fiber.Ctx) error {
 	// if err != nil {
 	// 	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	// }
-	config, _ := initializers.LoadConfig(".")
+	// config, _ := initializers.LoadConfig(".")
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		Path:     "/",
-		Secure:   true,
-		HTTPOnly: true,
-		Domain:   config.ClientOrigin,
-	})
+	// c.Cookie(&fiber.Cookie{
+	// 	Name:     "access_token",
+	// 	Value:    "",
+	// 	Path:     "/",
+	// 	Secure:   true,
+	// 	HTTPOnly: true,
+	// 	Domain:   config.ClientOrigin,
+	// })
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Path:     "/",
-		Secure:   true,
-		HTTPOnly: true,
-		Domain:   config.ClientOrigin,
-	})
+	// c.ClearCookie("access_token")
+
+	// c.Cookie(&fiber.Cookie{
+	// 	Name:     "refresh_token",
+	// 	Value:    "",
+	// 	Path:     "/",
+	// 	Secure:   true,
+	// 	HTTPOnly: true,
+	// 	Domain:   config.ClientOrigin,
+	// })
 
 	// c.Cookie(&fiber.Cookie{
 	// 	Name:    "logged_in",
