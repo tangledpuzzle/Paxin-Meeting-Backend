@@ -270,16 +270,19 @@ func CreateBlog(c *fiber.Ctx) error {
 	blog.MultilangTitle.En = translations["en"]
 	blog.MultilangTitle.Ru = translations["ru"]
 	blog.MultilangTitle.Ka = translations["ka"]
+	blog.MultilangTitle.Es = translations["es"]
 
 	// Set the translated values in the TitleLangs field
 	blog.MultilangDescr.En = translationsDescr["en"]
 	blog.MultilangDescr.Ru = translationsDescr["ru"]
 	blog.MultilangDescr.Ka = translationsDescr["ka"]
+	blog.MultilangDescr.Es = translationsDescr["es"]
 
 	// Set the translated values in the TitleLangs field
 	blog.MultilangContent.En = translationsContent["en"]
 	blog.MultilangContent.Ru = translationsContent["ru"]
 	blog.MultilangContent.Ka = translationsContent["ka"]
+	blog.MultilangContent.Es = translationsContent["es"]
 
 	// Retrieve associated Hashtags from the database
 	hashtags := []models.Hashtags{}

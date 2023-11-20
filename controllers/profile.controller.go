@@ -317,6 +317,7 @@ func UpdateProfileAdditional(c *fiber.Ctx) error {
 	profile.MultilangAdditional.En = translations["en"]
 	profile.MultilangAdditional.Ru = translations["ru"]
 	profile.MultilangAdditional.Ka = translations["ka"]
+	profile.MultilangAdditional.Es = translations["es"]
 
 	// Update the "Additional" field in the profile
 	profile.Additional = requestBody.Additional
@@ -395,6 +396,7 @@ func UpdateProfile(c *fiber.Ctx) error {
 	profile.MultilangDescr.En = translations["en"]
 	profile.MultilangDescr.Ru = translations["ru"]
 	profile.MultilangDescr.Ka = translations["ka"]
+	profile.MultilangDescr.Es = translations["es"]
 
 	// Create a new slice to store the updated list of cities
 	updatedCities := []models.City{}
