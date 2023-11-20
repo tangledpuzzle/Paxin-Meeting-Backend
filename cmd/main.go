@@ -243,98 +243,83 @@ func main() {
 				return
 			}
 
-			// var user models.User
-			// initializers.DB.Where("session = ?", idStr).First(&user)
+			var user models.User
+			initializers.DB.Where("session = ?", idStr).First(&user)
+
+			fmt.Println(user)
+
+			UserID := user.ID
 
 			now := time.Now()
 
 			//CHECK USER IS LOGIN OR NOT
-			authToken := c.Cookies("access_token")
+			// authToken := c.Cookies("access_token")
 
-			if authToken != "" {
+			if UserID != uuid.Nil {
 
-				xconfig, _ := initializers.LoadConfig(".")
+				var user models.User
+				// now := time.Now()
 
-				tokenClaims, err := utils.ValidateToken(authToken, xconfig.AccessTokenPublicKey)
-				if err != nil {
-					// handle error
-					_ = err
-				}
+				initializers.DB.Where("id = ?", UserID).First(&user)
+				existingHours := user.OnlineHours // Initialize existingHours as a TimeEntryScanner
 
-				if tokenClaims == nil {
-					fmt.Println("Token is missing or invalid")
-					return // Return if tokenClaims is nil
-				}
+				hours := int(durationComponents[0].Hour)
+				minutes := int(durationComponents[0].Minutes)
+				seconds := int(durationComponents[0].Seconds)
 
-				// extract the TokenUuid field from tokenClaims
-				UserID := tokenClaims.UserID
+				if len(existingHours) > 0 {
+					lastEntry := existingHours[len(existingHours)-1]
+					totalSeconds := lastEntry.Seconds + seconds
+					totalMinutes := lastEntry.Minutes + minutes + totalSeconds/60
+					totalHours := lastEntry.Hour + hours + totalMinutes/60
 
-				if UserID != "" {
-					var user models.User
-					// now := time.Now()
+					lastEntry.Seconds = totalSeconds % 60
+					lastEntry.Minutes = totalMinutes % 60
+					lastEntry.Hour = totalHours % 24
 
-					initializers.DB.Where("id = ?", UserID).First(&user)
-					existingHours := user.OnlineHours // Initialize existingHours as a TimeEntryScanner
-
-					hours := int(durationComponents[0].Hour)
-					minutes := int(durationComponents[0].Minutes)
-					seconds := int(durationComponents[0].Seconds)
-
-					if len(existingHours) > 0 {
-						lastEntry := existingHours[len(existingHours)-1]
-						totalSeconds := lastEntry.Seconds + seconds
-						totalMinutes := lastEntry.Minutes + minutes + totalSeconds/60
-						totalHours := lastEntry.Hour + hours + totalMinutes/60
-
-						lastEntry.Seconds = totalSeconds % 60
-						lastEntry.Minutes = totalMinutes % 60
-						lastEntry.Hour = totalHours % 24
-
-						existingHours[len(existingHours)-1] = lastEntry
-					} else {
-						// No existing hours, create a new entry
-						timeEntry := models.TimeEntry{
-							Hour:    hours,
-							Minutes: minutes,
-							Seconds: seconds,
-						}
-						existingHours = append(existingHours, timeEntry)
-					}
-
-					jsonBytes, err := json.Marshal(existingHours)
-					if err != nil {
-						// Handle the error
-						_ = err
-
-					}
-
-					var updatedHours []models.TimeEntry // Define a variable of type []models.TimeEntry
-
-					err = json.Unmarshal(jsonBytes, &updatedHours) // Unmarshal jsonBytes into updatedHours
-					if err != nil {
-						// Handle the error
-						_ = err
-
-					}
-
-					user.OnlineHours = updatedHours // Assign updatedHours to user.OnlineHours
-					formattedTime := string(jsonBytes)
-
-					// Lost connection
-					initializers.DB.Model(&user).Updates(map[string]interface{}{"online": false, "last_online": now, "online_hours": formattedTime})
-
-					// Access the user's ID with `user.ID`
-					// userID := user.ID.String()
-					userName := user.Name
-					//CHECK USER LOGIN OR NOT
-					// authToken := c.Cookies("access_token")
-
-					utils.UserActivity("userOffline", userName)
-					// initializers.DB.Model(&user).Where("ID = ?", UserID).Updates(map[string]interface{}{"online": true})
+					existingHours[len(existingHours)-1] = lastEntry
 				} else {
-					fmt.Println("User is not logged in")
+					// No existing hours, create a new entry
+					timeEntry := models.TimeEntry{
+						Hour:    hours,
+						Minutes: minutes,
+						Seconds: seconds,
+					}
+					existingHours = append(existingHours, timeEntry)
 				}
 
+				jsonBytes, err := json.Marshal(existingHours)
+				if err != nil {
+					// Handle the error
+					_ = err
+
+				}
+
+				var updatedHours []models.TimeEntry // Define a variable of type []models.TimeEntry
+
+				err = json.Unmarshal(jsonBytes, &updatedHours) // Unmarshal jsonBytes into updatedHours
+				if err != nil {
+					// Handle the error
+					_ = err
+
+				}
+
+				user.OnlineHours = updatedHours // Assign updatedHours to user.OnlineHours
+				formattedTime := string(jsonBytes)
+
+				// Lost connection
+				initializers.DB.Model(&user).Updates(map[string]interface{}{"online": false, "last_online": now, "online_hours": formattedTime})
+
+				// Access the user's ID with `user.ID`
+				// userID := user.ID.String()
+				userName := user.Name
+				//CHECK USER LOGIN OR NOT
+				// authToken := c.Cookies("access_token")
+
+				utils.UserActivity("userOffline", userName)
+
+			} else {
+				fmt.Println("User is not logged in")
 			}
 
 			// if authToken != "" {
