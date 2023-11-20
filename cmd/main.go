@@ -250,6 +250,7 @@ func main() {
 
 			//CHECK USER IS LOGIN OR NOT
 			authToken := c.Cookies("access_token")
+			fmt.Println("authToken", authToken)
 
 			if authToken != "" {
 
