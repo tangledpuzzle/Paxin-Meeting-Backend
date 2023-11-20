@@ -282,16 +282,16 @@ func SignInUser(c *fiber.Ctx) error {
 	// 	Domain:   config.ClientOrigin,
 	// })
 
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "access_token",
-	// 	Value:    *accessTokenDetails.Token,
-	// 	Path:     "/",
-	// 	SameSite: "Lax",
-	// 	MaxAge:   config.AccessTokenMaxAge * 60,
-	// 	Secure:   false,
-	// 	HTTPOnly: false,
-	// 	Domain:   config.ClientOrigin,
-	// })
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    *accessTokenDetails.Token,
+		Path:     "/",
+		SameSite: "Lax",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HTTPOnly: false,
+		Domain:   config.ClientOrigin,
+	})
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "user_id",
