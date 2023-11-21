@@ -271,3 +271,122 @@ func UpdateGuild(c *fiber.Ctx) error {
 		"data":    guild,
 	})
 }
+
+func CreateGuildTranslation(c *fiber.Ctx) error {
+	var newTranslation models.GuildTranslation
+
+	if err := c.BodyParser(&newTranslation); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	// Check if CityID is provided
+	if newTranslation.GuildID == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "guild ID is required",
+		})
+	}
+
+	// You may want to add additional validation or checks here
+
+	// Use newTranslation.CityID to retrieve the city from the database
+	var guild models.Guilds
+	if err := initializers.DB.First(&guild, newTranslation.GuildID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Guild not found",
+		})
+	}
+
+	// Assign the retrieved City ID to the translation
+	newTranslation.GuildID = guild.ID
+
+	// Add the new translation to the database
+	if err := initializers.DB.Create(&newTranslation).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to add the new translation",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "New translation added successfully",
+		"data":    newTranslation,
+	})
+}
+
+func UpdateGuildTranslation(c *fiber.Ctx) error {
+	translationID := c.Query("translationID")
+
+	if translationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation ID is required",
+		})
+	}
+
+	var translation models.GuildTranslation
+	if err := initializers.DB.First(&translation, translationID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation not found",
+		})
+	}
+
+	var updatedTranslation models.GuildTranslation
+	if err := c.BodyParser(&updatedTranslation); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	if err := initializers.DB.Model(&translation).Updates(&updatedTranslation).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update the translation",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Translation updated successfully",
+		"data":    translation,
+	})
+}
+
+func DeleteGuildTranslation(c *fiber.Ctx) error {
+	translationID := c.Query("translationID")
+
+	if translationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation ID is required",
+		})
+	}
+
+	var translation models.GuildTranslation
+	if err := initializers.DB.First(&translation, translationID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation not found",
+		})
+	}
+
+	if err := initializers.DB.Delete(&translation).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete the translation",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Translation deleted successfully",
+		"data":    nil,
+	})
+}

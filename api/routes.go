@@ -112,6 +112,12 @@ func Register(micro *fiber.App) {
 
 	})
 
+	micro.Route("/guildstranslator", func(router fiber.Router) {
+		router.Post("/create", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.CreateGuildTranslation)
+		router.Delete("/remove", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.DeleteGuildTranslation)
+		router.Patch("/update", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateGuildTranslation)
+	})
+
 	micro.Route("/profile", func(router fiber.Router) {
 		router.Get("/get", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetProfile)
 		router.Patch("/save", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UpdateProfile)
