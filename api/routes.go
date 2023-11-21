@@ -103,6 +103,8 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/guilds", func(router fiber.Router) {
 		router.Get("/all", controllers.GetGuilds)
+		router.Get("/getAll", controllers.GetGuildsAll)
+
 		router.Get("/allAdmin", controllers.GetGuildsAdmin)
 
 		router.Get("/name", controllers.GetGuildName)

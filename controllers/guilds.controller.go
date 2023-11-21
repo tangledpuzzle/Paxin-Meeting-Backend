@@ -116,6 +116,10 @@ func GetGuilds(c *fiber.Ctx) error {
 	// Получите запрошенный язык из параметров запроса
 	language := c.Query("language") // Например, "en" для английского
 
+	if language == "" {
+		language = "en"
+	}
+
 	var guilds []models.Guilds
 	err := initializers.DB.Find(&guilds).Error
 	if err != nil {
@@ -161,5 +165,58 @@ func GetGuilds(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   response,
+	})
+}
+
+func GetGuildsAll(c *fiber.Ctx) error {
+	// Get query parameters for pagination
+	limit := c.Query("limit", "10")
+	skip := c.Query("skip", "0") // Use skip directly from the query parameters
+
+	limitNumber, err := strconv.Atoi(limit)
+	if err != nil || limitNumber < 1 {
+		limitNumber = 10
+	}
+
+	skipNumber, err := strconv.Atoi(skip)
+	if err != nil || skipNumber < 0 {
+		skipNumber = 0
+	}
+
+	// get count of all guilds in the database
+	var total int64
+	if err := initializers.DB.Model(&models.Guilds{}).Count(&total).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch guilds count from the database",
+		})
+	}
+
+	// get paginated guild names from the database with translations
+	var guilds []models.Guilds
+	db := initializers.DB.
+		Joins("JOIN guild_translations ON guilds.id = guild_translations.guild_id").
+		Preload("Translations").
+		Select("DISTINCT guilds.id, guilds.hex, guilds.updated_at, guilds.deleted_at").
+		Offset(skipNumber).Limit(limitNumber).
+		Find(&guilds)
+
+	if db.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch paginated guilds from the database",
+			"error":   db.Error.Error(),
+		})
+	}
+
+	// return the paginated guild names and metadata as a JSON response
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   guilds,
+		"meta": fiber.Map{
+			"limit": limitNumber,
+			"skip":  skipNumber,
+			"total": total,
+		},
 	})
 }
