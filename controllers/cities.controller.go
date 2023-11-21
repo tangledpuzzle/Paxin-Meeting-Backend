@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -121,5 +122,104 @@ func GetName(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   cities,
+	})
+}
+
+func CreateCity(c *fiber.Ctx) error {
+	// Parse request data into a City struct
+	var newCity models.City
+	if err := c.BodyParser(&newCity); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	newCity.UpdatedAt = time.Now()
+
+	if err := initializers.DB.Create(&newCity).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to add the new city",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "New city added successfully",
+		"data":    newCity,
+	})
+}
+
+func DeleteCity(c *fiber.Ctx) error {
+	cityID := c.Params("id")
+
+	if cityID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City ID is required",
+		})
+	}
+
+	var city models.City
+	if err := initializers.DB.First(&city, cityID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City not found",
+		})
+	}
+
+	if err := initializers.DB.Delete(&city).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete the city",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "City deleted successfully",
+		"data":    nil,
+	})
+}
+
+func UpdateCity(c *fiber.Ctx) error {
+
+	cityID := c.Params("id")
+
+	if cityID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City ID is required",
+		})
+	}
+
+	var city models.City
+	if err := initializers.DB.First(&city, cityID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City not found",
+		})
+	}
+
+	var updatedCity models.City
+	if err := c.BodyParser(&updatedCity); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	if err := initializers.DB.Model(&city).Updates(&updatedCity).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update the city",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "City updated successfully",
+		"data":    city,
 	})
 }

@@ -87,6 +87,10 @@ func Register(micro *fiber.App) {
 	micro.Route("/cities", func(router fiber.Router) {
 		router.Get("/all", controllers.GetCities)
 		router.Get("/query", controllers.GetName)
+		router.Post("/create", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.CreateCity)
+		router.Delete("/remove/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.DeleteCity)
+		router.Patch("/update/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateCity)
+
 	})
 
 	micro.Route("/guilds", func(router fiber.Router) {
