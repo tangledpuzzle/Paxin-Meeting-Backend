@@ -104,8 +104,9 @@ func Register(micro *fiber.App) {
 	micro.Route("/guilds", func(router fiber.Router) {
 		router.Get("/all", controllers.GetGuilds)
 		router.Get("/getAll", controllers.GetGuildsAll)
-
-		router.Get("/allAdmin", controllers.GetGuildsAdmin)
+		router.Post("/create", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.CreateGuild)
+		router.Delete("/remove/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.DeleteGuild)
+		router.Patch("/update/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateGuild)
 
 		router.Get("/name", controllers.GetGuildName)
 

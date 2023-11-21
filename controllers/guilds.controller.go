@@ -58,60 +58,6 @@ func GetGuildName(c *fiber.Ctx) error {
 	})
 }
 
-func GetGuildsAdmin(c *fiber.Ctx) error {
-	// Get query parameters for pagination
-	limit := c.Query("limit", "10")
-	skip := c.Query("skip", "0") // Use skip directly from the query parameters
-
-	limitNumber, err := strconv.Atoi(limit)
-	if err != nil || limitNumber < 1 {
-		limitNumber = 10
-	}
-
-	skipNumber, err := strconv.Atoi(skip)
-	if err != nil || skipNumber < 0 {
-		skipNumber = 0
-	}
-
-	// get count of all cities in the database
-	var total int64
-	if err := initializers.DB.Model(&models.Guilds{}).Count(&total).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Failed to fetch guilds count from the database",
-		})
-	}
-
-	// get paginated city names from the database with translations
-	var guilds []models.Guilds
-	db := initializers.DB.
-		Joins("JOIN guild_translations ON guilds.id = guild_translations.guild_id").
-		Preload("Translations").
-		Offset(skipNumber).Limit(limitNumber).
-		Find(&guilds)
-
-	if db.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Failed to fetch paginated cities from the database",
-			"error":   db.Error.Error(),
-		})
-	}
-
-	// fmt.Println(db.Statement.SQL.String()) // Log the generated SQL
-
-	// return the paginated city names and metadata as a JSON response
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   guilds,
-		"meta": fiber.Map{
-			"limit": limitNumber,
-			"skip":  skipNumber,
-			"total": total,
-		},
-	})
-}
-
 func GetGuilds(c *fiber.Ctx) error {
 	// Получите запрошенный язык из параметров запроса
 	language := c.Query("language") // Например, "en" для английского
@@ -218,5 +164,110 @@ func GetGuildsAll(c *fiber.Ctx) error {
 			"skip":  skipNumber,
 			"total": total,
 		},
+	})
+}
+
+func CreateGuild(c *fiber.Ctx) error {
+	var newGuild models.Guilds
+	if err := c.BodyParser(&newGuild); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	newGuild.UpdatedAt = time.Now()
+
+	if err := initializers.DB.Create(&newGuild).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to add the new guild",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "New guild added successfully",
+		"data":    newGuild,
+	})
+}
+
+func DeleteGuild(c *fiber.Ctx) error {
+	guildID := c.Params("id")
+
+	if guildID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Guild ID is required",
+		})
+	}
+
+	var guild models.Guilds
+	if err := initializers.DB.First(&guild, guildID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Guild not found",
+		})
+	}
+
+	// Find and delete all guild translations associated with the guild
+	if err := initializers.DB.Where("guild_id = ?", guild.ID).Delete(&models.GuildTranslation{}).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete guild translations",
+		})
+	}
+
+	if err := initializers.DB.Delete(&guild).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete the guild",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Guild and associated translations deleted successfully",
+		"data":    nil,
+	})
+}
+
+func UpdateGuild(c *fiber.Ctx) error {
+	guildID := c.Params("id")
+
+	if guildID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Guild ID is required",
+		})
+	}
+
+	var guild models.Guilds
+	if err := initializers.DB.First(&guild, guildID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Guild not found",
+		})
+	}
+
+	var updatedGuild models.Guilds
+	if err := c.BodyParser(&updatedGuild); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	if err := initializers.DB.Model(&guild).Updates(&updatedGuild).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update the guild",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Guild updated successfully",
+		"data":    guild,
 	})
 }
