@@ -166,6 +166,14 @@ func DeleteCity(c *fiber.Ctx) error {
 		})
 	}
 
+	// Find and delete all city translations associated with the city
+	if err := initializers.DB.Where("city_id = ?", city.ID).Delete(&models.CityTranslation{}).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete city translations",
+		})
+	}
+
 	if err := initializers.DB.Delete(&city).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -175,7 +183,7 @@ func DeleteCity(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
-		"message": "City deleted successfully",
+		"message": "City and associated translations deleted successfully",
 		"data":    nil,
 	})
 }
@@ -251,7 +259,7 @@ func CreateCityTranslation(c *fiber.Ctx) error {
 	}
 
 	// Assign the retrieved City ID to the translation
-	// newTranslation.CityID = city.ID
+	newTranslation.CityID = city.ID
 
 	// Add the new translation to the database
 	if err := initializers.DB.Create(&newTranslation).Error; err != nil {
