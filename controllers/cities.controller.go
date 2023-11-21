@@ -264,7 +264,7 @@ func CreateCityTranslation(c *fiber.Ctx) error {
 }
 
 func GetCityTranslation(c *fiber.Ctx) error {
-	translationID := c.Params("translationID")
+	translationID := c.Query("translationID")
 
 	if translationID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -288,7 +288,7 @@ func GetCityTranslation(c *fiber.Ctx) error {
 }
 
 func UpdateCityTranslation(c *fiber.Ctx) error {
-	translationID := c.Params("translationID")
+	translationID := c.Query("translationID")
 
 	if translationID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -328,7 +328,7 @@ func UpdateCityTranslation(c *fiber.Ctx) error {
 }
 
 func DeleteCityTranslation(c *fiber.Ctx) error {
-	translationID := c.Params("translationID")
+	translationID := c.Query("translationID")
 
 	if translationID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
