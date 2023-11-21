@@ -98,7 +98,6 @@ func GetName(c *fiber.Ctx) error {
 		})
 
 	}
-	// Check if the name and lang parameters are provided
 	if name == "" || lang == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
@@ -118,7 +117,6 @@ func GetName(c *fiber.Ctx) error {
 		})
 	}
 
-	// Return the matched cities as a JSON response
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   cities,
@@ -126,7 +124,6 @@ func GetName(c *fiber.Ctx) error {
 }
 
 func CreateCity(c *fiber.Ctx) error {
-	// Parse request data into a City struct
 	var newCity models.City
 	if err := c.BodyParser(&newCity); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -221,5 +218,143 @@ func UpdateCity(c *fiber.Ctx) error {
 		"status":  "success",
 		"message": "City updated successfully",
 		"data":    city,
+	})
+}
+
+func CreateCityTranslation(c *fiber.Ctx) error {
+	cityID := c.Params("cityID")
+
+	if cityID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City ID is required",
+		})
+	}
+
+	var city models.City
+	if err := initializers.DB.First(&city, cityID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City not found",
+		})
+	}
+
+	var newTranslation models.CityTranslation
+	if err := c.BodyParser(&newTranslation); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	newTranslation.CityID = city.ID
+
+	if err := initializers.DB.Create(&newTranslation).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to add the new translation",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "New translation added successfully",
+		"data":    newTranslation,
+	})
+}
+
+func GetCityTranslation(c *fiber.Ctx) error {
+	translationID := c.Params("translationID")
+
+	if translationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation ID is required",
+		})
+	}
+
+	var translation models.CityTranslation
+	if err := initializers.DB.First(&translation, translationID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation not found",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   translation,
+	})
+}
+
+func UpdateCityTranslation(c *fiber.Ctx) error {
+	translationID := c.Params("translationID")
+
+	if translationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation ID is required",
+		})
+	}
+
+	var translation models.CityTranslation
+	if err := initializers.DB.First(&translation, translationID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation not found",
+		})
+	}
+
+	var updatedTranslation models.CityTranslation
+	if err := c.BodyParser(&updatedTranslation); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request data",
+		})
+	}
+
+	if err := initializers.DB.Model(&translation).Updates(&updatedTranslation).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update the translation",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Translation updated successfully",
+		"data":    translation,
+	})
+}
+
+func DeleteCityTranslation(c *fiber.Ctx) error {
+	translationID := c.Params("translationID")
+
+	if translationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation ID is required",
+		})
+	}
+
+	var translation models.CityTranslation
+	if err := initializers.DB.First(&translation, translationID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Translation not found",
+		})
+	}
+
+	if err := initializers.DB.Delete(&translation).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete the translation",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Translation deleted successfully",
+		"data":    nil,
 	})
 }

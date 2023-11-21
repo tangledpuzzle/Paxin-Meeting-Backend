@@ -64,7 +64,9 @@ func Register(micro *fiber.App) {
 		router.Get("/me", func(c *fiber.Ctx) error {
 			// Capture the language from the URL, headers, or any other source.
 			language := c.Query("language") // Example: ?language=en
-
+			if language == "" {
+				language = "en"
+			}
 			// Set the language in the context for middleware.
 			c.Locals("language", language)
 
@@ -90,7 +92,13 @@ func Register(micro *fiber.App) {
 		router.Post("/create", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.CreateCity)
 		router.Delete("/remove/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.DeleteCity)
 		router.Patch("/update/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateCity)
+		router.Get("/get/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.GetCityTranslation)
+	})
 
+	micro.Route("/citiestranslator", func(router fiber.Router) {
+		router.Post("/create", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.CreateCityTranslation)
+		router.Delete("/remove/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.DeleteCityTranslation)
+		router.Patch("/update/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateCityTranslation)
 	})
 
 	micro.Route("/guilds", func(router fiber.Router) {
