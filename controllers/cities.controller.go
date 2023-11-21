@@ -222,24 +222,8 @@ func UpdateCity(c *fiber.Ctx) error {
 }
 
 func CreateCityTranslation(c *fiber.Ctx) error {
-	cityID := c.Params("cityID")
-
-	if cityID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"status":  "error",
-			"message": "City ID is required",
-		})
-	}
-
-	var city models.City
-	if err := initializers.DB.First(&city, cityID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"status":  "error",
-			"message": "City not found",
-		})
-	}
-
 	var newTranslation models.CityTranslation
+
 	if err := c.BodyParser(&newTranslation); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
@@ -247,8 +231,29 @@ func CreateCityTranslation(c *fiber.Ctx) error {
 		})
 	}
 
-	newTranslation.CityID = city.ID
+	// Check if CityID is provided
+	if newTranslation.CityID == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City ID is required",
+		})
+	}
 
+	// You may want to add additional validation or checks here
+
+	// Use newTranslation.CityID to retrieve the city from the database
+	var city models.City
+	if err := initializers.DB.First(&city, newTranslation.CityID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "City not found",
+		})
+	}
+
+	// Assign the retrieved City ID to the translation
+	// newTranslation.CityID = city.ID
+
+	// Add the new translation to the database
 	if err := initializers.DB.Create(&newTranslation).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
