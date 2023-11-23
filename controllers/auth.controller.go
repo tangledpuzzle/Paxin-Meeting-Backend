@@ -304,6 +304,17 @@ func SignInUser(c *fiber.Ctx) error {
 		Domain:   config.ClientOrigin,
 	})
 
+	c.Cookie(&fiber.Cookie{
+		Name:     "authenticated",
+		Value:    "true",
+		Path:     "/",
+		SameSite: "Lax",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HTTPOnly: false,
+		Domain:   config.ClientOrigin,
+	})
+
 	// c.Cookie(&fiber.Cookie{
 	// 	Name:     "refresh_token",
 	// 	Value:    *refreshTokenDetails.Token,
