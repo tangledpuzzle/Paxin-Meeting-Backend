@@ -41,6 +41,7 @@ func GetCities(c *fiber.Ctx) error {
 		Preload("Translations").
 		Select("DISTINCT cities.id, cities.hex, cities.updated_at, cities.deleted_at").
 		Offset(skipNumber).Limit(limitNumber).
+		Order("cities.id").
 		Find(&cities)
 
 	if db.Error != nil {
