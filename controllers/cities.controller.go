@@ -126,6 +126,7 @@ func GetName(c *fiber.Ctx) error {
 		Joins("JOIN city_translations ON cities.id = city_translations.city_id").
 		Preload("Translations", "language = ?", lang).
 		Where("city_translations.name ILIKE ? AND city_translations.language = ?", "%"+name+"%", lang).
+		Offset(skipNumber).Limit(limitNumber).
 		Find(&cities).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
