@@ -73,6 +73,20 @@ func GetName(c *fiber.Ctx) error {
 	lang := c.Query("lang")
 	mode := c.Query("mode")
 
+	// Get query parameters for pagination
+	limit := c.Query("limit", "10")
+	skip := c.Query("skip", "0")
+
+	limitNumber, err := strconv.Atoi(limit)
+	if err != nil || limitNumber < 1 {
+		limitNumber = 10
+	}
+
+	skipNumber, err := strconv.Atoi(skip)
+	if err != nil || skipNumber < 0 {
+		skipNumber = 0
+	}
+
 	if mode == "translate" {
 		var cityTranslation models.CityTranslation
 		if err := initializers.DB.
@@ -119,9 +133,27 @@ func GetName(c *fiber.Ctx) error {
 		})
 	}
 
+	// Get total count of matching cities
+	var total int64
+	if err := initializers.DB.
+		Model(&models.City{}).
+		Joins("JOIN city_translations ON cities.id = city_translations.city_id").
+		Where("city_translations.name ILIKE ? AND city_translations.language = ?", "%"+name+"%", lang).
+		Count(&total).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch total count from the database",
+		})
+	}
+
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   cities,
+		"meta": fiber.Map{
+			"limit": limitNumber,
+			"skip":  skipNumber,
+			"total": total,
+		},
 	})
 }
 
