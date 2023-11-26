@@ -97,7 +97,7 @@ func main() {
 
 	// app := fiber.New(config)
 	app := fiber.New(fiber.Config{
-		ServerHeader: "hyperpage",
+		ServerHeader: "paxintrade",
 		Views:        engine,
 		BodyLimit:    20 * 1024 * 1024, // 20 MB
 	})
@@ -121,6 +121,7 @@ func main() {
 		AllowMethods:     "GET, POST, PATCH, DELETE",
 		AllowCredentials: true,
 	}))
+
 	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
 
 		// Timeout client 5min.
@@ -358,6 +359,16 @@ func main() {
 			// }
 
 			// }
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			// Set the clients JSON string as the value in a Redis hash
+			redisKey := "connected_clients"
+			err := redisClient.HDel(ctx, redisKey, idStr).Err()
+			if err != nil {
+				fmt.Println("error deleting client info from Redis:", err)
+				return
+			}
 
 			fmt.Println("WebSocket client disconnected:", idStr)
 
