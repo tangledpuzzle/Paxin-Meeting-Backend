@@ -18,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html/v2"
 	"github.com/gofiber/websocket/v2"
+	"github.com/pion/webrtc/v3"
 
 	"hyperpage/api"
 	"hyperpage/controllers"
@@ -90,6 +91,16 @@ func init() {
 	// initializers.ConnectRethinkDB()
 
 }
+
+var (
+	config = webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
+		},
+	}
+)
 
 func main() {
 
@@ -402,22 +413,65 @@ func main() {
 				break
 			}
 
-			if string(message) == "call" {
+			strMessage := string(message)
 
-				targetClientID := "идентификатор_целевого_пользователя" // Укажите идентификатор получателя вызова
-				targetClientConn, ok := findClientByID(targetClientID)
+			if strings.Contains(strMessage, "call") {
+
+				id := strings.Split(strMessage, "call")
+
+				targetClientID := id[1]
+				var x = string(targetClientID)
+
+				targetClientConn, ok := findClientByID(x)
 				if !ok {
-					fmt.Printf("Клиент с идентификатором %s не найден\n", targetClientID)
+					fmt.Printf("Клиент с идентификатором %s не найден\n", x)
 					continue
 				}
 
-				err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("incoming_call"))
+				targetClientConn2, ok := findClientByID(idStr)
+				if !ok {
+					fmt.Printf("Клиент с идентификатором %s не найден\n", x)
+					continue
+				}
+
+				var user models.User
+				initializers.DB.Where("session = ?", idStr).First(&user)
+
+				err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("coming_call,"+user.Name+","+idStr))
+				if err != nil {
+					fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
+					continue
+				}
+
+				var user2 models.User
+				initializers.DB.Where("session = ?", x).First(&user2)
+
+				err = targetClientConn2.WriteMessage(websocket.TextMessage, []byte("incoming_call,"+user2.Name+","+x))
 				if err != nil {
 					fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
 					continue
 				}
 			}
 
+			if strings.Contains(strMessage, "endc,") {
+				id := strings.Split(strMessage, "endc,")
+				fmt.Println(strMessage)
+				targetClientID := id[1]
+				var x = string(targetClientID)
+
+				targetClientConn, ok := findClientByID(x)
+				if !ok {
+					fmt.Printf("Клиент с идентификатором %s не найден\n", x)
+					continue
+				}
+
+				err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("endc,"))
+				if err != nil {
+					fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
+					continue
+				}
+
+			}
 			// if string(message) == "kickMe" {
 
 			// 	elapsedTime := time.Since(startTime)
