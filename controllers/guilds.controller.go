@@ -49,14 +49,25 @@ func GetGuildName(c *fiber.Ctx) error {
 	}
 
 	var total int64
-
-	var translatedGuild models.GuildTranslation
 	if err := initializers.DB.
-		Where("guild_id = ? AND language = ?", guildTranslation.GuildID, lang). // Replace "EN" with your target language code
+		Model(&models.GuildTranslation{}).
+		Where("guild_id = ? AND language = ?", guildTranslation.GuildID, lang).
 		Count(&total).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to fetch total count from the database",
+		})
+	}
+
+	var translatedGuild models.GuildTranslation
+	if err := initializers.DB.
+		Where("guild_id = ? AND language = ?", guildTranslation.GuildID, lang).
+		Offset(skipNumber).
+		Limit(limitNumber).
+		First(&translatedGuild).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch guild translation from the database",
 		})
 	}
 
@@ -69,7 +80,6 @@ func GetGuildName(c *fiber.Ctx) error {
 			"total": total,
 		},
 	})
-
 }
 
 func GetGuilds(c *fiber.Ctx) error {
