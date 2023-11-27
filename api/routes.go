@@ -109,6 +109,7 @@ func Register(micro *fiber.App) {
 		router.Patch("/update/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateGuild)
 
 		router.Get("/name", controllers.GetGuildName)
+		router.Get("/namecustom", controllers.GetGuildNameA)
 
 	})
 

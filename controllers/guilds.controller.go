@@ -24,6 +24,43 @@ type GuildResponse struct {
 func GetGuildName(c *fiber.Ctx) error {
 	name := c.Query("name")
 	lang := c.Query("lang")
+	mode := c.Query("mode")
+	if mode == "translate" {
+		var guildTranslation models.GuildTranslation
+		if err := initializers.DB.
+			Where("name ILIKE ?", "%"+name+"%").
+			First(&guildTranslation).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to fetch guild translation from the database",
+			})
+		}
+
+		var translatedGuild models.GuildTranslation
+		if err := initializers.DB.
+			Where("guild_id = ? AND language = ?", guildTranslation.GuildID, lang). // Replace "EN" with your target language code
+			First(&translatedGuild).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to fetch translated guild name from the database",
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"data":   translatedGuild.Name,
+		})
+
+	}
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   "",
+	})
+}
+
+func GetGuildNameA(c *fiber.Ctx) error {
+	name := c.Query("name")
+	lang := c.Query("lang")
 
 	// Get query parameters for pagination
 	limit := c.Query("limit", "10")
@@ -305,7 +342,7 @@ func CreateGuildTranslation(c *fiber.Ctx) error {
 	if newTranslation.GuildID == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
-			"message": "guild ID is required",
+			"message": "City ID is required",
 		})
 	}
 
