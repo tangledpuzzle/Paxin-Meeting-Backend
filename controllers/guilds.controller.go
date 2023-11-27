@@ -25,6 +25,7 @@ func GetGuildName(c *fiber.Ctx) error {
 	name := c.Query("name")
 	lang := c.Query("lang")
 
+	// Get query parameters for pagination
 	limit := c.Query("limit", "10")
 	skip := c.Query("skip", "0")
 
@@ -38,20 +39,25 @@ func GetGuildName(c *fiber.Ctx) error {
 		skipNumber = 0
 	}
 
-	var guildTranslation models.GuildTranslation
+	var guilds []models.Guilds
 	if err := initializers.DB.
-		Where("name ILIKE ?", "%"+name+"%").
-		First(&guildTranslation).Error; err != nil {
+		Joins("JOIN guild_translations ON guilds.id = guild_translations.guild_id").
+		Preload("Translations", "language = ?", lang).
+		Where("guild_translations.name ILIKE ? AND guild_translations.language = ?", "%"+name+"%", lang).
+		Offset(skipNumber).Limit(limitNumber).
+		Find(&guilds).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Failed to fetch guild translation from the database",
+			"message": "Failed to fetch cities from the database",
 		})
 	}
 
+	// Get total count of matching cities
 	var total int64
 	if err := initializers.DB.
-		Model(&models.GuildTranslation{}).
-		Where("guild_id = ? AND language = ?", guildTranslation.GuildID, lang).
+		Model(&models.Guilds{}).
+		Joins("JOIN guild_translations ON guilds.id = guild_translations.guild_id").
+		Where("guild_translations.name ILIKE ? AND guild_translations.language = ?", "%"+name+"%", lang).
 		Count(&total).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -59,27 +65,16 @@ func GetGuildName(c *fiber.Ctx) error {
 		})
 	}
 
-	var translatedGuild models.GuildTranslation
-	if err := initializers.DB.
-		Where("guild_id = ? AND language = ?", guildTranslation.GuildID, lang).
-		Offset(skipNumber).
-		Limit(limitNumber).
-		First(&translatedGuild).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Failed to fetch guild translation from the database",
-		})
-	}
-
 	return c.JSON(fiber.Map{
 		"status": "success",
-		"data":   translatedGuild.Name,
+		"data":   guilds,
 		"meta": fiber.Map{
 			"limit": limitNumber,
 			"skip":  skipNumber,
 			"total": total,
 		},
 	})
+
 }
 
 func GetGuilds(c *fiber.Ctx) error {
