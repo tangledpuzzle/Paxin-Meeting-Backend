@@ -17,6 +17,13 @@ func CreateDevice(c *fiber.Ctx) error {
 		})
 	}
 
+	if newDevice.Device == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Device field cannot be empty",
+		})
+	}
+
 	newDevice.UpdatedAt = time.Now()
 
 	if err := initializers.DB.Create(&newDevice).Error; err != nil {
