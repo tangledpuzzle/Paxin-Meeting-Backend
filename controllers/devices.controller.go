@@ -24,6 +24,15 @@ func CreateDevice(c *fiber.Ctx) error {
 		})
 	}
 
+	var existingDevice models.DevicesIOS
+	if err := initializers.DB.Where("device = ?", newDevice.Device).First(&existingDevice).Error; err == nil {
+		// Устройство уже существует в базе данных
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Device already exists",
+		})
+	}
+
 	newDevice.UpdatedAt = time.Now()
 
 	if err := initializers.DB.Create(&newDevice).Error; err != nil {
