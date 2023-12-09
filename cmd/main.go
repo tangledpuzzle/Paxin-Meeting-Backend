@@ -18,7 +18,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html/v2"
 	"github.com/gofiber/websocket/v2"
-	"github.com/pion/webrtc/v3"
 
 	"hyperpage/api"
 	"hyperpage/controllers"
@@ -29,6 +28,8 @@ import (
 	"hyperpage/utils"
 
 	uuid "github.com/satori/go.uuid"
+	// "github.com/sideshow/apns2"
+	// "github.com/sideshow/apns2/token"
 )
 
 type TimeEntry struct {
@@ -92,17 +93,43 @@ func init() {
 
 }
 
-var (
-	config = webrtc.Configuration{
-		ICEServers: []webrtc.ICEServer{
-			{
-				URLs: []string{"stun:stun.l.google.com:19302"},
-			},
-		},
-	}
-)
-
 func main() {
+
+	// privateKeyPath := "keys/AuthKey_485K6P55G9.p8"
+	// keyID := "485K6P55G9"        // Идентификатор ключа (Key ID) из Apple Developer Console
+	// teamID := "DBJ8D3U6HY"       // Идентификатор команды (Team ID) из Apple Developer Console
+	// bundleID := "dev.paxintrade" // Bundle ID вашего приложения
+
+	// authKey, err := token.AuthKeyFromFile(privateKeyPath)
+	// if err != nil {
+	// 	fmt.Println("Ошибка загрузки AuthKey:", err)
+	// 	return
+	// }
+
+	// tokenSource := &token.Token{
+	// 	KeyID:   keyID,
+	// 	TeamID:  teamID,
+	// 	AuthKey: authKey,
+	// }
+
+	// client := apns2.NewTokenClient(tokenSource)
+
+	// // Токен устройства, который вы получили после успешной регистрации на уведомления
+	// deviceToken := "80c78892ceb1b79bf3306e5b9345832c6ae1e8e9d0bfefc32b098f83ab4a8f911474d02818c3153d4dbc3ddf680f25ff0759c33db626209c742e2c7b84f461b226f06a1775e0317c91aa1c92a8acd6e4"
+
+	// notification := &apns2.Notification{}
+	// notification.DeviceToken = deviceToken
+	// notification.Topic = bundleID
+	// notification.Payload = []byte(`{"aps":{"alert":"Hello, this is a push notification.", "sound":"default"}}`)
+
+	// res, err := client.Push(notification)
+
+	// if err != nil {
+	// 	fmt.Println("Ошибка отправки уведомления:", err)
+	// 	return
+	// }
+
+	// fmt.Println("Уведомление успешно отправлено:", res)
 
 	engine := html.New("./views", ".html")
 
