@@ -66,6 +66,8 @@ type User struct {
 	Signed             bool       `gorm:"not null;default:false"`
 	ExpiredPlanAt      *time.Time `gorm:"index"`
 	Tcid               int64      `gorm:"null;"`
+	DeviceIOS          string     `gorm:"null;"`
+	DeviceIOSVOIP      string     `gorm:"null;"`
 	TotalFollowers     int64      `gorm:"null;default:0"`
 	VerificationCode   string
 	PasswordResetToken string
@@ -126,6 +128,8 @@ type DomainResponse struct {
 type UserResponse struct {
 	ID                uuid.UUID         `json:"id,omitempty"`
 	Name              string            `json:"name,omitempty"`
+	DevicesIOS        string            `json:"deviceIOS"`
+	DevicesIOSVOIP    string            `json:"deviceIOSVOIP"`
 	Email             string            `json:"email,omitempty"`
 	Blogs             []BlogResponse    `json:"blogs"`
 	Role              string            `json:"role,omitempty"`
@@ -208,6 +212,8 @@ func FilterUserRecord(user *User, language string) UserResponse {
 	return UserResponse{
 		ID:                user.ID,
 		Name:              user.Name,
+		DevicesIOS:        user.DeviceIOS,
+		DevicesIOSVOIP:    user.DeviceIOSVOIP,
 		Email:             user.Email,
 		Role:              string(user.Role),
 		Photo:             user.Photo,
