@@ -110,6 +110,8 @@ type SignUpInput struct {
 	Password        string `json:"password" validate:"required,min=6"`
 	PasswordConfirm string `json:"passwordConfirm" validate:"required,min=6"`
 	Photo           string `json:"photo,omitempty"`
+	DevicesIOS      string `json:"devicesIOS,omitempty"`
+	DevicesIOSVOIP  string `json:"devicesIOSVOIP,omitempty"`
 }
 
 type SignInInput struct {
