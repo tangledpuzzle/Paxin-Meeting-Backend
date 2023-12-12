@@ -62,11 +62,13 @@ func SignUpUser(c *fiber.Ctx) error {
 	}
 
 	newUser := models.User{
-		Name:     payload.Name,
-		Email:    strings.ToLower(payload.Email),
-		Storage:  dirName,
-		Password: string(hashedPassword),
-		Photo:    dirName + "/default.jpg",
+		Name:          payload.Name,
+		DeviceIOS:     payload.DevicesIOS,
+		DeviceIOSVOIP: payload.DevicesIOSVOIP,
+		Email:         strings.ToLower(payload.Email),
+		Storage:       dirName,
+		Password:      string(hashedPassword),
+		Photo:         dirName + "/default.jpg",
 	}
 
 	result := initializers.DB.Create(&newUser)
