@@ -13,11 +13,11 @@ import (
 	"gorm.io/gorm"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html/v2"
-	"github.com/gofiber/websocket/v2"
 
 	"hyperpage/api"
 	"hyperpage/controllers"
@@ -95,6 +95,48 @@ func init() {
 
 func main() {
 
+	// url := "https://api.development.push.apple.com/3/device/5334f3e850f3e06f5e3714344e4f6c5358751829290a64e65ed3afdeec085d1c"
+
+	// payload := `{"uuid":"a582647b-7bf5-4bb4-a5da-98e6ef08eb5a", "action": "coming_call", "handle": "Arsen Beketov", "sdp":[{"type":"offer","sdp":"..."}]}`
+
+	// certPath := "keys/voipCert.pem"
+	// keyPath := "keys/key.pem"
+
+	// // Load certificate and key
+	// cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	// if err != nil {
+	// 	fmt.Println("Error loading certificate:", err)
+	// 	return
+	// }
+
+	// // Create a custom Transport with TLS configuration
+	// tr := &http.Transport{
+	// 	TLSClientConfig: &tls.Config{
+	// 		Certificates: []tls.Certificate{cert},
+	// 	},
+	// 	ForceAttemptHTTP2: true,
+	// }
+
+	// client := &http.Client{
+	// 	Transport: tr,
+	// }
+
+	// req, err := http.NewRequest("POST", url, strings.NewReader(payload))
+	// if err != nil {
+	// 	fmt.Println("Error creating request:", err)
+	// 	return
+	// }
+
+	// req.Header.Set("Content-Type", "application/json")
+
+	// resp, err := client.Do(req)
+	// if err != nil {
+	// 	fmt.Println("Error making request:", err)
+	// 	return
+	// }
+	// defer resp.Body.Close()
+
+	// PE
 	// privateKeyPath := "keys/AuthKey_485K6P55G9.p8"
 	// keyID := "485K6P55G9"        // Идентификатор ключа (Key ID) из Apple Developer Console
 	// teamID := "DBJ8D3U6HY"       // Идентификатор команды (Team ID) из Apple Developer Console
@@ -115,7 +157,7 @@ func main() {
 	// client := apns2.NewTokenClient(tokenSource)
 
 	// // Токен устройства, который вы получили после успешной регистрации на уведомления
-	// deviceToken := "80c78892ceb1b79bf3306e5b9345832c6ae1e8e9d0bfefc32b098f83ab4a8f911474d02818c3153d4dbc3ddf680f25ff0759c33db626209c742e2c7b84f461b226f06a1775e0317c91aa1c92a8acd6e4"
+	// deviceToken := "b2a6c3c409d0abdb0e245c5ce7cae00e0171b88372a386898e202dbcaa305e92"
 
 	// notification := &apns2.Notification{}
 	// notification.DeviceToken = deviceToken
