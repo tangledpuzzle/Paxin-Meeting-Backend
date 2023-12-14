@@ -212,7 +212,7 @@ func main() {
 
 		// Send the ID to the client
 
-		err := c.WriteMessage(websocket.BinaryMessage, []byte(idStr))
+		err := c.WriteMessage(websocket.TextMessage, []byte(idStr))
 		if err != nil {
 			fmt.Println("error writing message to client", idStr, ":", err)
 			return
