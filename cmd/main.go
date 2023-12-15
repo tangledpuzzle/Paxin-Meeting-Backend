@@ -496,7 +496,18 @@ func main() {
 					fmt.Println("Не удалось получить значение id или тип не является строкой")
 					return
 				}
-				fmt.Println("Значение id:", id)
+
+				targetClientConn, ok := findClientByID(id)
+				if !ok {
+					fmt.Printf("Клиент с идентификатором %s не найден\n", id)
+					continue
+				}
+
+				err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("endc,"))
+				if err != nil {
+					fmt.Printf("Ошибка отправки запроса: %v\n", err)
+					continue
+				}
 
 			}
 
@@ -1130,8 +1141,8 @@ func main() {
 	// 	controllers.GetMeH(msg[0], msg[1])
 	// }
 
-	log.Fatal(app.Listen(":8000"))
-	// log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
+	// log.Fatal(app.Listen(":8000"))
+	log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
 
 }
 
