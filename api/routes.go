@@ -22,7 +22,6 @@ func Register(micro *fiber.App) {
 	})
 
 	micro.Route("/devices", func(router fiber.Router) {
-
 		router.Post("/ios", controllers.CreateDevice)
 	})
 
@@ -88,7 +87,7 @@ func Register(micro *fiber.App) {
 	})
 
 	micro.Route("/calls", func(router fiber.Router) {
-		router.Get("/makecall", middleware.DeserializeUser, controllers.MakeCall)
+		router.Post("/makecall", controllers.MakeCall)
 	})
 
 	micro.Route("/cities", func(router fiber.Router) {
