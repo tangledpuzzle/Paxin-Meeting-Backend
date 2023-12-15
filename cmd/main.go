@@ -484,6 +484,22 @@ func main() {
 
 			strMessage := string(message)
 
+			if strings.Contains(strMessage, "reject") {
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(message), &data); err != nil {
+					fmt.Println("Ошибка при разборе JSON:", err)
+					return
+				}
+
+				id, ok := data["id"].(string)
+				if !ok {
+					fmt.Println("Не удалось получить значение id или тип не является строкой")
+					return
+				}
+				fmt.Println("Значение id:", id)
+
+			}
+
 			if strings.Contains(strMessage, "call") {
 
 				id := strings.Split(strMessage, "call")
@@ -1115,6 +1131,7 @@ func main() {
 	// }
 
 	log.Fatal(app.Listen(":8000"))
+	// log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
 
 }
 
