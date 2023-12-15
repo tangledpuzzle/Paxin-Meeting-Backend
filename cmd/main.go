@@ -1141,8 +1141,8 @@ func main() {
 	// 	controllers.GetMeH(msg[0], msg[1])
 	// }
 
-	// log.Fatal(app.Listen(":8000"))
-	log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
+	log.Fatal(app.Listen(":8000"))
+	// log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
 
 }
 
