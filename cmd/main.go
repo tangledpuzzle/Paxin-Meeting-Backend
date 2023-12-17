@@ -511,6 +511,53 @@ func main() {
 
 			}
 
+			if strings.Contains(strMessage, "sdpAnswer") {
+				type Message struct {
+					ID  string `json:"id"`
+					SDP string `json:"sdp"`
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(message), &data); err != nil {
+					fmt.Println("Ошибка при разборе JSON:", err)
+					return
+				}
+
+				id, ok := data["sessionID"].(string)
+				if !ok {
+					fmt.Println("Не удалось получить значение id или тип не является строкой")
+					return
+				}
+
+				sdp, ok := data["sdpAnswer"].(string)
+				if !ok {
+					fmt.Println("Не удалось получить значение sdpAnswer или тип не является строкой")
+					return
+				}
+
+				message := Message{
+					ID:  id,
+					SDP: sdp,
+				}
+
+				jsonData, err := json.Marshal(message)
+				if err != nil {
+					fmt.Println("Ошибка при преобразовании в JSON:", err)
+					return
+				}
+
+				targetClientConn, ok := findClientByID(id)
+				if !ok {
+					fmt.Printf("Клиент с идентификатором %s не найден\n", id)
+					return
+				}
+
+				err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
+				if err != nil {
+					fmt.Printf("Ошибка отправки запроса: %v\n", err)
+					return
+				}
+			}
+
 			if strings.Contains(strMessage, "call") {
 
 				id := strings.Split(strMessage, "call")
@@ -1141,8 +1188,8 @@ func main() {
 	// 	controllers.GetMeH(msg[0], msg[1])
 	// }
 
-	log.Fatal(app.Listen(":8000"))
-	// log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
+	// log.Fatal(app.Listen(":8000"))
+	log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
 
 }
 
