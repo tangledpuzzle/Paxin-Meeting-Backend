@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"hyperpage/initializers"
 
@@ -16,17 +15,24 @@ import (
 // Map to keep track of connected clients
 var Clients = make(map[string]*websocket.Conn)
 
-type Message struct {
-	Text      string `json:"text"`
-	SessionID string `json:"session_id"`
+type UserActivityMessage struct {
+	Command string `json:"command"`
+	UserID  string `json:"userID"`
 }
 
 func UserActivity(command string, userId string) error {
 	var err error
 	for _, c := range Clients {
-		messageWithSessionID := []string{command, userId}
-		message := strings.Join(messageWithSessionID, ",")
-		if e := c.WriteMessage(websocket.TextMessage, []byte(message)); e != nil {
+		userActivityMessage := UserActivityMessage{
+			Command: command,
+			UserID:  userId,
+		}
+		jsonData, e := json.Marshal(userActivityMessage)
+		if e != nil {
+			err = fmt.Errorf("failed to marshal JSON: %v", e)
+			continue
+		}
+		if e := c.WriteMessage(websocket.TextMessage, jsonData); e != nil {
 			err = fmt.Errorf("failed to send message to client: %v", e)
 		}
 	}
@@ -64,7 +70,18 @@ func SendBlogMessageToClients(message string, userName string) error {
 
 func SendPersonalMessageToClient(clientID, message string) error {
 
-	fmt.Println(clientID)
+	type ClientMessage struct {
+		Command string `json:"command"`
+	}
+
+	clientMessage := ClientMessage{
+		Command: message,
+	}
+
+	jsonData, err := json.Marshal(clientMessage)
+	if err != nil {
+		return err
+	}
 
 	// Get client connection from Redis
 	conn, err := GetClientConnFromRedis(clientID)
@@ -79,7 +96,7 @@ func SendPersonalMessageToClient(clientID, message string) error {
 
 	if message == "Activated" {
 
-		if err := conn.WriteMessage(websocket.TextMessage, []byte("activated")); err != nil {
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
 			return err
 		}
 
@@ -102,7 +119,7 @@ func SendPersonalMessageToClient(clientID, message string) error {
 	}
 
 	// Send message to client
-	if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+	if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
 		return err
 	}
 
