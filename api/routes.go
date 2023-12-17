@@ -88,6 +88,8 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/calls", func(router fiber.Router) {
 		router.Post("/makecall", controllers.MakeCall)
+		router.Post("/stopcall", controllers.StopCall)
+
 	})
 
 	micro.Route("/cities", func(router fiber.Router) {
