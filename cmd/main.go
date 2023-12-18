@@ -526,8 +526,9 @@ func main() {
 
 			if strings.Contains(strMessage, "sdpAnswer") {
 				type Message struct {
-					ID  string `json:"id"`
-					SDP string `json:"sdp"`
+					Command string `json:"command"`
+					ID      string `json:"id"`
+					SDP     string `json:"sdp"`
 				}
 
 				var data map[string]interface{}
@@ -549,8 +550,9 @@ func main() {
 				}
 
 				message := Message{
-					ID:  id,
-					SDP: sdp,
+					Command: "spdAnswer",
+					ID:      id,
+					SDP:     sdp,
 				}
 
 				jsonData, err := json.Marshal(message)
