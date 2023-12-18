@@ -550,7 +550,7 @@ func main() {
 				}
 
 				message := Message{
-					Command: "spdAnswer",
+					Command: "sdpAnswer",
 					ID:      id,
 					SDP:     sdp,
 				}
