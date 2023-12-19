@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -45,6 +46,20 @@ func VoipCall(token string, payload string) error {
 		fmt.Println("Error making request:", err)
 		return err
 	}
+
+	fmt.Println("Status:", resp.Status)
+	fmt.Println("StatusCode:", resp.StatusCode)
+	fmt.Println("Headers:", resp.Header)
+
+	// Для тела ответа также нужно использовать io.Reader из resp.Body
+	// Например, считать его в []byte и вывести
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+	} else {
+		fmt.Println("Body:", string(bodyBytes))
+	}
+
 	defer resp.Body.Close()
 
 	return nil
