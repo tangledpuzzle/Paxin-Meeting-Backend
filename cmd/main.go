@@ -500,8 +500,8 @@ func main() {
 		}
 
 		type messageSocket struct {
-			MessageType string           `json:"messageType"`
-			Data        []map[string]int `json:"data"`
+			MessageType string              `json:"messageType"`
+			Data        []map[string]string `json:"data"`
 		}
 
 		// Wait for messages from the client
