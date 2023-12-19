@@ -27,6 +27,7 @@ import (
 	"hyperpage/routes"
 	"hyperpage/utils"
 
+	"github.com/pion/webrtc/v3"
 	uuid "github.com/satori/go.uuid"
 	// "github.com/sideshow/apns2"
 	// "github.com/sideshow/apns2/token"
@@ -66,19 +67,14 @@ func findClientByID(id string) (*websocket.Conn, bool) {
 	return client, ok
 }
 
-// func handleWebSocket(c *websocket.Conn) {
-// 	for {
-// 		// Read message from websocket
-// 		_, message, err := c.ReadMessage()
-// 		if err != nil {
-// 			log.Println("websocket error:", err)
-// 			break
-// 		}
+type Peer struct {
+	Conn           *websocket.Conn
+	PeerConnection *webrtc.PeerConnection
+}
 
-// 		// Print the message to the console
-// 		log.Println("websocket message:", string(message))
-// 	}
-// }
+var peers = make(map[string]*Peer)
+var peersLock sync.RWMutex
+var ClientsLock sync.RWMutex
 
 func init() {
 	config, err := initializers.LoadConfig(".")
@@ -248,7 +244,33 @@ func main() {
 		defer redisClient.Close()
 
 		// Add client to clients map
+		ClientsLock.Lock()
 		utils.Clients[idStr] = c
+		ClientsLock.Unlock()
+
+		stunServer := webrtc.ICEServer{
+			URLs: []string{"stun:stun.l.google.com:19302"}, // Use a publicly available STUN server
+		}
+
+		// Create a new WebRTC peer connection with STUN server configuration
+		configrtc := webrtc.Configuration{
+			ICEServers: []webrtc.ICEServer{stunServer},
+		}
+
+		peerConnection, err := webrtc.NewPeerConnection(configrtc)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		peer := &Peer{
+			Conn:           c,
+			PeerConnection: peerConnection,
+		}
+
+		peersLock.Lock()
+		peers[idStr] = peer
+		peersLock.Unlock()
 
 		//CHECK USER LOGIN OR NOT
 		authToken := c.Cookies("access_token")
@@ -301,6 +323,9 @@ func main() {
 		// Setup dials time in min
 
 		defer func() {
+			peersLock.Lock()
+			delete(peers, idStr)
+			peersLock.Unlock()
 			// Remove client from clients map
 			// Calculate and log elapsed time for the client
 			elapsedTime := time.Since(startTime)
@@ -614,25 +639,6 @@ func main() {
 				}
 			}
 
-			if strings.Contains(strMessage, "	,") {
-				id := strings.Split(strMessage, "endc,")
-				fmt.Println(strMessage)
-				targetClientID := id[1]
-				var x = string(targetClientID)
-
-				targetClientConn, ok := findClientByID(x)
-				if !ok {
-					fmt.Printf("Клиент с идентификатором %s не найден\n", x)
-					continue
-				}
-
-				err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("endc,"))
-				if err != nil {
-					fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
-					continue
-				}
-
-			}
 			// if string(message) == "kickMe" {
 
 			// 	elapsedTime := time.Since(startTime)
