@@ -499,6 +499,11 @@ func main() {
 			return
 		}
 
+		type messageSocket struct {
+			MessageType string           `json:"messageType"`
+			Data        []map[string]int `json:"data"`
+		}
+
 		// Wait for messages from the client
 		for {
 			_, message, err := c.ReadMessage()
@@ -507,47 +512,131 @@ func main() {
 				break
 			}
 
-			strMessage := string(message)
+			var Message messageSocket
+			if err := json.Unmarshal(message, &Message); err != nil {
+				fmt.Println("error unmarshalling JSON:", err)
+				continue
+			}
 
-			if strings.Contains(strMessage, "reject") {
-				type RejectMessage struct {
-					Command string `json:"command"`
+			if Message.MessageType == "getMySessionId" {
+				fmt.Println("WebSocket client connected with ID:", idStr)
+				w.Add(1)
+
+				type SessionIDMessage struct {
+					SessionID string `json:"session"`
 				}
 
-				var data map[string]interface{}
-				if err := json.Unmarshal([]byte(message), &data); err != nil {
-					fmt.Println("Ошибка при разборе JSON:", err)
-					return
+				sessionIDMessage := SessionIDMessage{
+					SessionID: idStr,
 				}
 
-				id, ok := data["id"].(string)
-				if !ok {
-					fmt.Println("Не удалось получить значение id или тип не является строкой")
-					return
-				}
-
-				targetClientConn, ok := findClientByID(id)
-				if !ok {
-					fmt.Printf("Клиент с идентификатором %s не найден\n", id)
-					return
-				}
-
-				rejectMessage := RejectMessage{
-					Command: "endc",
-				}
-
-				jsonData, err := json.Marshal(rejectMessage)
+				jsonData, err := json.Marshal(sessionIDMessage)
 				if err != nil {
 					fmt.Println("Ошибка при преобразовании в JSON:", err)
 					return
 				}
 
-				err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
-				if err != nil {
-					fmt.Printf("Ошибка отправки запроса: %v\n", err)
+				go func() {
+
+					err := c.WriteMessage(websocket.TextMessage, jsonData)
+
+					// err := utils.UserActivity("sessionId", idStr)
+					if err != nil {
+						fmt.Println("error writing message to client", idStr, ":", err)
+						return
+					}
+					// w.Wait()
+				}()
+			}
+
+			if Message.MessageType == "reject" {
+				type RejectMessage struct {
+					Command string `json:"command"`
+				}
+
+				type YourMessageType struct {
+					MessageType string `json:"MessageType"`
+					Data        []struct {
+						ID string `json:"id"`
+					} `json:"data"`
+				}
+
+				var data YourMessageType
+
+				if err := json.Unmarshal([]byte(message), &data); err != nil {
+					fmt.Println("Ошибка при разборе JSON:", err)
 					return
 				}
+
+				for _, data := range data.Data {
+					id := data.ID
+
+					targetClientConn, ok := findClientByID(id)
+					if !ok {
+						fmt.Printf("Клиент с идентификатором %s не найден\n", id)
+						return
+					}
+
+					rejectMessage := RejectMessage{
+						Command: "endc",
+					}
+
+					jsonData, err := json.Marshal(rejectMessage)
+					if err != nil {
+						fmt.Println("Ошибка при преобразовании в JSON:", err)
+						return
+					}
+
+					err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
+					if err != nil {
+						fmt.Printf("Ошибка отправки запроса: %v\n", err)
+						return
+					}
+				}
+
 			}
+
+			strMessage := string(message)
+
+			// if strings.Contains(strMessage, "reject") {
+			// 	type RejectMessage struct {
+			// 		Command string `json:"command"`
+			// 	}
+
+			// 	var data map[string]interface{}
+			// 	if err := json.Unmarshal([]byte(message), &data); err != nil {
+			// 		fmt.Println("Ошибка при разборе JSON:", err)
+			// 		return
+			// 	}
+
+			// 	id, ok := data["id"].(string)
+			// 	if !ok {
+			// 		fmt.Println("Не удалось получить значение id или тип не является строкой")
+			// 		return
+			// 	}
+
+			// 	targetClientConn, ok := findClientByID(id)
+			// 	if !ok {
+			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", id)
+			// 		return
+			// 	}
+
+			// 	rejectMessage := RejectMessage{
+			// 		Command: "endc",
+			// 	}
+
+			// 	jsonData, err := json.Marshal(rejectMessage)
+			// 	if err != nil {
+			// 		fmt.Println("Ошибка при преобразовании в JSON:", err)
+			// 		return
+			// 	}
+
+			// 	err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
+			// 	if err != nil {
+			// 		fmt.Printf("Ошибка отправки запроса: %v\n", err)
+			// 		return
+			// 	}
+			// }
 
 			if strings.Contains(strMessage, "sdpAnswer") {
 				type Message struct {
@@ -761,39 +850,6 @@ func main() {
 			// 	fmt.Println("WebSocket client disconnected:", idStr)
 
 			// }
-
-			if string(message) == "getMySessionId" {
-				fmt.Println("WebSocket client connected with ID:", idStr)
-				w.Add(1)
-
-				type SessionIDMessage struct {
-					SessionID string `json:"session"`
-				}
-
-				sessionIDMessage := SessionIDMessage{
-					SessionID: idStr,
-				}
-
-				jsonData, err := json.Marshal(sessionIDMessage)
-				if err != nil {
-					fmt.Println("Ошибка при преобразовании в JSON:", err)
-					return
-				}
-
-				go func() {
-
-					err := c.WriteMessage(websocket.TextMessage, jsonData)
-
-					// err := utils.UserActivity("sessionId", idStr)
-					if err != nil {
-						fmt.Println("error writing message to client", idStr, ":", err)
-						return
-					}
-					// w.Wait()
-				}()
-			} else {
-				fmt.Println("Received message from client", idStr, ":", string(message))
-			}
 
 		}
 
