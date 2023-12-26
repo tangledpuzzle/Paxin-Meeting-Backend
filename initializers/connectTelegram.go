@@ -7,12 +7,13 @@ import (
 )
 
 func ConnectTelegram(config *Config) (*tgbotapi.BotAPI, error) {
-	
+
 	bot, err := tgbotapi.NewBotAPI(config.TELEGRAM_TOKEN)
 	if err != nil {
 		return nil, err
 	}
-	bot.Debug = true
+
+	bot.Debug = false
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
