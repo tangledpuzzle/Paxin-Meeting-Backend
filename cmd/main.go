@@ -200,6 +200,11 @@ func main() {
 
 	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
 
+		type messageSocket struct {
+			MessageType string                   `json:"messageType"`
+			Data        []map[string]interface{} `json:"data"`
+		}
+
 		// Timeout client 5min.
 		c.SetReadDeadline(time.Now().Add(5 * time.Hour))
 
@@ -208,11 +213,25 @@ func main() {
 
 		// Send the ID to the client
 
-		// err := c.WriteMessage(websocket.TextMessage, []byte(idStr))
-		// if err != nil {
-		// 	fmt.Println("error writing message to client", idStr, ":", err)
-		// 	return
-		// }
+		type SessionIDMessage struct {
+			SessionID string `json:"session"`
+		}
+
+		sessionIDMessage := SessionIDMessage{
+			SessionID: idStr,
+		}
+
+		jsonData, err := json.Marshal(sessionIDMessage)
+		if err != nil {
+			fmt.Println("Ошибка при преобразовании в JSON:", err)
+			return
+		}
+
+		err = c.WriteMessage(websocket.TextMessage, jsonData)
+		if err != nil {
+			fmt.Println("error writing message to client", idStr, ":", err)
+			return
+		}
 
 		// session := initializers.GetSession()
 		// res, err := r.Table("users").Nth(0).Run(session)
@@ -499,11 +518,6 @@ func main() {
 			return
 		}
 
-		type messageSocket struct {
-			MessageType string              `json:"messageType"`
-			Data        []map[string]string `json:"data"`
-		}
-
 		// Wait for messages from the client
 		for {
 			_, message, err := c.ReadMessage()
@@ -517,6 +531,8 @@ func main() {
 				fmt.Println("error unmarshalling JSON:", err)
 				continue
 			}
+
+			fmt.Println("Received message from client", idStr, ":", Message)
 
 			if Message.MessageType == "getMySessionId" {
 				fmt.Println("WebSocket client connected with ID:", idStr)
@@ -547,6 +563,83 @@ func main() {
 					}
 					// w.Wait()
 				}()
+			}
+
+			if Message.MessageType == "webcall" {
+
+				type payloadData struct {
+					Command string `json:"command"`
+					Payload []struct {
+						Caller  string `json:"caller"`
+						Session string `json:"session"`
+						Handle  string `json:"handle"`
+						SDP     []struct {
+							Type string `json:"type"`
+							Sdp  string `json:"sdp"`
+						} `json:"sdp"`
+					} `json:"payload"`
+				}
+
+				var Message messageSocket
+				if err := json.Unmarshal(message, &Message); err != nil {
+					fmt.Println("error unmarshalling JSON:", err)
+					continue
+				}
+
+				for _, dataMap := range Message.Data {
+					caller, callerExists := dataMap["caller"].(string)
+					if callerExists {
+						fmt.Println("Caller:", caller)
+					}
+
+					uuid, uuidExists := dataMap["uuid"].(string)
+					if uuidExists {
+						fmt.Println("Handle:", uuid)
+					}
+
+					handle, handleExists := dataMap["handle"].(string)
+					if handleExists {
+						fmt.Println("Handle:", handle)
+					}
+
+					session, sessionExists := dataMap["session"].(string)
+					if sessionExists {
+						fmt.Println("session:", session)
+					}
+
+					sdpArray, sdpExists := dataMap["sdp"].([]interface{})
+					if sdpExists {
+						for _, sdpItem := range sdpArray {
+							sdpMap, ok := sdpItem.(map[string]interface{})
+							if !ok {
+								fmt.Println("SDP item is not a map[string]interface{}")
+								continue
+							}
+
+							sdpType, typeExists := sdpMap["type"].(string)
+							if typeExists {
+								fmt.Println("SDP Type:", sdpType)
+							}
+
+							sdpContent, sdpExists := sdpMap["sdp"].(string)
+							if sdpExists {
+								fmt.Println("SDP Content:", sdpContent)
+							}
+						}
+					}
+
+					// id := session
+					// targetClientConn, ok := findClientByID(id)
+					// if !ok {
+					// 	fmt.Printf("Клиент с идентификатором %s не найден\n", id)
+					// 	return
+					// }
+
+					// dataForUser := payloadData{
+					// 	Command: "endc",
+					// }
+
+				}
 			}
 
 			if Message.MessageType == "reject" {
@@ -596,49 +689,7 @@ func main() {
 
 			}
 
-			strMessage := string(message)
-
-			// if strings.Contains(strMessage, "reject") {
-			// 	type RejectMessage struct {
-			// 		Command string `json:"command"`
-			// 	}
-
-			// 	var data map[string]interface{}
-			// 	if err := json.Unmarshal([]byte(message), &data); err != nil {
-			// 		fmt.Println("Ошибка при разборе JSON:", err)
-			// 		return
-			// 	}
-
-			// 	id, ok := data["id"].(string)
-			// 	if !ok {
-			// 		fmt.Println("Не удалось получить значение id или тип не является строкой")
-			// 		return
-			// 	}
-
-			// 	targetClientConn, ok := findClientByID(id)
-			// 	if !ok {
-			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", id)
-			// 		return
-			// 	}
-
-			// 	rejectMessage := RejectMessage{
-			// 		Command: "endc",
-			// 	}
-
-			// 	jsonData, err := json.Marshal(rejectMessage)
-			// 	if err != nil {
-			// 		fmt.Println("Ошибка при преобразовании в JSON:", err)
-			// 		return
-			// 	}
-
-			// 	err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
-			// 	if err != nil {
-			// 		fmt.Printf("Ошибка отправки запроса: %v\n", err)
-			// 		return
-			// 	}
-			// }
-
-			if strings.Contains(strMessage, "sdpAnswer") {
+			if Message.MessageType == "sdpAnswer" {
 				type Message struct {
 					Command string `json:"command"`
 					UserB   string `json:"userb"`
@@ -688,45 +739,100 @@ func main() {
 					fmt.Printf("Ошибка отправки запроса: %v\n", err)
 					return
 				}
+
 			}
 
-			if strings.Contains(strMessage, "call") {
+			// strMessage := string(message)
 
-				id := strings.Split(strMessage, "call")
+			// if strings.Contains(strMessage, "sdpAnswer") {
+			// 	type Message struct {
+			// 		Command string `json:"command"`
+			// 		UserB   string `json:"userb"`
+			// 		SDP     string `json:"sdp"`
+			// 		UserA   string `json:"usera"`
+			// 	}
 
-				targetClientID := id[1]
-				var x = string(targetClientID)
+			// 	var data map[string]interface{}
+			// 	if err := json.Unmarshal([]byte(message), &data); err != nil {
+			// 		fmt.Println("Ошибка при разборе JSON:", err)
+			// 		return
+			// 	}
 
-				targetClientConn, ok := findClientByID(x)
-				if !ok {
-					fmt.Printf("Клиент с идентификатором %s не найден\n", x)
-					continue
-				}
+			// 	id, ok := data["sessionID"].(string)
+			// 	if !ok {
+			// 		fmt.Println("Не удалось получить значение id или тип не является строкой")
+			// 		return
+			// 	}
 
-				targetClientConn2, ok := findClientByID(idStr)
-				if !ok {
-					fmt.Printf("Клиент с идентификатором %s не найден\n", x)
-					continue
-				}
+			// 	sdp, ok := data["sdpAnswer"].(string)
+			// 	if !ok {
+			// 		fmt.Println("Не удалось получить значение sdpAnswer или тип не является строкой")
+			// 		return
+			// 	}
 
-				var user models.User
-				initializers.DB.Where("session = ?", idStr).First(&user)
+			// 	message := Message{
+			// 		Command: "sdpAnswer",
+			// 		UserB:   id,
+			// 		SDP:     sdp,
+			// 		UserA:   idStr,
+			// 	}
 
-				err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("coming_call,"+user.Name+","+idStr))
-				if err != nil {
-					fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
-					continue
-				}
+			// 	jsonData, err := json.Marshal(message)
+			// 	if err != nil {
+			// 		fmt.Println("Ошибка при преобразовании в JSON:", err)
+			// 		return
+			// 	}
 
-				var user2 models.User
-				initializers.DB.Where("session = ?", x).First(&user2)
+			// 	targetClientConn, ok := findClientByID(id)
+			// 	if !ok {
+			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", id)
+			// 		return
+			// 	}
 
-				err = targetClientConn2.WriteMessage(websocket.TextMessage, []byte("incoming_call,"+user2.Name+","+x))
-				if err != nil {
-					fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
-					continue
-				}
-			}
+			// 	err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
+			// 	if err != nil {
+			// 		fmt.Printf("Ошибка отправки запроса: %v\n", err)
+			// 		return
+			// 	}
+			// }
+
+			// if strings.Contains(strMessage, "call") {
+
+			// 	id := strings.Split(strMessage, "call")
+
+			// 	targetClientID := id[1]
+			// 	var x = string(targetClientID)
+
+			// 	targetClientConn, ok := findClientByID(x)
+			// 	if !ok {
+			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", x)
+			// 		continue
+			// 	}
+
+			// 	targetClientConn2, ok := findClientByID(idStr)
+			// 	if !ok {
+			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", x)
+			// 		continue
+			// 	}
+
+			// 	var user models.User
+			// 	initializers.DB.Where("session = ?", idStr).First(&user)
+
+			// 	err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("coming_call,"+user.Name+","+idStr))
+			// 	if err != nil {
+			// 		fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
+			// 		continue
+			// 	}
+
+			// 	var user2 models.User
+			// 	initializers.DB.Where("session = ?", x).First(&user2)
+
+			// 	err = targetClientConn2.WriteMessage(websocket.TextMessage, []byte("incoming_call,"+user2.Name+","+x))
+			// 	if err != nil {
+			// 		fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
+			// 		continue
+			// 	}
+			// }
 
 			// if string(message) == "kickMe" {
 
@@ -930,6 +1036,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	// Get a channel that continuously receives updates from the chat.
 	defer ticker.Stop()
 	go func() {
@@ -1282,8 +1389,8 @@ func main() {
 	// 	controllers.GetMeH(msg[0], msg[1])
 	// }
 
-	// log.Fatal(app.Listen(":8000"))
-	log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
+	log.Fatal(app.Listen(":8000"))
+	// log.Fatal(app.ListenTLS(":8000", "./selfsigned.crt", "./selfsigned.key"))
 
 }
 
