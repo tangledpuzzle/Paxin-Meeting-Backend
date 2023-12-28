@@ -54,7 +54,7 @@ func (t *TimeEntryScanner) Scan(value interface{}) error {
 
 type User struct {
 	ID                 uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
-	Name               string     `gorm:"type:varchar(100);not null"`
+	Name               string     `gorm:"type:varchar(100);uniqueIndex;not null;check:length(name) >= 2"`
 	Email              string     `gorm:"type:varchar(100);uniqueIndex:idx_email;not null"`
 	Password           string     `gorm:"type:varchar(100);not null"`
 	Role               string     `gorm:"type:varchar(50);default:'user';not null"`
@@ -73,28 +73,30 @@ type User struct {
 	PasswordResetToken string
 	TelegramActivated  bool `gorm:"not null;default:false"`
 	TelegramToken      string
-	PasswordResetAt    time.Time
-	Billing            []Billing        `gorm:"foreignkey:UserID"`
-	Profile            []Profile        `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Filled             bool             `json:"filled"`
-	Session            string           `gorm:"nut null;default:0"`
-	Storage            string           `gorm:"nut null"`
-	Tid                int64            `gorm:"nut null;default:0"`
-	Blogs              []Blog           `gorm:"foreignkey:UserID"`
-	CreatedAt          time.Time        `gorm:"not null;default:now()"`
-	UpdatedAt          time.Time        `gorm:"not null;default:now()"`
-	OnlineHours        TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
-	TotalOnlineHours   TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
-	OfflineHours       int              `gorm:"not null;default:0"`
-	TotalRestBlogs     int              `gorm:"not null;default:0"`
-	TotalBlogs         int              `gorm:"not null;default:0"`
-	Rating             int              `gorm:"not null;default:0"`
-	LimitStorage       int              `gorm:"not null;default:20"`
-	LastOnline         time.Time        `json:"last_online"`
-	Online             bool             `json:"online"`
-	Domains            []Domain         `json:"domains"`
-	Followings         []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id"`
-	Followers          []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id"`
+	TelegramName       string `gorm:"type:varchar(100);uniqueIndex;null"`
+
+	PasswordResetAt  time.Time
+	Billing          []Billing        `gorm:"foreignkey:UserID"`
+	Profile          []Profile        `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Filled           bool             `json:"filled"`
+	Session          string           `gorm:"nut null;default:0"`
+	Storage          string           `gorm:"nut null"`
+	Tid              int64            `gorm:"nut null;default:0"`
+	Blogs            []Blog           `gorm:"foreignkey:UserID"`
+	CreatedAt        time.Time        `gorm:"not null;default:now()"`
+	UpdatedAt        time.Time        `gorm:"not null;default:now()"`
+	OnlineHours      TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
+	TotalOnlineHours TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
+	OfflineHours     int              `gorm:"not null;default:0"`
+	TotalRestBlogs   int              `gorm:"not null;default:0"`
+	TotalBlogs       int              `gorm:"not null;default:0"`
+	Rating           int              `gorm:"not null;default:0"`
+	LimitStorage     int              `gorm:"not null;default:20"`
+	LastOnline       time.Time        `json:"last_online"`
+	Online           bool             `json:"online"`
+	Domains          []Domain         `json:"domains"`
+	Followings       []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id"`
+	Followers        []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id"`
 }
 
 type Role string
@@ -135,6 +137,7 @@ type UserResponse struct {
 	Email             string            `json:"email,omitempty"`
 	Blogs             []BlogResponse    `json:"blogs"`
 	Role              string            `json:"role,omitempty"`
+	TelegramName      string            `json:"telegramname,omitempty"`
 	TelegramToken     string            `json:"telegram_token,omitempty"`
 	TelegramActivated bool              `bool:"telegram_activated"`
 	Photo             string            `json:"photo,omitempty"`
@@ -223,6 +226,7 @@ func FilterUserRecord(user *User, language string) UserResponse {
 		Storage:           user.Storage,
 		TelegramToken:     user.TelegramToken,
 		TelegramActivated: user.TelegramActivated,
+		TelegramName:      user.TelegramName,
 		CreatedAt:         user.CreatedAt,
 		UpdatedAt:         user.UpdatedAt,
 		OnlineHours:       user.OnlineHours,
