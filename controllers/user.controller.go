@@ -59,7 +59,7 @@ func GetMeH(id string, userName string, fileURL string, tId int64) (*models.User
 		return nil, err
 	}
 
-	user.Name = userName
+	user.TelegramName = userName
 	user.Tid = tId
 	user.TelegramActivated = true
 	// user.Photo = fileURL
