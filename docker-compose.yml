@@ -4,7 +4,7 @@ services:
     imageproxy:
         image: ghcr.io/willnorris/imageproxy
         ports:
-            - "8080:8080"
+            - "8180:8080"
     postgres:
         image: postgres:latest
         container_name: postgres
@@ -13,27 +13,27 @@ services:
             POSTGRES_PASSWORD: uj,kbY12363techaa
             POSTGRES_DB: paxintrade
         ports:
-            - "5432:5432"
+            - "127.0.0.1:5432:5432"
     pgAdmin:
         image: dpage/pgadmin4
         container_name: pgAdmin
         env_file:
             - ./app.env
         ports:
-            - "5050:80"
+            - "127.0.0.1:5050:80"
     redis:
         image: redis:alpine
         container_name: redis_go
         ports:
-            - "6379:6379"
+            - "127.0.0.1:6479:6379"
         volumes:
             - redisDB:/data
     message-broker:
         image: rabbitmq:3-management-alpine
         container_name: message-broker
         ports:
-            - 5672:5672 # for sender and consumer connections
-            - 15672:15672 # for serve RabbitMQ GUI
+            - 127.0.0.1:5672:5672 # for sender and consumer connections
+            - 127.0.0.1:15672:15672 # for serve RabbitMQ GUI
         volumes:
             - ${HOME}/dev-rabbitmq/data/:/var/lib/rabbitmq
             - ${HOME}/dev-rabbitmq/log/:/var/log/rabbitmq
@@ -43,9 +43,9 @@ services:
     rethinkdb:
         image: rethinkdb:2.4.2
         ports:
-        - 28015:28015
+            - 127.0.0.1:28015:28015
         volumes:
-        - ~/apps/rethinkdb/data:/app
+            - ~/apps/rethinkdb/data:/app
 volumes:
     redisDB:
     progresDB:
