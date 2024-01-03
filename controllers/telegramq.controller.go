@@ -120,7 +120,7 @@ func TryActivated(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, afterSpace string
 		fileName = filepath.Base(fileURL)
 		if msg.From != nil && msg.From.UserName != "" {
 			// If the field exists, assign the value
-			user.TelegramName = msg.From.UserName
+			user.TelegramName = &msg.From.UserName
 			user.Tid = msg.From.ID
 			user.TelegramActivated = true
 			// user.Photo = fileURL
