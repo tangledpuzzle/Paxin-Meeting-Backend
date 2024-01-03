@@ -73,7 +73,7 @@ type User struct {
 	PasswordResetToken string
 	TelegramActivated  bool `gorm:"not null;default:false"`
 	TelegramToken      string
-	TelegramName       string `gorm:"type:varchar(100);uniqueIndex;null"`
+	TelegramName       *string `gorm:"type:varchar(100);uniqueIndex;null"`
 
 	PasswordResetAt  time.Time
 	Billing          []Billing        `gorm:"foreignkey:UserID"`
@@ -226,24 +226,29 @@ func FilterUserRecord(user *User, language string) UserResponse {
 		Storage:           user.Storage,
 		TelegramToken:     user.TelegramToken,
 		TelegramActivated: user.TelegramActivated,
-		TelegramName:      user.TelegramName,
-		CreatedAt:         user.CreatedAt,
-		UpdatedAt:         user.UpdatedAt,
-		OnlineHours:       user.OnlineHours,
-		TotalOnlineHours:  user.TotalOnlineHours,
-		TId:               user.Tid,
-		Tcid:              user.Tcid,
-		Profile:           profileResponses,
-		LimitStorage:      user.LimitStorage,
-		Banned:            user.Banned,
-		Plan:              user.Plan,
-		Filled:            user.Filled,
-		ExpiredPlanAt:     user.ExpiredPlanAt,
-		Signed:            user.Signed,
-		TotalRestBlogs:    user.TotalRestBlogs,
-		Followings:        user.Followings,
-		Followers:         user.Followers,
-		TotalFollowers:    user.TotalFollowers,
+		TelegramName: func() string {
+			if user.TelegramName != nil {
+				return *user.TelegramName
+			}
+			return ""
+		}(),
+		CreatedAt:        user.CreatedAt,
+		UpdatedAt:        user.UpdatedAt,
+		OnlineHours:      user.OnlineHours,
+		TotalOnlineHours: user.TotalOnlineHours,
+		TId:              user.Tid,
+		Tcid:             user.Tcid,
+		Profile:          profileResponses,
+		LimitStorage:     user.LimitStorage,
+		Banned:           user.Banned,
+		Plan:             user.Plan,
+		Filled:           user.Filled,
+		ExpiredPlanAt:    user.ExpiredPlanAt,
+		Signed:           user.Signed,
+		TotalRestBlogs:   user.TotalRestBlogs,
+		Followings:       user.Followings,
+		Followers:        user.Followers,
+		TotalFollowers:   user.TotalFollowers,
 	}
 }
 
