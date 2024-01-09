@@ -10,7 +10,7 @@ services:
         container_name: postgres
         environment:
             POSTGRES_USER: paxintrade
-            POSTGRES_PASSWORD: uj,kbY12363techaa
+            POSTGRES_PASSWORD: <password>
             POSTGRES_DB: paxintrade
         ports:
             - "127.0.0.1:5432:5432"
