@@ -17,6 +17,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+
+	_ "hyperpage/docs"
+
 	"github.com/gofiber/template/html/v2"
 
 	"hyperpage/api"
@@ -89,6 +92,14 @@ func init() {
 
 }
 
+// @title Paxintrade core api
+// @version 1.0
+// @description services paxintrade
+// @contact.name API Support
+// @contact.email help@paxintrade.com
+// @host go.paxintrade.com/api
+// @schemes https
+// @BasePath /
 func main() {
 
 	// url := "https://api.development.push.apple.com/3/device/5334f3e850f3e06f5e3714344e4f6c5358751829290a64e65ed3afdeec085d1c"
@@ -171,7 +182,6 @@ func main() {
 
 	engine := html.New("./views", ".html")
 
-	// app := fiber.New(config)
 	app := fiber.New(fiber.Config{
 		ServerHeader: "paxintrade",
 		Views:        engine,
@@ -181,13 +191,16 @@ func main() {
 	micro := fiber.New()
 
 	//VIEWS
-	routes.Register(app)
+	routes.SwaggerRoute(app) // Register a route for API Docs (Swagger).
+	routes.MainView(app)     // Main page
 
 	//API'S
 	api.Register(micro)
 
 	//REGISTER NEW ROUTES
 	app.Mount("/api", micro)
+
+	routes.NotFoundRoute(app) // Register route for 404 Error.
 
 	app.Use(logger.New())
 
@@ -796,7 +809,7 @@ func main() {
 			// 	}
 			// }
 
-			// if strings.Contains(strMessage, "call") {
+			// if string
 
 			// 	id := strings.Split(strMessage, "call")
 
