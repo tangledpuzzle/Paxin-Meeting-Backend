@@ -1,4 +1,3 @@
 app.env
-cmd/main
-tmp/main
-tmp/air_errors.log
+docker-compose.yml
+tmp
