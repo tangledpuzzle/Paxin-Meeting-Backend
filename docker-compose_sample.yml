@@ -4,7 +4,7 @@ services:
     imageproxy:
         image: ghcr.io/willnorris/imageproxy
         ports:
-            - "8180:8080"
+            - "8080:8080"
     postgres:
         image: postgres:latest
         container_name: postgres
@@ -25,7 +25,7 @@ services:
         image: redis:alpine
         container_name: redis_go
         ports:
-            - "127.0.0.1:6479:6379"
+            - "127.0.0.1:6379:6379"
         volumes:
             - redisDB:/data
     message-broker:
