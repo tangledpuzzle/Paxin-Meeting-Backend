@@ -10,6 +10,30 @@ import (
 	"hyperpage/models"
 )
 
+// GetCitiesResponse represents the response structure for the GetCities function.
+type GetCitiesResponse struct {
+	Status string        `json:"status"`
+	Data   []models.City `json:"data"`
+	Meta   GetCitiesMeta `json:"meta"`
+}
+
+// GetCitiesMeta represents the metadata for the paginated response.
+type GetCitiesMeta struct {
+	Limit string `json:"limit"`
+	Skip  string `json:"skip"`
+	Total int64  `json:"total"`
+}
+
+// GetCities gets a paginated list of cities with translations.
+// @Summary Get a list of cities.
+// @Description Retrieves a paginated list of city names along with their translations.
+// @Tags Cities
+// @Accept json
+// @Produce json
+// @Param limit query string false "Number of cities to retrieve (default: 10)"
+// @Param skip query string false "Number of cities to skip (default: 0)"
+// @Success 200 {object} GetCitiesResponse
+// @Router /cities/all [get]
 func GetCities(c *fiber.Ctx) error {
 	// Get query parameters for pagination
 	limit := c.Query("limit", "10")
@@ -55,13 +79,13 @@ func GetCities(c *fiber.Ctx) error {
 	// fmt.Println(db.Statement.SQL.String()) // Log the generated SQL
 
 	// return the paginated city names and metadata as a JSON response
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   cities,
-		"meta": fiber.Map{
-			"limit": limitNumber,
-			"skip":  skipNumber,
-			"total": total,
+	return c.JSON(GetCitiesResponse{
+		Status: "success",
+		Data:   cities,
+		Meta: GetCitiesMeta{
+			Limit: strconv.Itoa(limitNumber),
+			Skip:  strconv.Itoa(skipNumber),
+			Total: total,
 		},
 	})
 }

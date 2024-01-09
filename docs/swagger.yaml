@@ -1,0 +1,85 @@
+basePath: /
+definitions:
+  controllers.GetCitiesMeta:
+    properties:
+      limit:
+        type: string
+      skip:
+        type: string
+      total:
+        type: integer
+    type: object
+  controllers.GetCitiesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.City'
+        type: array
+      meta:
+        $ref: '#/definitions/controllers.GetCitiesMeta'
+      status:
+        type: string
+    type: object
+  models.City:
+    properties:
+      deletedAt:
+        type: string
+      hex:
+        type: string
+      id:
+        type: integer
+      translations:
+        items:
+          $ref: '#/definitions/models.CityTranslation'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  models.CityTranslation:
+    properties:
+      cityId:
+        description: Reference to the city ID
+        type: integer
+      id:
+        type: integer
+      language:
+        type: string
+      name:
+        type: string
+    type: object
+host: go.paxintrade.com/api
+info:
+  contact:
+    email: help@paxintrade.com
+    name: API Support
+  description: services paxintrade
+  title: Paxintrade core api
+  version: "1.0"
+paths:
+  /cities/all:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a paginated list of city names along with their translations.
+      parameters:
+      - description: 'Number of cities to retrieve (default: 10)'
+        in: query
+        name: limit
+        type: string
+      - description: 'Number of cities to skip (default: 0)'
+        in: query
+        name: skip
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.GetCitiesResponse'
+      summary: Get a list of cities.
+      tags:
+      - Cities
+schemes:
+- https
+swagger: "2.0"
