@@ -233,6 +233,9 @@ func generateUniqueID() string {
 }
 
 func CreateBlog(c *fiber.Ctx) error {
+	configPath := "./app.env"
+	config, _ := initializers.LoadConfig(configPath)
+
 	// Parse request body into a new Blog object
 	blog := new(models.Blog)
 	if err := c.BodyParser(blog); err != nil {
@@ -402,8 +405,8 @@ func CreateBlog(c *fiber.Ctx) error {
 		})
 	}
 
-	queueName := "blog_activity"               // Replace with your desired queue name
-	conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+	queueName := "blog_activity"                      // Replace with your desired queue name
+	conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 	_, err = ch.QueueDeclare(
 		queueName,

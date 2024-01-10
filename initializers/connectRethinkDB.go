@@ -10,10 +10,10 @@ import (
 var session *r.Session
 
 // Connect initializes a new RethinkDB session and returns an error if there was a problem connecting.
-func ConnectRethinkDB()  {
+func ConnectRethinkDB(config *Config) {
 	var err error
 	session, err = r.Connect(r.ConnectOpts{
-		Address:  "localhost:28015",
+		Address:  config.RethinkDBUri,
 		Database: "test",
 	})
 	if err != nil {
@@ -21,11 +21,9 @@ func ConnectRethinkDB()  {
 		os.Exit(1)
 	}
 
-
 	// Create tables and indexes here
 
 	log.Println("✅ Connected to RethinkDB")
-
 }
 
 // Close terminates the RethinkDB session

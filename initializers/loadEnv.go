@@ -11,15 +11,17 @@ type Config struct {
 	DBUserName       string `mapstructure:"POSTGRES_USER"`
 	DBUserPassword   string `mapstructure:"POSTGRES_PASSWORD"`
 	DBName           string `mapstructure:"POSTGRES_DB"`
-	DBPort         	 string `mapstructure:"POSTGRES_PORT"`
-	ServerPort     	 string `mapstructure:"PORT"`
+	DBPort           string `mapstructure:"POSTGRES_PORT"`
+	ServerPort       string `mapstructure:"PORT"`
 	TELEGRAM_TOKEN   string `mapsstructure:"TELEGRAM_TOKEN"`
-	TELEGRAM_CHANNEL int `mapsstructure:"TELEGRAM_CHANNEL"`
-	SERVER_URL	 	 string `mapsstructure:"SERVER_URL"`
+	TELEGRAM_CHANNEL int    `mapsstructure:"TELEGRAM_CHANNEL"`
+	SERVER_URL       string `mapsstructure:"SERVER_URL"`
 
 	ClientOrigin string `mapstructure:"CLIENT_ORIGIN"`
 	RedisUri     string `mapstructure:"REDIS_URL"`
-	Amqpurl		 string `mapstructure:"AMQP_URL"`
+	Amqpurl      string `mapstructure:"AMQP_URL"`
+	RabbitMQUri  string `mapstructure:"RABBITMQ_URL"`
+	RethinkDBUri string `mapstructure:"RETHINK_URL"`
 
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
