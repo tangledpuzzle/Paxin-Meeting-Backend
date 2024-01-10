@@ -7,8 +7,8 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func ConnectRabbitMQ() (*amqp.Connection, *amqp.Channel) {
-	conn, err := amqp.Dial("amqp://localhost:5672/")
+func ConnectRabbitMQ(config *Config) (*amqp.Connection, *amqp.Channel) {
+	conn, err := amqp.Dial(config.RabbitMQUri)
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}

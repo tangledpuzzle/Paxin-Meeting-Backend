@@ -15,11 +15,13 @@ import (
 )
 
 func MoveToArch(bot *tgbotapi.BotAPI) {
+	configPath := "./app.env"
+	config, _ := initializers.LoadConfig(configPath)
+
 	var blogs []models.Blog
 	initializers.DB.Where("expired_At < ?", time.Now()).Where("status = ?", "ACTIVE").Find(&blogs)
 
 	for _, blog := range blogs {
-
 		tmid := int(blog.TmId)
 		deleteMsg := tgbotapi.NewDeleteMessage(-1001638837209, tmid)
 		bot.Send(deleteMsg)
@@ -39,8 +41,8 @@ func MoveToArch(bot *tgbotapi.BotAPI) {
 		msgText := "Здравствуйте, " + user.Name + "! Пост " + blog.Title + " отправлен в архив, вы можете продлить его из личного кабинета в течении 2 месяцев."
 
 		// Declare a queue
-		queueName := "post_arch"                   // Replace with your desired queue name
-		conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+		queueName := "post_arch"                          // Replace with your desired queue name
+		conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 		_, err := ch.QueueDeclare(
 			queueName,
@@ -173,11 +175,13 @@ func CheckPlan(bot *tgbotapi.BotAPI) {
 }
 
 func CheckSite(bot *tgbotapi.BotAPI) {
+	configPath := "./app.env"
+	config, _ := initializers.LoadConfig(configPath)
+
 	var blogs []models.Domain
 	initializers.DB.Where("expired_At < ?", time.Now()).Where("status = ?", "activated").Find(&blogs)
 
 	for _, blog := range blogs {
-
 		// initializers.DB.Delete(&blog)
 		blog.Status = "disabled"
 		initializers.DB.Save(&blog)
@@ -193,8 +197,8 @@ func CheckSite(bot *tgbotapi.BotAPI) {
 		msgText := "Здравствуйте, " + user.Name + "! Ваш веб-сайт " + "https://" + blog.Username + ".paxintrade.com" + " приостановлен, вы можете продлить работу в личном кабинете."
 
 		// Declare a queue
-		queueName := "site_disabled"               // Replace with your desired queue name
-		conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+		queueName := "site_disabled"                      // Replace with your desired queue name
+		conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 		_, err := ch.QueueDeclare(
 			queueName,
@@ -239,13 +243,15 @@ func CheckSite(bot *tgbotapi.BotAPI) {
 }
 
 func CheckSiteTime(bot *tgbotapi.BotAPI) {
+	configPath := "./app.env"
+	config, _ := initializers.LoadConfig(configPath)
+
 	fiveDaysFromNow := time.Now().AddDate(0, 0, 5)
 
 	var blogs []models.Domain
 	initializers.DB.Where("expired_At < ?", fiveDaysFromNow).Where("expired_At > ?", time.Now()).Where("status = ?", "activated").Find(&blogs)
 
 	for _, blog := range blogs {
-
 		// initializers.DB.Delete(&blog)
 		// blog.Status = "disabled"
 		// initializers.DB.Save(&blog)
@@ -261,8 +267,8 @@ func CheckSiteTime(bot *tgbotapi.BotAPI) {
 		msgText := "Здравствуйте, " + user.Name + "! Ваш веб-сайт " + "https://" + blog.Username + ".paxintrade.com" + " будет приостановлен в работе менее чем через 5 дней, вы можете продлить работу веб-сайта в личном кабинете."
 
 		// Declare a queue
-		queueName := "site_disabled"               // Replace with your desired queue name
-		conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+		queueName := "site_disabled"                      // Replace with your desired queue name
+		conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 		_, err := ch.QueueDeclare(
 			queueName,

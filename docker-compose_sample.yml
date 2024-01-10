@@ -6,51 +6,53 @@ services:
         ports:
             - "8080:8080"
     postgres:
-        image: postgres:latest
-        container_name: postgres
+        image: postgres:16.1-alpine
+        restart: always
         environment:
             POSTGRES_USER: paxintrade
             POSTGRES_PASSWORD: <password>
             POSTGRES_DB: paxintrade
-        ports:
-            - "127.0.0.1:5432:5432"
-    pgAdmin:
-        image: dpage/pgadmin4
-        container_name: pgAdmin
-        env_file:
-            - ./app.env
-        ports:
-            - "127.0.0.1:5050:80"
+        # ports:
+        #     - "5432:5432"
+        volumes:
+            - ./postgres_data:/var/lib/postgresql/data
+    # pgAdmin:
+    #     image: dpage/pgadmin4
+    #     env_file:
+    #         - ./app.env
+    #     ports:
+    #         - "8008:80"
     redis:
         image: redis:alpine
-        container_name: redis_go
-        ports:
-            - "127.0.0.1:6379:6379"
+        # ports:
+        #     - "16379:6379"
         volumes:
-            - redisDB:/data
-    message-broker:
+            - ./redis_data:/data
+    rabbitmq:
         image: rabbitmq:3-management-alpine
-        container_name: message-broker
         ports:
-            - 127.0.0.1:5672:5672 # for sender and consumer connections
-            - 127.0.0.1:15672:15672 # for serve RabbitMQ GUI
+            # - 5672:5672 # for sender and consumer connections
+            - 15672:15672 # for serve RabbitMQ GUI
         volumes:
-            - ${HOME}/dev-rabbitmq/data/:/var/lib/rabbitmq
-            - ${HOME}/dev-rabbitmq/log/:/var/log/rabbitmq
+            - ./rabbitmq_data:/var/lib/rabbitmq
+            - ./rabbitmq_logs:/var/log/rabbitmq
         restart: always
-        networks:
-            - dev-network
     rethinkdb:
         image: rethinkdb:2.4.2
-        ports:
-            - 127.0.0.1:28015:28015
+        # ports:
+        #     - 28015:28015
         volumes:
-            - ~/apps/rethinkdb/data:/app
-volumes:
-    redisDB:
-    progresDB:
-    rethinkdb:
-networks:
-    # Create a new Docker network.
-    dev-network:
-        driver: bridge
+            - ./rethinkdb_data:/app
+    paxintrade-api:
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        ports:
+            - "8000:8000/tcp"
+        volumes:
+            - .:/app
+        depends_on:
+            - redis
+            - rethinkdb
+            - rabbitmq
+            - postgres

@@ -88,7 +88,7 @@ func init() {
 	initializers.ConnectDB(&config)
 	initializers.ConnectRedis(&config)
 	initializers.ConnectTelegram(&config)
-	// initializers.ConnectRethinkDB()
+	// initializers.ConnectRethinkDB(&config)
 
 }
 
@@ -101,6 +101,8 @@ func init() {
 // @schemes https
 // @BasePath /
 func main() {
+	configPath := "./app.env"
+	config, _ := initializers.LoadConfig(configPath)
 
 	// url := "https://api.development.push.apple.com/3/device/5334f3e850f3e06f5e3714344e4f6c5358751829290a64e65ed3afdeec085d1c"
 
@@ -1059,16 +1061,14 @@ func main() {
 			utils.CheckPlan(bot)
 			utils.CheckSite(bot)
 			utils.CheckSiteTime(bot)
-
 		}
-
 	}()
 
 	// Create a channel to receive messages that contain the desired words.
 
 	// Define the words to filter for.
 	allMsgs := make(chan *tgbotapi.Message)
-	conn, ch := initializers.ConnectRabbitMQ()
+	conn, ch := initializers.ConnectRabbitMQ(&config)
 
 	// Start a goroutine to send all messages to the allMsgs channel.
 	go func() {
@@ -1081,8 +1081,8 @@ func main() {
 
 			if strings.Contains(strings.ToLower(msg.Text), "активность") {
 				// Declare a queue
-				queueName := "profile_activity"            // Replace with your desired queue name
-				conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+				queueName := "profile_activity"                   // Replace with your desired queue name
+				conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 				_, err := ch.QueueDeclare(
 					queueName,
@@ -1141,8 +1141,8 @@ func main() {
 						// Now, the 'value' variable will contain only the value after "code"
 						// You can use this value as needed in your program
 						// For example, you can print it:
-						queueName := "profile_activated"           // Replace with your desired queue name
-						conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+						queueName := "profile_activated"                  // Replace with your desired queue name
+						conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 						_, err := ch.QueueDeclare(
 							queueName,
@@ -1191,8 +1191,8 @@ func main() {
 				if len(words) > 1 {
 					afterSpace := strings.Join(words[1:], " ")
 					// Declare a queue
-					queueName := "make_balance"                // Replace with your desired queue name
-					conn, ch := initializers.ConnectRabbitMQ() // Create a new connection and channel for each request
+					queueName := "make_balance"                       // Replace with your desired queue name
+					conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
 					_, err := ch.QueueDeclare(
 						queueName,
