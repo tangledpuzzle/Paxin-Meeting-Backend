@@ -200,8 +200,6 @@ func main() {
 	//REGISTER NEW ROUTES
 	app.Mount("/api", micro)
 
-	routes.NotFoundRoute(app) // Register route for 404 Error.
-
 	app.Use(logger.New())
 
 	app.Use(cors.New(cors.Config{
@@ -978,6 +976,8 @@ func main() {
 			fmt.Println(id)
 		}
 	}))
+
+	routes.NotFoundRoute(app) // Register route for 404 Error.
 
 	// uncomment for test reset .... witouth wait
 

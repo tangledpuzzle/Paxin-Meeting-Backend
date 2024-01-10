@@ -7,21 +7,76 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// LangsResponse represents the response structure for the Langs endpoint.
+type LangsResponse struct {
+	Status string         `json:"status"`
+	Data   []models.Langs `json:"data"`
+}
+
+// AddLangResponse represents the response structure for the AddLang endpoint.
+type AddLangResponse struct {
+	Status string       `json:"status"`
+	Data   models.Langs `json:"data"`
+}
+
+// DeleteLangResponse represents the response structure for the DeleteLang endpoint.
+type DeleteLangResponse struct {
+	Status string       `json:"status"`
+	Data   models.Langs `json:"data"`
+}
+
+// UpdateLangResponse represents the response structure for the UpdateLang endpoint.
+type UpdateLangResponse struct {
+	Status string       `json:"status"`
+	Data   models.Langs `json:"data"`
+}
+
+type LangExample struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+// Langs returns a list of languages.
+// @Summary Get a list of languages.
+// @Description Retrieve a list of available languages.
+// @Tags Languages
+// @Produce json
+// @Success 200 {object} LangsResponse "success"
+// @Router /settings/langs [get]
 func Langs(c *fiber.Ctx) error {
 
 	var langs []models.Langs
 	err := initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
 	if err != nil {
-		return err
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch languages from the database",
+		})
 	}
 
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   langs,
+	// Check if no languages were found
+	if len(langs) == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status": "success",
+			"data":   "Languages not found, create a new one", // or "langs not found" as you mentioned
+		})
+	}
+
+	return c.JSON(LangsResponse{
+		Status: "success",
+		Data:   langs,
 	})
 
 }
 
+// AddLang creates a new language.
+// @Summary Create a new language.
+// @Description Create a new language with the provided data.
+// @Tags Languages
+// @Produce json
+// @Param lang body LangExample true "Language data to be created"
+// @Success 200 {object} AddLangResponse "success"
+// @Router /settings/addlang [post]
 func AddLang(c *fiber.Ctx) error {
 	// Parse request data into a Langs struct
 	var newLang models.Langs
@@ -41,13 +96,20 @@ func AddLang(c *fiber.Ctx) error {
 	}
 
 	// Return success response
-	return c.JSON(fiber.Map{
-		"status":  "success",
-		"message": "New language added successfully",
-		"data":    newLang,
+	return c.JSON(AddLangResponse{
+		Status: "success",
+		Data:   newLang,
 	})
 }
 
+// DeleteLang deletes a language.
+// @Summary Delete a language.
+// @Description Delete a language with the provided ID.
+// @Tags Languages
+// @Produce json
+// @Param id path int true "Language ID to be deleted"
+// @Success 200 {object} DeleteLangResponse "success"
+// @Router /settings/deletelang/{id} [delete]
 func DeleteLang(c *fiber.Ctx) error {
 	// Get language ID from the request parameters
 	langID := c.Params("id")
@@ -70,13 +132,21 @@ func DeleteLang(c *fiber.Ctx) error {
 	}
 
 	// Return success response
-	return c.JSON(fiber.Map{
-		"status":  "success",
-		"message": "Language deleted successfully",
-		"data":    existingLang,
+	return c.JSON(DeleteLangResponse{
+		Status: "success",
+		Data:   existingLang,
 	})
 }
 
+// UpdateLang updates a language.
+// @Summary Update a language.
+// @Description Update a language with the provided ID and data.
+// @Tags Languages
+// @Produce json
+// @Param id path int true "Language ID to be updated"
+// @Param lang body LangExample true "Language data to be updated"
+// @Success 200 {object} UpdateLangResponse "success"
+// @Router /settings/updatelang/{id} [patch]
 func UpdateLang(c *fiber.Ctx) error {
 	// Get language ID from the request parameters
 	langID := c.Params("id")
@@ -111,9 +181,8 @@ func UpdateLang(c *fiber.Ctx) error {
 	}
 
 	// Return success response
-	return c.JSON(fiber.Map{
-		"status":  "success",
-		"message": "Language updated successfully",
-		"data":    existingLang,
+	return c.JSON(UpdateLangResponse{
+		Status: "success",
+		Data:   existingLang,
 	})
 }
