@@ -21,6 +21,8 @@ import (
 )
 
 func SignUpUser(c *fiber.Ctx) error {
+	config, _ := initializers.LoadConfig(".")
+
 	var payload *models.SignUpInput
 	language := c.Query("language")
 
@@ -49,13 +51,13 @@ func SignUpUser(c *fiber.Ctx) error {
 	dirName := utils.GenerateUniqueDirName()
 
 	// Create the directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Join("../images", dirName), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(config.IMGStorePath, dirName), 0755); err != nil {
 		// handle error
 		_ = err
 	}
 
-	src := filepath.Join("..", "..", "images", "default.jpg")
-	dst := filepath.Join("../images", dirName, "default.jpg")
+	src := filepath.Join(config.IMGStorePath, "default.jpg")
+	dst := filepath.Join(config.IMGStorePath, dirName, "default.jpg")
 	if err := os.Symlink(src, dst); err != nil {
 		// Handle error
 		_ = err
@@ -77,12 +79,6 @@ func SignUpUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"status": "fail", "message": "User with that email already exists"})
 	} else if result.Error != nil {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
-	}
-
-	config, _ := initializers.LoadConfig(".")
-
-	if err != nil {
-		log.Fatal("Could not load config", err)
 	}
 
 	code := make([]byte, 20)

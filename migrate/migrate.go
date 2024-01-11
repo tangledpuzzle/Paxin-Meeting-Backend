@@ -27,6 +27,7 @@ func init() {
 }
 
 func main() {
+	config, _ := initializers.LoadConfig(".")
 
 	initializers.DB.AutoMigrate(&models.User{})
 	initializers.DB.AutoMigrate(&models.Domain{})
@@ -76,12 +77,12 @@ func main() {
 		dirName := utils.GenerateUniqueDirName()
 
 		// Create the directory if it doesn't exist
-		if err := os.MkdirAll(filepath.Join("../images", dirName), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(config.IMGStorePath, dirName), 0755); err != nil {
 			log.Fatal("Could not create directory:", err)
 		}
 
-		src := filepath.Join("..", "..", "images", "default.jpg")
-		dst := filepath.Join("../images", dirName, "default.jpg")
+		src := filepath.Join(config.IMGStorePath, "default.jpg")
+		dst := filepath.Join(config.IMGStorePath, dirName, "default.jpg")
 		if err := os.Symlink(src, dst); err != nil {
 			log.Fatal("Could not create symlink:", err)
 		}

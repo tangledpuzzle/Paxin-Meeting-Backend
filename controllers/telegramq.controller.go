@@ -66,6 +66,7 @@ func BalanceProfile(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 }
 
 func TryActivated(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, afterSpace string) {
+	appConfig, _ := initializers.LoadConfig(".")
 
 	var user models.User
 
@@ -98,7 +99,7 @@ func TryActivated(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, afterSpace string
 
 		// Create a file with a unique name in the specified directory
 		fileName := filepath.Base(fileURL)
-		filePath := filepath.Join("../images/"+user.Storage, fileName)
+		filePath := filepath.Join(appConfig.IMGStorePath, user.Storage, fileName)
 		file, err := os.Create(filePath)
 		if err != nil {
 			return
@@ -163,8 +164,8 @@ func TryActivated(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, afterSpace string
 		defer resp.Body.Close()
 
 	} else {
-		src := filepath.Join("..", "..", "images", "default.jpg")
-		dst := filepath.Join("../images", user.Storage, "default.jpg")
+		src := filepath.Join(appConfig.IMGStorePath, "default.jpg")
+		dst := filepath.Join(appConfig.IMGStorePath, user.Storage, "default.jpg")
 		if err := os.Symlink(src, dst); err != nil {
 			// Handle error
 			_ = err
