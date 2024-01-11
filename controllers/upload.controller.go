@@ -73,7 +73,8 @@ func UploadPdf(c *fiber.Ctx) error {
 		Storage:           userResp.Storage,
 	}
 
-	dst, err := os.Create(fmt.Sprintf(config.IMGStorePath, userObj.Storage+"/%s%s", hashStr, fileExt))
+	// dst, err := os.Create(fmt.Sprintf(config.IMGStorePath+"/", userObj.Storage+"/%s%s", hashStr, fileExt))
+	dst, err := os.Create(filepath.Join(config.IMGStorePath, userObj.Storage, hashStr+fileExt))
 	if err != nil {
 		return err
 	}
@@ -145,7 +146,8 @@ func UploadImage(c *fiber.Ctx) error {
 		Storage:           userResp.Storage,
 	}
 
-	dst, err := os.Create(fmt.Sprintf(config.IMGStorePath, userObj.Storage+"/%s%s", hashStr, fileExt))
+	// dst, err := os.Create(fmt.Sprintf(config.IMGStorePath+"/", userObj.Storage+"/%s%s", hashStr, fileExt))
+	dst, err := os.Create(filepath.Join(config.IMGStorePath, userObj.Storage, hashStr+fileExt))
 	if err != nil {
 		return err
 	}
@@ -300,7 +302,8 @@ func UploadImages(c *fiber.Ctx) error {
 			})
 		}
 
-		dst, err := os.Create(fmt.Sprintf(config.IMGStorePath, userObj.Storage+"/%s%s", filename, fileExt))
+		// dst, err := os.Create(fmt.Sprintf(config.IMGStorePath+"/", userObj.Storage+"/%s%s", filename, fileExt))
+		dst, err := os.Create(filepath.Join(config.IMGStorePath, userObj.Storage, filename+fileExt))
 		if err != nil {
 			return err
 		}
