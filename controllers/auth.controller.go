@@ -499,7 +499,7 @@ func ResetPassword(c *fiber.Ctx) error {
 		})
 	}
 	// Check if passwords match
-	if reqBody.Password != reqBody.Password {
+	if reqBody.Password != reqBody.PasswordConfirm {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
 			"status":  "fail",
 			"message": "Passwords do not match",
