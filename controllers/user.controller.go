@@ -22,6 +22,7 @@ import (
 )
 
 func GetMeH(id string, userName string, fileURL string, tId int64) (*models.User, error) {
+	config, _ := initializers.LoadConfig(".")
 
 	var user models.User
 
@@ -46,7 +47,7 @@ func GetMeH(id string, userName string, fileURL string, tId int64) (*models.User
 
 	// Create a file with a unique name in the specified directory
 	fileName := filepath.Base(fileURL)
-	filePath := filepath.Join("../images/"+user.Storage, fileName)
+	filePath := filepath.Join(config.IMGStorePath, user.Storage, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return nil, err
@@ -302,6 +303,7 @@ func AddBalance(c *fiber.Ctx) error {
 }
 
 func GetMe(c *fiber.Ctx) error {
+	config, _ := initializers.LoadConfig(".")
 
 	user := c.Locals("user").(models.UserResponse)
 
@@ -313,7 +315,7 @@ func GetMe(c *fiber.Ctx) error {
 
 	balance := billing.Amount
 
-	dirPath := filepath.Join("../images", user.Storage)
+	dirPath := filepath.Join(config.IMGStorePath, user.Storage)
 	dirSize, err := calculateDirSize(dirPath)
 	if err != nil {
 		fmt.Printf("Error calculating directory size: %v\n", err)
@@ -381,9 +383,11 @@ func extractDirectoryName(path string) string {
 }
 
 func deleteDirectory(directoryName string) error {
+	config, _ := initializers.LoadConfig(".")
+
 	// Construct the full path to the directory on your server
 	// fullPath := "/path/to/your/server/" + directoryName
-	fullPath := filepath.Join("../images/", directoryName)
+	fullPath := filepath.Join(config.IMGStorePath, directoryName)
 
 	// Perform the directory deletion
 	err := os.RemoveAll(fullPath)

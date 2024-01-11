@@ -484,7 +484,7 @@ func CreateBlog(c *fiber.Ctx) error {
 		// if userResp.Tcid == 0 {
 
 		// 	// Set up an image file to send
-		// 	absolutePath := filepath.Join("../images/default.jpg")
+		// 	absolutePath := filepath.Join(config.IMGStorePath, "default.jpg")
 		// 	imageFile, err := os.Open(absolutePath)
 		// 	if err != nil {
 		// 		log.Fatal(err)
@@ -1064,7 +1064,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 		if userResp.Tcid == 0 {
 
 			// Set up an image file to send
-			absolutePath := filepath.Join("../images/", path)
+			absolutePath := filepath.Join(config.IMGStorePath, path)
 			imageFile, err := os.Open(absolutePath)
 			if err != nil {
 				log.Fatal(err)
@@ -1112,7 +1112,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 		// Call the controller to process the message
 
 		// Set up an image file to send
-		absolutePath := filepath.Join("../images/", path)
+		absolutePath := filepath.Join(config.IMGStorePath, path)
 		imageFile, err := os.Open(absolutePath)
 		if err != nil {
 			log.Fatal(err)
@@ -2141,9 +2141,11 @@ func deleteRemovedFiles(existingFiles pgtype.JSONB, newFiles pgtype.JSONB) {
 
 // Function to delete a file from the server
 func deleteFileFromServer(path string) {
+	config, _ := initializers.LoadConfig(".")
+
 	// Implement the logic to delete the file from the server
 	// For example, you can use the os.Remove() function
-	absolutePath := filepath.Join("../images/", path)
+	absolutePath := filepath.Join(config.IMGStorePath, path)
 
 	_ = os.Remove(absolutePath)
 }

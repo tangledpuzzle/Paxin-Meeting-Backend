@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hyperpage/initializers"
 	"hyperpage/models"
 	"image"
 	"io"
@@ -19,6 +20,8 @@ import (
 )
 
 func UploadPdf(c *fiber.Ctx) error {
+	config, _ := initializers.LoadConfig(".")
+
 	file, err := c.FormFile("pdf")
 	if err != nil {
 		return err
@@ -70,7 +73,7 @@ func UploadPdf(c *fiber.Ctx) error {
 		Storage:           userResp.Storage,
 	}
 
-	dst, err := os.Create(fmt.Sprintf("../images/"+userObj.Storage+"/%s%s", hashStr, fileExt))
+	dst, err := os.Create(fmt.Sprintf(config.IMGStorePath, userObj.Storage+"/%s%s", hashStr, fileExt))
 	if err != nil {
 		return err
 	}
@@ -89,6 +92,8 @@ func UploadPdf(c *fiber.Ctx) error {
 }
 
 func UploadImage(c *fiber.Ctx) error {
+	config, _ := initializers.LoadConfig(".")
+
 	file, err := c.FormFile("image")
 	if err != nil {
 		return err
@@ -140,7 +145,7 @@ func UploadImage(c *fiber.Ctx) error {
 		Storage:           userResp.Storage,
 	}
 
-	dst, err := os.Create(fmt.Sprintf("../images/"+userObj.Storage+"/%s%s", hashStr, fileExt))
+	dst, err := os.Create(fmt.Sprintf(config.IMGStorePath, userObj.Storage+"/%s%s", hashStr, fileExt))
 	if err != nil {
 		return err
 	}
@@ -207,6 +212,8 @@ func compressImage(inputPath, outputPath string, maxWidth, maxHeight int) error 
 }
 
 func UploadImages(c *fiber.Ctx) error {
+	config, _ := initializers.LoadConfig(".")
+
 	// Parse multipart form
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -272,7 +279,7 @@ func UploadImages(c *fiber.Ctx) error {
 		}
 
 		// Check the size of the directory
-		dirname := filepath.Join("../images", userObj.Storage)
+		dirname := filepath.Join(config.IMGStorePath, userObj.Storage)
 		size, err := getDirectorySize(dirname)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -293,7 +300,7 @@ func UploadImages(c *fiber.Ctx) error {
 			})
 		}
 
-		dst, err := os.Create(fmt.Sprintf("../images/"+userObj.Storage+"/%s%s", filename, fileExt))
+		dst, err := os.Create(fmt.Sprintf(config.IMGStorePath, userObj.Storage+"/%s%s", filename, fileExt))
 		if err != nil {
 			return err
 		}
@@ -305,8 +312,8 @@ func UploadImages(c *fiber.Ctx) error {
 			return err
 		}
 
-		inputPath := filepath.Join("..", "images", userObj.Storage, filename+fileExt)
-		outputPath := filepath.Join("..", "images", userObj.Storage, filename+fileExt)
+		inputPath := filepath.Join(config.IMGStorePath, userObj.Storage, filename+fileExt)
+		outputPath := filepath.Join(config.IMGStorePath, userObj.Storage, filename+fileExt)
 		maxWidth := 800  // Replace with the desired maximum width of the compressed photo
 		maxHeight := 600 // Replace with the desired maximum height of the compressed photo
 

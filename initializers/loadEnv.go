@@ -7,6 +7,8 @@ import (
 )
 
 type Config struct {
+	IMGStorePath string `mapstructure:"IMG_STORE_PATH"`
+
 	DBHost           string `mapstructure:"POSTGRES_HOST"`
 	DBUserName       string `mapstructure:"POSTGRES_USER"`
 	DBUserPassword   string `mapstructure:"POSTGRES_PASSWORD"`

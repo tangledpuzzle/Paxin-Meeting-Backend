@@ -86,6 +86,8 @@ func MoveToArch(bot *tgbotapi.BotAPI) {
 	}
 }
 func CheckExpiration(bot *tgbotapi.BotAPI) {
+	config, _ := initializers.LoadConfig(".")
+
 	var blogs []models.Blog
 
 	var transaction []models.Transaction
@@ -118,7 +120,7 @@ func CheckExpiration(bot *tgbotapi.BotAPI) {
 		}
 
 		for _, file := range files {
-			dst := filepath.Join("../images", file.Path)
+			dst := filepath.Join(config.IMGStorePath, file.Path)
 			err := os.Remove(dst)
 			if err != nil {
 				// Handle error if file removal fails
