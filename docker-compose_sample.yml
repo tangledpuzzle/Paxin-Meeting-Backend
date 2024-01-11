@@ -46,11 +46,12 @@ services:
     paxintrade-api:
         build:
             context: .
-            dockerfile: Dockerfile.dev
+            dockerfile: Dockerfile # Dockerfile.dev when development mode
         ports:
             - "8000:8000/tcp"
         volumes:
-            - .:/app
+            # - .:/app # need when development mode
+            - ../img-store:/img-store
         depends_on:
             - redis
             - rethinkdb
