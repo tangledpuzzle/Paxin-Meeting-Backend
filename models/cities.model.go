@@ -16,7 +16,7 @@ type City struct {
 // @swagger:model
 type CityTranslation struct {
 	ID       uint   `json:"id" gorm:"primary_key"`
-	CityID   uint   `json:"cityId"` // link id
-	Language string `json:"language"`
-	Name     string `json:"name"`
+	CityID   uint   `json:"CityID"` // link id
+	Language string `json:"Language"`
+	Name     string `json:"Name"`
 }
