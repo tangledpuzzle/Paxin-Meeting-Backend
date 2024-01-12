@@ -50,8 +50,9 @@ services:
     paxintrade-api:
         build:
             context: .
-            dockerfile: Dockerfile # Dockerfile.dev when development mode
+            dockerfile: Dockerfile # Dockerfile.dev when development mode, Dockerfile when production mode
         restart: always
+        image: paxintrade-api:latest-prod # paxintrade-api:latest-dev when development mode, paxintrade-api:latest-prod when production mode
         ports:
             - "8000:8000/tcp"
         volumes:
