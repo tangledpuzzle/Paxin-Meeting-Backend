@@ -3,6 +3,7 @@ version: "4.16.2"
 services:
     imageproxy:
         image: ghcr.io/willnorris/imageproxy
+        restart: always
         ports:
             - "8080:8080"
     postgres:
@@ -18,27 +19,30 @@ services:
             - ./postgres_data:/var/lib/postgresql/data
     # pgAdmin:
     #     image: dpage/pgadmin4
+    #     restart: always
     #     env_file:
     #         - ./app.env
     #     ports:
     #         - "8008:80"
     redis:
         image: redis:alpine
+        restart: always
         # ports:
         #     - "16379:6379"
         volumes:
             - ./redis_data:/data
     rabbitmq:
         image: rabbitmq:3-management-alpine
+        restart: always
         ports:
             # - 5672:5672 # for sender and consumer connections
             - 15672:15672 # for serve RabbitMQ GUI
         volumes:
             - ./rabbitmq_data:/var/lib/rabbitmq
             - ./rabbitmq_logs:/var/log/rabbitmq
-        restart: always
     rethinkdb:
         image: rethinkdb:2.4.2
+        restart: always
         # ports:
         #     - 28015:28015
         volumes:
@@ -47,6 +51,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile # Dockerfile.dev when development mode
+        restart: always
         ports:
             - "8000:8000/tcp"
         volumes:
