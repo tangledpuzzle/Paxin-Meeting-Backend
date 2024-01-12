@@ -3,7 +3,7 @@ module.exports = {
         {
             name: 'paxintrade-api',
             exec_mode: 'cluster',
-            instances: 'max', // Or a number of instances
+            instances: 2, // 'max' or a number of instances
             autorestart: true,
             script: '/app/main',
         }
