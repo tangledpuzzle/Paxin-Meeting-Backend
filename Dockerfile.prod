@@ -5,18 +5,18 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 RUN go mod tidy
-RUN go build cmd/main.go
+RUN go build -o bin/paxintrade-api cmd/main.go
 
 
 FROM keymetrics/pm2:18-alpine
 
 WORKDIR /app
 
-COPY --from=builder  /app/main .
+COPY --from=builder  /app/bin/paxintrade-api .
 COPY templates ./templates
 COPY views ./views
 COPY ecosystem.config.js .
 COPY app.env .
-RUN chmod ++x /app/main
+RUN chmod ++x /app/paxintrade-api
 
-CMD ["pm2-runtime", "main"]
+CMD ["pm2-runtime", "paxintrade-api"]

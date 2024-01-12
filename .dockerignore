@@ -5,9 +5,8 @@ rabbitmq_data
 rabbitmq_logs
 rethinkdb_data
 
-# bin
-bin/main
-cmd/main
+# bininary
+bin/*
 
 # temp
 tmp
