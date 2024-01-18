@@ -19,4 +19,5 @@ pipelines:
             #- go build -o bin/paxintrade-api cmd/main.go
             - ls -l
             - chmod +x ./deploy_release-dev.sh
+            - ls -l
             - ./deploy_release-dev.sh
