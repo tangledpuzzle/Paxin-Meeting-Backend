@@ -1,0 +1,25 @@
+image: golang:1.21-alpine
+
+pipelines:
+  # default:
+  #   - parallel:
+  #       - step:
+  #           name: "Build and Test"
+  #           caches:
+  #             - node
+  #           script:
+  #             - go mod download
+  #             - go build -o bin/paxintrade-api cmd/main.go
+  branches:
+    release/dev:
+      - step:
+          name: "Deploy on PR to Release"
+          caches:
+            - node
+          script:
+            - go mod download
+            - go build -o bin/paxintrade-api cmd/main.go
+            - chmod +x ./deploy_release-dev.sh
+            - ./deploy_release-dev.sh
+          artifacts:
+            - build/**
