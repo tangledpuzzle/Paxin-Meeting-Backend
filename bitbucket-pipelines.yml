@@ -15,7 +15,8 @@ pipelines:
       - step:
           name: "Deploy on PR to Release"
           script:
-            - go mod download
-            - go build -o bin/paxintrade-api cmd/main.go
+            #- go mod download
+            #- go build -o bin/paxintrade-api cmd/main.go
+            - ls -l
             - chmod +x ./deploy_release-dev.sh
             - ./deploy_release-dev.sh
