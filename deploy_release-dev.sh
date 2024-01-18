@@ -25,7 +25,7 @@ chmod 600 "$PRIVATE_KEY_PATH"
 # SSH into the EC2 instance and run npm commands
 ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
   BRANCH_NAME="${BRANCH_NAME}" # This assigns the value of the local variable to the remote variable
-  cd ~/workspace/paxintrade/frontend
+  cd ~/workspace/paxintrade/backend
 
   # Ensure the target branch exists and check it out
   branch_exists_locally=\$(git branch --list \$BRANCH_NAME)
@@ -46,11 +46,8 @@ ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
 
   # Continue to pull, install, build, and restart
   git pull origin \$BRANCH_NAME
-  source ~/.nvm/nvm.sh
-  nvm use node
-  npm i
-  npm run build
-  pm2 restart paxintrade-frontend
+  docker compose down paxintrade-api
+  docker compose up -d --build
 ENDSSH
 
 # Clean up the private key

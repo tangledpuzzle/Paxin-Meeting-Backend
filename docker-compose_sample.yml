@@ -1,56 +1,56 @@
 version: "4.16.2"
 
 services:
-    imageproxy:
-        image: willnorris/imageproxy
-        restart: always
-        ports:
-            - "8080:8080"
-    postgres:
-        image: postgres:16.1-alpine
-        restart: always
-        environment:
-            POSTGRES_USER: paxintrade
-            POSTGRES_PASSWORD: <password>
-            POSTGRES_DB: paxintrade
-        ports:
-            - "5432:5432"
-        volumes:
-            - ../server-data/postgres-data:/var/lib/postgresql/data
-    redis:
-        image: redis:7-alpine
-        restart: always
-        # ports:
-        #     - "16379:6379"
-    rabbitmq:
-        image: rabbitmq:3-management-alpine
-        restart: always
-        ports:
-            # - 5672:5672 # for sender and consumer connections
-            - 15672:15672 # for serve RabbitMQ GUI
-        volumes:
-            - ../server-data/rabbitmq-data:/var/lib/rabbitmq
-            - ../server-data/rabbitmq-logs:/var/log/rabbitmq
-    rethinkdb:
-        image: rethinkdb:2.4.2
-        restart: always
-        # ports:
-        #     - 28015:28015
-        volumes:
-            - ../server-data/rethinkdb-data:/app
-    paxintrade-api:
-        build:
-            context: .
-            dockerfile: Dockerfile.prod # Dockerfile.dev when development mode, Dockerfile.prod when production mode
-        restart: always
-        image: paxintrade-api:latest-prod # paxintrade-api:latest-dev when development mode, paxintrade-api:latest-prod when production mode
-        ports:
-            - "8000:8000/tcp"
-        volumes:
-            # - .:/app # need when development mode
-            - ../server-data/img-store:/img-store
-        depends_on:
-            - redis
-            - rethinkdb
-            - rabbitmq
-            - postgres
+  imageproxy:
+    image: willnorris/imageproxy
+    restart: always
+    ports:
+      - "8080:8080"
+  postgres:
+    image: postgres:16.1-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: paxintrade
+      POSTGRES_PASSWORD: <password>
+      POSTGRES_DB: paxintrade
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../server-data/postgres-data:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # ports:
+    #     - "16379:6379"
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: always
+    ports:
+      # - 5672:5672 # for sender and consumer connections
+      - 15672:15672 # for serve RabbitMQ GUI
+    volumes:
+      - ../server-data/rabbitmq-data:/var/lib/rabbitmq
+      - ../server-data/rabbitmq-logs:/var/log/rabbitmq
+  rethinkdb:
+    image: rethinkdb:2.4.2
+    restart: always
+    # ports:
+    #     - 28015:28015
+    volumes:
+      - ../server-data/rethinkdb-data:/app
+  paxintrade-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod # Dockerfile.dev when development mode, Dockerfile.prod when production mode
+    restart: always
+    image: paxintrade-api:latest-prod # paxintrade-api:latest-dev when development mode, paxintrade-api:latest-prod when production mode
+    ports:
+      - "8000:8000/tcp"
+    volumes:
+      # - .:/app # need when development mode
+      - ../server-data/img-store:/server-data/img-store
+    depends_on:
+      - redis
+      - rethinkdb
+      - rabbitmq
+      - postgres
