@@ -15,5 +15,6 @@ pipelines:
           script:
             - go mod download
             - go build -o bin/paxintrade-api cmd/main.go
+            - apk add --no-cache openssh
             - chmod +x ./deploy_release-dev.sh
             - ./deploy_release-dev.sh
