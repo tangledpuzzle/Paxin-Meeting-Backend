@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 BRANCH_NAME="release/dev"
 
@@ -47,6 +47,7 @@ ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
   # Continue to pull, install, build, and restart
   git pull origin \$BRANCH_NAME
   docker compose down paxintrade-api
+  docker rmi paxintrade-api:latest-prod
   docker compose up -d --build
 ENDSSH
 
