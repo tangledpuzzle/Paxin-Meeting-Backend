@@ -21,5 +21,5 @@ pipelines:
           script:
             - echo "Deploying to production environment"
             - apk add --no-cache openssh
-            - chmod +x ./deploy_release-dev.sh
-            - ./deploy_release-dev.sh
+            - chmod +x ./deploy_release-prod.sh
+            - ./deploy_release-prod.sh
