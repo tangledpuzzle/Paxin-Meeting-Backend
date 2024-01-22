@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BRANCH_NAME="release/dev"
+BRANCH_NAME="release/prod"
 
 # Abort on errors
 set -e

@@ -9,12 +9,17 @@ pipelines:
   #             - go mod download
   #             - go build -o bin/paxintrade-api cmd/main.go
   branches:
-    release/dev:
+    release/prod:
       - step:
-          name: "Deploy on PR to Release"
+          name: "Build"
           script:
             - go mod download
             - go build -o bin/paxintrade-api cmd/main.go
+      - step:
+          name: "Deploy to Production Environment"
+          deployment: Production
+          script:
+            - echo "Deploying to production environment"
             - apk add --no-cache openssh
             - chmod +x ./deploy_release-dev.sh
             - ./deploy_release-dev.sh
