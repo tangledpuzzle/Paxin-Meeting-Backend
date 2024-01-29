@@ -1628,6 +1628,7 @@ func GetAll(c *fiber.Ctx) error {
 			ID:             b.ID,
 			Title:          b.Title,
 			MultilangTitle: b.MultilangTitle,
+			MultilangDescr: b.MultilangDescr,
 			Lang:           b.Lang,
 			Descr:          b.Descr,
 			Slug:           b.Slug,
