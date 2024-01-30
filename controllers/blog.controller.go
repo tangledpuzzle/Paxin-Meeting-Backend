@@ -2036,6 +2036,47 @@ func UpdateBlog(c *fiber.Ctx) error {
 	blog.Pined = requestBody.Pined
 	blog.Content = requestBody.Content
 
+	// Fetch languages from the database
+	var langs []models.Langs
+	err = initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
+	if err != nil {
+		return err
+	}
+
+	translations := make(map[string]string)
+	translationsDescr := make(map[string]string)
+	translationsContent := make(map[string]string)
+
+	for _, lang := range langs {
+
+		result, _ := gt.Translate(blog.Title, blog.Lang, lang.Code)
+		translations[lang.Code] = result
+
+		resultDescr, _ := gt.Translate(blog.Descr, blog.Lang, lang.Code)
+		translationsDescr[lang.Code] = resultDescr
+
+		resultContent, _ := gt.Translate(blog.Content, blog.Lang, lang.Code)
+		translationsContent[lang.Code] = resultContent
+	}
+
+	// Set the translated values in the TitleLangs field
+	blog.MultilangTitle.En = translations["en"]
+	blog.MultilangTitle.Ru = translations["ru"]
+	blog.MultilangTitle.Ka = translations["ka"]
+	blog.MultilangTitle.Es = translations["es"]
+
+	// Set the translated values in the TitleLangs field
+	blog.MultilangDescr.En = translationsDescr["en"]
+	blog.MultilangDescr.Ru = translationsDescr["ru"]
+	blog.MultilangDescr.Ka = translationsDescr["ka"]
+	blog.MultilangDescr.Es = translationsDescr["es"]
+
+	// Set the translated values in the TitleLangs field
+	blog.MultilangContent.En = translationsContent["en"]
+	blog.MultilangContent.Ru = translationsContent["ru"]
+	blog.MultilangContent.Ka = translationsContent["ka"]
+	blog.MultilangContent.Es = translationsContent["es"]
+
 	if err := initializers.DB.Save(&blog).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
