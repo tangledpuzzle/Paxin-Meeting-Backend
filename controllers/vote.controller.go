@@ -25,7 +25,7 @@ func GetAllVotes(c *fiber.Ctx) error {
 
 	var votes []models.Vote
 
-	if err := initializers.DB.Where("id = ?", blog.ID).Find(&votes).Error; err != nil {
+	if err := initializers.DB.Where("blog_id = ?", blog.ID).Find(&votes).Error; err != nil {
 		// Handle not found error, probably return a 404
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
