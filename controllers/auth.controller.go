@@ -104,7 +104,7 @@ func SignUpUser(c *fiber.Ctx) error {
 
 	// ? Send Email
 	emailData := utils.EmailData{
-		URL:       "https://" + config.ClientOrigin + "/passport/verify/" + verification_code,
+		URL:       "https://" + config.ClientOrigin + "/auth/verify/" + verification_code,
 		FirstName: firstName,
 	}
 
@@ -113,6 +113,8 @@ func SignUpUser(c *fiber.Ctx) error {
 		emailData.Subject = "Paxintrade account activation"
 	case "ru":
 		emailData.Subject = "Paxintrade активация аккаунта"
+	case "es":
+		emailData.Subject = "Paxintrade activación de cuenta"
 	case "ke":
 		emailData.Subject = "Paxintrade ანგარიშის გააქტიურება"
 	default:
@@ -458,7 +460,7 @@ func ForgotPassword(c *fiber.Ctx) error {
 	}
 
 	emailData := utils.EmailData{
-		URL:       "https://" + config.ClientOrigin + "/passport/resetpassword/" + user.PasswordResetToken,
+		URL:       "https://" + config.ClientOrigin + "/auth/reset-password/" + user.PasswordResetToken,
 		FirstName: firstName,
 	}
 
@@ -467,6 +469,8 @@ func ForgotPassword(c *fiber.Ctx) error {
 		emailData.Subject = "Password reset request (available for 10 minutes)"
 	case "ru":
 		emailData.Subject = "Запрос на сброс пароля (доступно 10 мин)"
+	case "es":
+		emailData.Subject = "Solicitud de restablecimiento de contraseña (10 min disponibles)"
 	case "ke":
 		emailData.Subject = "პაროლის გადატვირთვის მოთხოვნა (ხელმისაწვდომია 10 წთ)"
 	default:
