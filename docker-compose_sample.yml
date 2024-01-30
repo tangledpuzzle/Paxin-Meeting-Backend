@@ -46,6 +46,7 @@ services:
       - "8000:8000/tcp"
     volumes:
       # - .:/app # need when development mode
+      - ./app.env:/app/app.env # need when production mode
       - ../server-data/img-store:/server-data/img-store
     depends_on:
       - redis
