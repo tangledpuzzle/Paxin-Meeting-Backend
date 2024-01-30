@@ -162,6 +162,9 @@ func Register(micro *fiber.App) {
 		router.Post("/addhashtag", middleware.DeserializeUser, controllers.AddHashTag)
 		router.Get("/findTag", controllers.SearchHashTag)
 
+		router.Get("/allvotes/:id", controllers.GetAllVotes)
+		router.Post("/addvote/:id", middleware.DeserializeUser, controllers.AddVote)
+
 		router.Get("/getAllByUser/:id", controllers.GetAllByUser)
 
 		router.Get("/listAll", controllers.GetAll)
