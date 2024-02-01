@@ -72,15 +72,17 @@ func (t *TimeEntryScanner) Scan(value interface{}) error {
 }
 
 type userResponse struct {
-	TId              int64            `json:"tid"`
-	Online           bool             `json:"online"`
-	Photo            string           `json:"photo"`
-	Name             string           `json:"name"`
-	Role             string           `json:"role"`
-	OnlineHours      TimeEntryScanner `json:"online_hours"`
-	TotalOnlineHours TimeEntryScanner `json:"total_online_hours"`
-	TotalBlogs       int              `json:"totalblogs"`
-	TotalRestBlogs   int              `json:"totalrestblog"`
+	TId               int64            `json:"tid"`
+	Online            bool             `json:"online"`
+	Photo             string           `json:"photo"`
+	Name              string           `json:"name"`
+	Role              string           `json:"role"`
+	OnlineHours       TimeEntryScanner `json:"online_hours"`
+	TotalOnlineHours  TimeEntryScanner `json:"total_online_hours"`
+	TotalBlogs        int              `json:"totalblogs"`
+	TotalRestBlogs    int              `json:"totalrestblog"`
+	TelegramName      string           `json:"telegramname"`
+	TelegramActivated bool             `json:"telegramactivated"`
 }
 
 type CategoryJSON struct {
@@ -1209,7 +1211,6 @@ func GetBlogById(c *fiber.Ctx) error {
 	if language == "" {
 		language = "en"
 	}
-
 	var blog []models.Blog
 
 	err := utils.Paginate(c, initializers.DB.Where("slug = ? AND uniq_id = ?", blogID, uniqId).First(&blog).Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
@@ -1290,13 +1291,15 @@ func GetBlogById(c *fiber.Ctx) error {
 			Catygory:   categories,
 			Sticker:    b.Sticker,
 			User: userResponse{
-				TId:              b.User.Tid,
-				Online:           b.User.Online,
-				Photo:            b.User.Photo,
-				Name:             b.User.Name,
-				OnlineHours:      userOnlineHours,
-				TotalOnlineHours: userTotalOnlineHours,
-				TotalRestBlogs:   b.User.TotalRestBlogs,
+				TId:               b.User.Tid,
+				Online:            b.User.Online,
+				Photo:             b.User.Photo,
+				Name:              b.User.Name,
+				OnlineHours:       userOnlineHours,
+				TotalOnlineHours:  userTotalOnlineHours,
+				TotalRestBlogs:    b.User.TotalRestBlogs,
+				TelegramName:      *b.User.TelegramName,
+				TelegramActivated: b.User.TelegramActivated,
 			},
 			Hashtags: hashtags,
 		}
@@ -1646,16 +1649,17 @@ func GetAll(c *fiber.Ctx) error {
 			UniqId:         b.UniqId,
 			Sticker:        b.Sticker,
 			User: userResponse{
-
-				TId:              b.User.Tid,
-				Online:           b.User.Online,
-				Photo:            b.User.Photo,
-				Name:             b.User.Name,
-				TotalBlogs:       b.User.TotalBlogs,
-				Role:             b.User.Role,
-				OnlineHours:      userOnlineHours,
-				TotalOnlineHours: userTotalOnlineHours,
-				TotalRestBlogs:   b.User.TotalRestBlogs,
+				TId:               b.User.Tid,
+				Online:            b.User.Online,
+				Photo:             b.User.Photo,
+				Name:              b.User.Name,
+				TotalBlogs:        b.User.TotalBlogs,
+				Role:              b.User.Role,
+				OnlineHours:       userOnlineHours,
+				TotalOnlineHours:  userTotalOnlineHours,
+				TotalRestBlogs:    b.User.TotalRestBlogs,
+				TelegramName:      *b.User.TelegramName,
+				TelegramActivated: b.User.TelegramActivated,
 			},
 			Hashtags: hashtags,
 		}
