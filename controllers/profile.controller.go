@@ -170,7 +170,7 @@ func GetProfile(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 	language := c.Query("language")
 	var profile models.Profile
-	if err := initializers.DB.Preload("Guilds.Translations", "language = ?", language).Preload("Hashtags").Preload("City.Translations", "language = ?", language).Preload("Photos").First(&profile, "user_id = ?", user.ID).Error; err != nil {
+	if err := initializers.DB.Preload("Guilds.Translations", "language = ?", language).Preload("Hashtags").Preload("City.Translations", "language = ?", language).Preload("Photos").Preload("User").First(&profile, "user_id = ?", user.ID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"status":  "error",
