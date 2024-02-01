@@ -72,6 +72,7 @@ func (t *TimeEntryScanner) Scan(value interface{}) error {
 }
 
 type userResponse struct {
+	ID                uuid.UUID        `json:"userID"`
 	TId               int64            `json:"tid"`
 	Online            bool             `json:"online"`
 	Photo             string           `json:"photo"`
@@ -93,6 +94,12 @@ type CategoryJSON struct {
 type CityJSON struct {
 	ID   uint   `json:"id"`
 	Name string `json:"name"`
+}
+
+type UserProfileJSON struct {
+	MultilangDescr models.MultilangTitle `json:"multilangtitle"`
+
+	// Add other fields from the user profile as needed
 }
 
 type blogResponse struct {
@@ -119,6 +126,7 @@ type blogResponse struct {
 	UniqId           string                `json:"uniqId"`
 	Sticker          string                `json:"sticker"`
 	Hashtags         []string              `json:"hashtags"`
+	UserProfile      UserProfileJSON       `json:"userProfile"`
 }
 
 func GetAllBlogs(c *fiber.Ctx) error {
@@ -1223,6 +1231,16 @@ func GetBlogById(c *fiber.Ctx) error {
 
 	var res []*blogResponse
 	for _, b := range blog {
+
+		userID := b.User.ID
+		var userProfile models.Profile
+		err := initializers.DB.Where("user_id = ?", userID).First(&userProfile).Error
+
+		if err != nil {
+			// Handle or log the error
+			fmt.Println("Error fetching user profile:", err)
+		}
+
 		b.Views++
 		// Save the changes
 		if err := initializers.DB.Save(&b).Error; err != nil {
@@ -1290,7 +1308,11 @@ func GetBlogById(c *fiber.Ctx) error {
 			UpdatedAt:  b.UpdatedAt,
 			Catygory:   categories,
 			Sticker:    b.Sticker,
+			UserProfile: UserProfileJSON{
+				MultilangDescr: userProfile.MultilangDescr,
+			},
 			User: userResponse{
+				ID:                b.User.ID,
 				TId:               b.User.Tid,
 				Online:            b.User.Online,
 				Photo:             b.User.Photo,
