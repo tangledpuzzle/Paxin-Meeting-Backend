@@ -1287,8 +1287,6 @@ func GetBlogById(c *fiber.Ctx) error {
 			}
 		}
 
-		fmt.Println(b.User.Profile)
-
 		blogRes := &blogResponse{
 			ID:               b.ID,
 			Title:            b.Title,
