@@ -1221,7 +1221,7 @@ func GetBlogById(c *fiber.Ctx) error {
 	}
 	var blog []models.Blog
 
-	err := utils.Paginate(c, initializers.DB.Debug().Where("slug = ? AND uniq_id = ?", blogID, uniqId).First(&blog).Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
+	err := utils.Paginate(c, initializers.DB.Where("slug = ? AND uniq_id = ?", blogID, uniqId).First(&blog).Preload("Catygory.Translations", "language = ?", language).Preload("City.Translations", "language = ?", language).Preload("Hashtags").Preload("Photos").Preload("User"), &blog)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
