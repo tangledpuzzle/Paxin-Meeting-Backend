@@ -11,6 +11,8 @@ import (
 
 	"github.com/jackc/pgtype"
 
+	"reflect"
+
 	gt "github.com/bas24/googletranslatefree"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -191,6 +193,12 @@ func GetProfile(c *fiber.Ctx) error {
 
 func GetProfileGuest(c *fiber.Ctx) error {
 
+	type UserWithExtras struct {
+		models.User
+		HighestIsUpBlog models.Blog `json:"highestIsUpBlog"`
+		TotalVotes      int         `json:"totalVotes"`
+	}
+
 	language := c.Query("language")
 	var access_token string
 	authorization := c.Get("Authorization")
@@ -211,7 +219,7 @@ func GetProfileGuest(c *fiber.Ctx) error {
 
 		name := c.Params("name")
 		var profile models.User
-		if err := initializers.DB.Preload("Followers").Preload("Followings").Preload("Followings.Followers").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City.Translations", "language = ?", language).Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
+		if err := initializers.DB.Preload("Followers").Preload("Followings").Preload("Followings.Followers").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City.Translations", "language = ?", language).Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Blogs.Votes").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 					"status":  "error",
@@ -224,9 +232,37 @@ func GetProfileGuest(c *fiber.Ctx) error {
 			})
 		}
 
+		var highestIsUpBlog models.Blog
+		maxIsUpVotes := 0
+
+		for _, blog := range profile.Blogs {
+			isUpVotes := 0
+
+			for _, vote := range blog.Votes {
+				if vote.IsUP {
+					isUpVotes++
+				}
+			}
+
+			if blog.Status == "ACTIVE" && isUpVotes > maxIsUpVotes {
+				maxIsUpVotes = isUpVotes
+				highestIsUpBlog = blog
+			}
+		}
+
+		if maxIsUpVotes == 0 && len(profile.Blogs) > 0 {
+			highestIsUpBlog = profile.Blogs[len(profile.Blogs)-1]
+		}
+
+		userWithExtras := UserWithExtras{
+			User:            removeDataFromProfile(profile),
+			HighestIsUpBlog: highestIsUpBlog,
+			TotalVotes:      maxIsUpVotes,
+		}
+
 		response := fiber.Map{
 			"status": "success",
-			"data":   profile,
+			"data":   userWithExtras,
 		}
 
 		// Convert UUID to string for comparison
@@ -253,7 +289,7 @@ func GetProfileGuest(c *fiber.Ctx) error {
 
 		name := c.Params("name")
 		var profile models.User
-		if err := initializers.DB.Preload("Followings").Preload("Followers").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City.Translations", "language = ?", language).Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
+		if err := initializers.DB.Preload("Followings").Preload("Followers").Preload("Profile.Guilds.Translations", "language = ?", language).Preload("Profile.Photos").Preload("Profile.Service").Preload("Profile.City.Translations", "language = ?", language).Preload("Profile.Hashtags").Preload("Blogs").Preload("Blogs.Photos").Preload("Blogs.Votes").Preload("Profile.Documents").First(&profile, "name = ?", name).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 					"status":  "error",
@@ -266,13 +302,55 @@ func GetProfileGuest(c *fiber.Ctx) error {
 			})
 		}
 
+		var highestIsUpBlog models.Blog
+		maxIsUpVotes := 0
+
+		for _, blog := range profile.Blogs {
+			isUpVotes := 0
+
+			for _, vote := range blog.Votes {
+				if vote.IsUP {
+					isUpVotes++
+				}
+			}
+
+			if blog.Status == "ACTIVE" && isUpVotes > maxIsUpVotes {
+				maxIsUpVotes = isUpVotes
+				highestIsUpBlog = blog
+			}
+		}
+
+		if maxIsUpVotes == 0 && len(profile.Blogs) > 0 {
+			highestIsUpBlog = profile.Blogs[len(profile.Blogs)-1]
+		}
+
+		userWithExtras := UserWithExtras{
+			User:            removeDataFromProfile(profile),
+			HighestIsUpBlog: highestIsUpBlog,
+			TotalVotes:      maxIsUpVotes,
+		}
+
 		return c.JSON(fiber.Map{
 			"status": "success",
-			"data":   profile,
+			"data":   userWithExtras,
 		})
 
 	}
 
+}
+
+func removeDataFromProfile(p models.User) models.User {
+	updatedProfile := models.User{}
+	valueType := reflect.TypeOf(p)
+
+	for i := 0; i < valueType.NumField(); i++ {
+		field := valueType.Field(i)
+		if field.Name != "Vote" && field.Name != "Blogs" {
+			value := reflect.ValueOf(p).Field(i)
+			reflect.ValueOf(&updatedProfile).Elem().FieldByName(field.Name).Set(value)
+		}
+	}
+	return updatedProfile
 }
 
 func UpdateProfileAdditional(c *fiber.Ctx) error {
