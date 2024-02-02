@@ -50,6 +50,7 @@ func main() {
 	initializers.DB.AutoMigrate(&models.ProfileService{})
 	initializers.DB.AutoMigrate(&models.Langs{})
 	initializers.DB.AutoMigrate(&models.DevicesIOS{})
+	initializers.DB.AutoMigrate(&models.Vote{})
 
 	// Check if there are any users in the database
 	var userCount int64

@@ -11,6 +11,7 @@ import (
 type Blog struct {
 	ID               uint64         `gorm:"primaryKey"`
 	Title            string         `gorm:"not null"`
+	Votes            []Vote         `gorm:"foreignKey:BlogID"` // Add this line
 	MultilangTitle   MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_title_"`
 	Descr            string         `gorm:"not null"`
 	MultilangDescr   MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_descr_"`
@@ -43,6 +44,7 @@ type Blog struct {
 type BlogResponse struct {
 	ID               uint64         `json:"id"`
 	Title            string         `json:"title"`
+	Votes            []Vote         `json:"votes"`
 	MultilangTitle   MultilangTitle `json:"multilangtitle"`
 	MultilangDescr   MultilangTitle `json:"multilangdescr"`
 	MultilangContent MultilangTitle `json:"multilangcontent"`
