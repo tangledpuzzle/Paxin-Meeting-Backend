@@ -250,6 +250,10 @@ func GetProfileGuest(c *fiber.Ctx) error {
 			}
 		}
 
+		if maxIsUpVotes == 0 && len(profile.Blogs) > 0 {
+			highestIsUpBlog = profile.Blogs[len(profile.Blogs)-1]
+		}
+
 		userWithExtras := UserWithExtras{
 			User:            removeDataFromProfile(profile),
 			HighestIsUpBlog: highestIsUpBlog,
@@ -314,6 +318,10 @@ func GetProfileGuest(c *fiber.Ctx) error {
 				maxIsUpVotes = isUpVotes
 				highestIsUpBlog = blog
 			}
+		}
+
+		if maxIsUpVotes == 0 && len(profile.Blogs) > 0 {
+			highestIsUpBlog = profile.Blogs[len(profile.Blogs)-1]
 		}
 
 		userWithExtras := UserWithExtras{
