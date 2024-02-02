@@ -55,9 +55,7 @@ func GetAllProfile(c *fiber.Ctx) error {
 		Preload("User.Blogs.Photos").
 		Preload("User").
 		Joins("JOIN users ON profiles.user_id = users.id").
-		Where("Users.filled = ?", true).
-		Where("Telegram_Activated = ?", true)
-
+		Where("Users.filled = ?", true)
 	// Get the query parameters
 	city := c.Query("city")
 	hashtags := c.Query("hashtag")
