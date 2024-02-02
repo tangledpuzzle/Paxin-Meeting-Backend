@@ -494,6 +494,7 @@ func ResetPassword(c *fiber.Ctx) error {
 		Password        string `json:"password"`
 		PasswordConfirm string `json:"password_confirm"`
 	}
+
 	reqBody := new(RequestBody)
 
 	if err := c.BodyParser(reqBody); err != nil {
@@ -502,8 +503,10 @@ func ResetPassword(c *fiber.Ctx) error {
 			"message": "Invalid request body",
 		})
 	}
+	reqBody.PasswordConfirm = reqBody.Password
+
 	// Check if passwords match
-	if reqBody.Password != reqBody.PasswordConfirm {
+	if strings.TrimSpace(reqBody.Password) != strings.TrimSpace(reqBody.PasswordConfirm) {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
 			"status":  "fail",
 			"message": "Passwords do not match",
