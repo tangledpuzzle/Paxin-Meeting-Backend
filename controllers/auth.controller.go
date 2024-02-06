@@ -143,21 +143,9 @@ func SignUpUser(c *fiber.Ctx) error {
 		Data:   []byte("[]"),      // Set the desired data
 	}
 
-	// Create and save the OnlineStorage object to the database
-	// profileId := models.Profile{
-	// 	UserID: newUser.ID,
-	// }
-
-	// Create and save the OnlineStorage object to the database
-	// Profile := models.Profile{
-	// 	UserID: newUser.ID,
-	// }
-
-	// initializers.DB.Create(&Profile)
 	initializers.DB.Create(&onlineStorage)
 	initializers.DB.Create(&transaction)
 	initializers.DB.Create(&billing)
-	// initializers.DB.Create(&profileId)
 
 	utils.SendEmail(&newUser, &emailData, "verificationCode", language)
 
@@ -216,6 +204,7 @@ func SignUpBot(c *fiber.Ctx) error {
 		Password:      string(hashedPassword),
 		Photo:         dirName + "/default.jpg",
 		IsBot:         true,
+		Verified:      true,
 	}
 
 	result := initializers.DB.Create(&newUser)
@@ -234,10 +223,8 @@ func SignUpBot(c *fiber.Ctx) error {
 		})
 	}
 
-	verification_code := hex.EncodeToString(code)
 	TokenCode := hex.EncodeToString(code)
 
-	newUser.VerificationCode = verification_code
 	newUser.TelegramToken = TokenCode
 	initializers.DB.Save(newUser)
 
@@ -245,25 +232,6 @@ func SignUpBot(c *fiber.Ctx) error {
 
 	if strings.Contains(firstName, " ") {
 		firstName = strings.Split(firstName, " ")[1]
-	}
-
-	// ? Send Email
-	emailData := utils.EmailData{
-		URL:       "https://" + config.ClientOrigin + "/auth/verify/" + verification_code,
-		FirstName: firstName,
-	}
-
-	switch language {
-	case "en":
-		emailData.Subject = "Paxintrade account activation"
-	case "ru":
-		emailData.Subject = "Paxintrade активация аккаунта"
-	case "es":
-		emailData.Subject = "Paxintrade activación de cuenta"
-	case "ke":
-		emailData.Subject = "Paxintrade ანგარიშის გააქტიურება"
-	default:
-		emailData.Subject = "Paxintrade account activation"
 	}
 
 	billing := models.Billing{
@@ -288,23 +256,14 @@ func SignUpBot(c *fiber.Ctx) error {
 		Data:   []byte("[]"),      // Set the desired data
 	}
 
-	// Create and save the OnlineStorage object to the database
-	// profileId := models.Profile{
-	// 	UserID: newUser.ID,
-	// }
+	Profile := models.Profile{
+		UserID: newUser.ID,
+	}
 
-	// Create and save the OnlineStorage object to the database
-	// Profile := models.Profile{
-	// 	UserID: newUser.ID,
-	// }
-
-	// initializers.DB.Create(&Profile)
 	initializers.DB.Create(&onlineStorage)
 	initializers.DB.Create(&transaction)
 	initializers.DB.Create(&billing)
-	// initializers.DB.Create(&profileId)
-
-	utils.SendEmail(&newUser, &emailData, "verificationCode", language)
+	initializers.DB.Create(&Profile)
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language)}})
 }
