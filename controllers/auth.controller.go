@@ -164,6 +164,151 @@ func SignUpUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language)}})
 }
 
+func SignUpBot(c *fiber.Ctx) error {
+	config, _ := initializers.LoadConfig(".")
+
+	var payload *models.SignUpInput
+	language := c.Query("language")
+
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+	}
+
+	errors := models.ValidateStruct(payload)
+	if errors != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "errors": errors})
+
+	}
+
+	if payload.Password != payload.PasswordConfirm {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Passwords do not match"})
+
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+	}
+
+	// Generate a unique directory name
+	dirName := utils.GenerateUniqueDirName()
+
+	// Create the directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Join(config.IMGStorePath, dirName), 0755); err != nil {
+		// handle error
+		_ = err
+	}
+
+	src := filepath.Join(config.IMGStorePath, "default.jpg")
+	dst := filepath.Join(config.IMGStorePath, dirName, "default.jpg")
+	if err := os.Symlink(src, dst); err != nil {
+		// Handle error
+		_ = err
+	}
+
+	newUser := models.User{
+		Name:          payload.Name,
+		DeviceIOS:     payload.DevicesIOS,
+		DeviceIOSVOIP: payload.DevicesIOSVOIP,
+		Email:         strings.ToLower(payload.Email),
+		Storage:       dirName,
+		Password:      string(hashedPassword),
+		Photo:         dirName + "/default.jpg",
+		IsBot:         true,
+	}
+
+	result := initializers.DB.Create(&newUser)
+
+	if result.Error != nil && strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"status": "fail", "message": "User with that email already exists"})
+	} else if result.Error != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
+	}
+
+	code := make([]byte, 20)
+
+	if _, err := rand.Read(code); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to generate password reset token",
+		})
+	}
+
+	verification_code := hex.EncodeToString(code)
+	TokenCode := hex.EncodeToString(code)
+
+	newUser.VerificationCode = verification_code
+	newUser.TelegramToken = TokenCode
+	initializers.DB.Save(newUser)
+
+	var firstName = newUser.Name
+
+	if strings.Contains(firstName, " ") {
+		firstName = strings.Split(firstName, " ")[1]
+	}
+
+	// ? Send Email
+	emailData := utils.EmailData{
+		URL:       "https://" + config.ClientOrigin + "/auth/verify/" + verification_code,
+		FirstName: firstName,
+	}
+
+	switch language {
+	case "en":
+		emailData.Subject = "Paxintrade account activation"
+	case "ru":
+		emailData.Subject = "Paxintrade активация аккаунта"
+	case "es":
+		emailData.Subject = "Paxintrade activación de cuenta"
+	case "ke":
+		emailData.Subject = "Paxintrade ანგარიშის გააქტიურება"
+	default:
+		emailData.Subject = "Paxintrade account activation"
+	}
+
+	billing := models.Billing{
+		UserID: newUser.ID,
+		Amount: 100,
+	}
+
+	transaction := models.Transaction{
+		UserID:      newUser.ID,
+		Total:       `0`,
+		Amount:      100,
+		Description: `Бонус за регистрацию`,
+		Module:      `Registration`,
+		Type:        `profit`,
+		Status:      `CLOSED_1`,
+	}
+
+	// Create and save the OnlineStorage object to the database
+	onlineStorage := models.OnlineStorage{
+		UserID: newUser.ID,
+		Year:   time.Now().Year(), // Set the current year
+		Data:   []byte("[]"),      // Set the desired data
+	}
+
+	// Create and save the OnlineStorage object to the database
+	// profileId := models.Profile{
+	// 	UserID: newUser.ID,
+	// }
+
+	// Create and save the OnlineStorage object to the database
+	// Profile := models.Profile{
+	// 	UserID: newUser.ID,
+	// }
+
+	// initializers.DB.Create(&Profile)
+	initializers.DB.Create(&onlineStorage)
+	initializers.DB.Create(&transaction)
+	initializers.DB.Create(&billing)
+	// initializers.DB.Create(&profileId)
+
+	utils.SendEmail(&newUser, &emailData, "verificationCode", language)
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language)}})
+}
+
 func VerifyEmail(c *fiber.Ctx) error {
 	code := c.Params("verificationCode")
 
@@ -188,7 +333,6 @@ func VerifyEmail(c *fiber.Ctx) error {
 	initializers.DB.Create(&Profile)
 
 	return c.JSON(fiber.Map{"status": "success", "message": "Email verified successfully"})
-
 }
 
 func SignInUser(c *fiber.Ctx) error {
