@@ -256,16 +256,16 @@ func SignUpBot(c *fiber.Ctx) error {
 		Data:   []byte("[]"),      // Set the desired data
 	}
 
-	Profile := models.Profile{
+	profile := models.Profile{
 		UserID: newUser.ID,
 	}
 
 	initializers.DB.Create(&onlineStorage)
 	initializers.DB.Create(&transaction)
 	initializers.DB.Create(&billing)
-	initializers.DB.Create(&Profile)
+	profileInstance := initializers.DB.Create(&profile)
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language)}})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language), "profile": &profileInstance}})
 }
 
 func VerifyEmail(c *fiber.Ctx) error {
@@ -285,11 +285,11 @@ func VerifyEmail(c *fiber.Ctx) error {
 	updatedUser.Verified = true
 	initializers.DB.Save(&updatedUser)
 
-	Profile := models.Profile{
+	profile := models.Profile{
 		UserID: updatedUser.ID,
 	}
 
-	initializers.DB.Create(&Profile)
+	initializers.DB.Create(&profile)
 
 	return c.JSON(fiber.Map{"status": "success", "message": "Email verified successfully"})
 }
