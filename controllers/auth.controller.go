@@ -263,9 +263,9 @@ func SignUpBot(c *fiber.Ctx) error {
 	initializers.DB.Create(&onlineStorage)
 	initializers.DB.Create(&transaction)
 	initializers.DB.Create(&billing)
-	profileInstance := initializers.DB.Create(&profile)
+	initializers.DB.Create(&profile)
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language), "profile": &profileInstance}})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser, language), "profile": profile}})
 }
 
 func VerifyEmail(c *fiber.Ctx) error {
