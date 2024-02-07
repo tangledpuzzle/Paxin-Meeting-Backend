@@ -26,7 +26,7 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/auth", func(router fiber.Router) {
 		router.Post("/register", controllers.SignUpUser)
-		router.Post("/registerBot", controllers.SignUpBot)
+		router.Post("/registerbot", controllers.SignUpBot)
 
 		router.Post("/login", controllers.SignInUser)
 		router.Post("/forgotpassword", controllers.ForgotPassword)
@@ -57,6 +57,7 @@ func Register(micro *fiber.App) {
 	micro.Route("/users", func(router fiber.Router) {
 		router.Get("/myTime", controllers.MyTime)
 		router.Post("/deletme", middleware.DeserializeUser, controllers.DeleteUserWithRelations)
+		router.Post("/deletbots", controllers.DeleteAllBotUsersWithRelations)
 		router.Post("/setvip", middleware.DeserializeUser, controllers.SetVipUser)
 
 		router.Post("/sendrequestcall", controllers.SendBotCallRequest)
