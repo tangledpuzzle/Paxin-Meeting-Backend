@@ -1372,6 +1372,15 @@ func DeleteBlog(c *fiber.Ctx) error {
 		})
 	}
 
+	// Delete all votes associated with the blog post using raw SQL query
+	query_votes := "DELETE FROM votes WHERE blog_id = ?"
+	if err := initializers.DB.Exec(query_votes, blogID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not delete element",
+		})
+	}
+
 	// Delete all blog guilds associated with the blog post using raw SQL query
 	query_guilds := "DELETE FROM blog_guilds WHERE blog_id = ?"
 	if err := initializers.DB.Exec(query_guilds, blogID).Error; err != nil {
