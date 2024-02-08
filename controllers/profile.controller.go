@@ -623,6 +623,217 @@ func UpdateProfile(c *fiber.Ctx) error {
 	})
 }
 
+func UpdateBotProfile(c *fiber.Ctx) error {
+	type RequestBody struct {
+		UserId     string `json:"userid"`
+		Firstname  string `json:"firstname"`
+		Descr      string `json:"descr"`
+		Tcid       int64  `json:"tcid"`
+		Additional string `json:"additional"`
+		City       []struct {
+			ID uint64 `json:"id"`
+		} `json:"city"`
+		Guilds []struct {
+			ID uint64 `json:"id"`
+		} `json:"guilds"`
+		Hashtags []struct {
+			ID uint64 `json:"id"`
+		} `json:"hashtags"`
+	}
+
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+
+	var profile models.Profile
+	if err := initializers.DB.Preload("Guilds").Preload("Hashtags").Preload("City").Preload("Photos").First(&profile, "user_id = ?", requestBody.UserId).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Profile not found",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve profile",
+		})
+	}
+
+	// Fetch languages from the database
+	var langs []models.Langs
+	err := initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
+	if err != nil {
+		return err
+	}
+
+	translations := make(map[string]string)
+
+	for _, lang := range langs {
+
+		result, _ := gt.Translate(requestBody.Descr, profile.Lang, lang.Code)
+		translations[lang.Code] = result
+
+	}
+
+	// Set the translated values in the TitleLangs field
+	profile.MultilangDescr.En = translations["en"]
+	profile.MultilangDescr.Ru = translations["ru"]
+	profile.MultilangDescr.Ka = translations["ka"]
+	profile.MultilangDescr.Es = translations["es"]
+
+	// Create a new slice to store the updated list of cities
+	updatedCities := []models.City{}
+
+	// Iterate over the requestBody.City and create City objects from the IDs
+	for _, cityID := range requestBody.City {
+		city := models.City{
+			ID: uint(cityID.ID),
+		}
+		updatedCities = append(updatedCities, city)
+	}
+
+	// Remove existing cities from profile.City that are not present in updatedCities
+	existingCities := profile.City
+
+	for i := len(existingCities) - 1; i >= 0; i-- {
+		found := false
+		for _, updatedCity := range updatedCities {
+			if existingCities[i].ID == updatedCity.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			profile.City = append(profile.City[:i], profile.City[i+1:]...)
+		}
+	}
+
+	// Create a new slice to store the updated list of guilds
+	updatedGuilds := []models.Guilds{}
+
+	// Iterate over the requestBody.Guilds and create Guild objects from the IDs
+	for _, guildID := range requestBody.Guilds {
+		guild := models.Guilds{
+			ID: uint(guildID.ID),
+		}
+		updatedGuilds = append(updatedGuilds, guild)
+	}
+
+	// Remove existing guilds from profile.Guilds that are not present in updatedGuilds
+	existingGuilds := profile.Guilds
+
+	for i := len(existingGuilds) - 1; i >= 0; i-- {
+		found := false
+		for _, updatedGuild := range updatedGuilds {
+			if existingGuilds[i].ID == updatedGuild.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			profile.Guilds = append(profile.Guilds[:i], profile.Guilds[i+1:]...)
+		}
+	}
+
+	// Create a new slice to store the updated list of hashtags
+	updatedHashtags := []models.Hashtagsprofile{}
+
+	// Iterate over the requestBody.Hashtags and create Hashtagsprofile objects from the IDs
+	for _, hashtagID := range requestBody.Hashtags {
+		hashtag := models.Hashtagsprofile{
+			ID: uint(hashtagID.ID),
+		}
+		updatedHashtags = append(updatedHashtags, hashtag)
+	}
+
+	// Remove existing hashtags from profile.Hashtags that are not present in updatedHashtags
+	existingHashtags := profile.Hashtags
+
+	for i := len(existingHashtags) - 1; i >= 0; i-- {
+		found := false
+		for _, updatedHashtag := range updatedHashtags {
+			if existingHashtags[i].ID == updatedHashtag.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			profile.Hashtags = append(profile.Hashtags[:i], profile.Hashtags[i+1:]...)
+		}
+	}
+
+	// Assign firsstname, lastname, and middlen values from the requestBody to profile object
+	profile.Firstname = requestBody.Firstname
+	// profile.Lastname = requestBody.Lastname
+	// profile.MiddleN = requestBody.MiddleN
+	profile.Descr = requestBody.Descr
+
+	// Save the updated profile to the database
+	if err := initializers.DB.Save(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update profile",
+		})
+	}
+
+	// Update the city associations in the database
+	if err := initializers.DB.Model(&profile).Association("City").Replace(updatedCities); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update city associations",
+		})
+	}
+
+	// Update the guild associations in the database
+	if err := initializers.DB.Model(&profile).Association("Guilds").Replace(updatedGuilds); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update guild associations",
+		})
+	}
+
+	// Update the hashtags associations in the database
+	if err := initializers.DB.Model(&profile).Association("Hashtags").Replace(updatedHashtags); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update hashtags associations",
+		})
+	}
+
+	var newUser models.User
+
+	// Find the corresponding user record based on requestBody.UserId
+	if err := initializers.DB.First(&newUser, "id = ?", requestBody.UserId).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to retrieve user record",
+		})
+	}
+
+	// Update the filled field of the user record to true
+	newUser.Filled = true
+
+	// Save the changes to the user record in the database
+	if err := initializers.DB.Save(&newUser).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update user record",
+		})
+	}
+
+	// The user record has been successfully updated with filled = true
+	fmt.Println("User record has been updated successfully")
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   profile,
+	})
+}
+
 func GetDocuments(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 	// Retrieve all documents for the specified user profile ID
