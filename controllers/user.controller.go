@@ -304,6 +304,11 @@ func AddBalance(c *fiber.Ctx) error {
 
 func GetMe(c *fiber.Ctx) error {
 	config, _ := initializers.LoadConfig(".")
+	language := c.Query("language")
+
+	if language == "" {
+		language = "en"
+	}
 
 	user := c.Locals("user").(models.UserResponse)
 
