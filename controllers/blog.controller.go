@@ -1372,7 +1372,7 @@ func DeleteBlog(c *fiber.Ctx) error {
 		})
 	}
 
-	// Delete all votes associated with the blog post using raw SQL query
+	// Delete all votes associated with the blog post using
 	query_votes := "DELETE FROM votes WHERE blog_id = ?"
 	if err := initializers.DB.Exec(query_votes, blogID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
