@@ -202,6 +202,9 @@ func Register(micro *fiber.App) {
 	micro.Route("/managebot", func(router fiber.Router) {
 		router.Post("/registerbot", controllers.SignUpBot)
 		router.Post("/deletbots", controllers.DeleteAllBotUsersWithRelations)
+		router.Post("/createcity", controllers.CreateCity)
+		router.Post("/createcitytranslation", controllers.CreateCityTranslation)
+		router.Delete("/removecity/:id", controllers.DeleteCity)
 	})
 
 	micro.All("*", func(c *fiber.Ctx) error {
