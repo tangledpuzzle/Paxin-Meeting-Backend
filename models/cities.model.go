@@ -6,6 +6,7 @@ import "time"
 // @swagger:model
 type City struct {
 	ID           uint              `gorm:"primary_key"`
+	CountryCode  string            `gorm:"not null"`
 	Hex          string            `gorm:"not null"`
 	UpdatedAt    time.Time         `gorm:"not null"`
 	DeletedAt    *time.Time        `gorm:"index"`
