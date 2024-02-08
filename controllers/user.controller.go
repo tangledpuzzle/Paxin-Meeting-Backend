@@ -414,6 +414,7 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		Preload("Billing").
 		Preload("Profile").
 		Preload("Blogs").
+		Preload("OnlineStorage").
 		First(&user, "id = ?", userId.ID).Error; err != nil {
 		// Handle the error (e.g., user not found)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
@@ -443,30 +444,29 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 			}
 		}
 	}
-
-	if err := tx.Exec("DELETE FROM profiles_guilds WHERE profile_id = ?", profileID).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_guilds"})
+	// Delete related entities using the profileID and user.ID before deleting the user
+	relatedEntities := []string{
+		"profiles_guilds",
+		"profiles_city",
+		"profiles_hashtags",
+		"profile_photos",
+		"billings",
+		"online_storages",
+		"transactions",
+		"blogs",
 	}
+	for _, table := range relatedEntities {
+		whereColumn := "profile_id"
+		id := profileID
+		if table == "billings" || table == "online_storages" || table == "transactions" || table == "blogs" {
+			whereColumn = "user_id"
+			id = user.ID.String()
+		}
 
-	if err := tx.Exec("DELETE FROM profiles_city WHERE profile_id = ?", profileID).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
-	}
-
-	if err := tx.Exec("DELETE FROM profiles_hashtags WHERE profile_id = ?", profileID).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
-	}
-
-	if err := tx.Exec("DELETE FROM billings WHERE user_id = ?", userId.ID).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
-	}
-
-	if err := tx.Exec("DELETE FROM profile_photos WHERE profile_id = ?", profileID).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related profiles_city"})
+		if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
+			tx.Rollback()
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related entities from " + table})
+		}
 	}
 
 	// Delete the associated profiles records
@@ -483,35 +483,97 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
 	}
 
-	// // Manually delete dependent records from the "billings" table
-	// if err := tx.Where("user_id = ?", userId.ID).Delete(&models.Billing{}).Error; err != nil {
-	// 	tx.Rollback()
-	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related billings"})
-	// }
-
-	// Manually delete dependent records from the "billings" table
-	if err := tx.Where("user_id = ?", userId.ID).Delete(&models.Transaction{}).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related transactions"})
-	}
-
-	// Manually delete dependent records from the "billings" table
-	if err := tx.Where("user_id = ?", userId.ID).Delete(&models.Blog{}).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related billings"})
-	}
-
-	// Delete the user
-	if err := tx.Delete(&user).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
-	}
-
 	// Commit the transaction
 	tx.Commit()
 
 	// Return a success response
 	return c.JSON(fiber.Map{"message": "User and related profiles deleted successfully"})
+}
+
+// Function to delete all user accounts where IsBot is true, along with their related records
+func DeleteAllBotUsersWithRelations(c *fiber.Ctx) error {
+	// Find all bot users
+	var botUsers []models.User
+	if err := initializers.DB.Where("is_bot = ?", true).Find(&botUsers).Error; err != nil {
+		// Handle the error (e.g., failed to fetch bot users)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch bot users"})
+	}
+
+	// Begin a database transaction
+	tx := initializers.DB.Begin()
+
+	// Loop through each bot user and delete
+	for _, user := range botUsers {
+		var profileID string
+		if err := tx.Model(&models.Profile{}).Where("user_id = ?", user.ID).Select("id").Scan(&profileID).Error; err != nil {
+			tx.Rollback()
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to find profile"})
+		}
+
+		// Fetch the paths for profile_photos to be deleted
+		var files []string
+		if err := tx.Table("profile_photos").Where("profile_id = ?", profileID).Pluck("path", &files).Error; err != nil {
+			tx.Rollback()
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch profile photos"})
+		}
+
+		// Delete the directories on the server for profile_photos
+		for _, path := range files {
+			directoryName := extractDirectoryName(path)
+			if directoryName != "" {
+				if err := deleteDirectory(directoryName); err != nil {
+					tx.Rollback()
+					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete directory"})
+				}
+			}
+		}
+
+		// Delete related entities using the profileID and user.ID before deleting the user
+		relatedEntities := []string{
+			"profiles_guilds",
+			"profiles_city",
+			"profiles_hashtags",
+			"profile_photos",
+			"billings",
+			"online_storages",
+			"transactions",
+			"blogs",
+		}
+		for _, table := range relatedEntities {
+			whereColumn := "profile_id"
+			id := profileID
+			if table == "billings" || table == "online_storages" || table == "transactions" || table == "blogs" {
+				whereColumn = "user_id"
+				id = user.ID.String()
+			}
+
+			if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
+				tx.Rollback()
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related entities from " + table})
+			}
+		}
+
+		// Delete the associated profiles records
+		if err := tx.Delete(&user.Profile).Error; err != nil {
+			// Rollback the transaction if an error occurs
+			tx.Rollback()
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user's profiles"})
+		}
+
+		// Delete the user itself
+		if err := tx.Delete(&user).Error; err != nil {
+			tx.Rollback()
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to commit deletion of bot users"})
+	}
+
+	// Return a success response
+	return c.JSON(fiber.Map{"message": "All bot users deleted successfully"})
 }
 
 func GetMeFirst(c *fiber.Ctx) error {

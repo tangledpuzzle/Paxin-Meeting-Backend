@@ -13,7 +13,6 @@ import (
 )
 
 func Register(micro *fiber.App) {
-
 	micro.Route("/settings", func(router fiber.Router) {
 		router.Get("/langs", controllers.Langs)
 		router.Post("/addlang", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.AddLang)
@@ -26,7 +25,6 @@ func Register(micro *fiber.App) {
 	})
 
 	micro.Route("/auth", func(router fiber.Router) {
-
 		router.Post("/register", controllers.SignUpUser)
 
 		router.Post("/login", controllers.SignInUser)
@@ -38,14 +36,12 @@ func Register(micro *fiber.App) {
 		router.Get("/logout", controllers.LogoutUser)
 		router.Get("/refresh/:refreshToken", controllers.RefreshAccessToken)
 		router.Post("/checkTokenExp", controllers.CheckTokenExp)
-
 	})
 
 	micro.Route("/followers", func(router fiber.Router) {
 		router.Post("/scribe", middleware.DeserializeUser, controllers.Scribe)
 		router.Post("/unscribe", middleware.DeserializeUser, controllers.Unscribe)
 		router.Get("/get", middleware.DeserializeUser, controllers.GetFollowers)
-
 	})
 
 	micro.Route("/domains", func(router fiber.Router) {
@@ -55,7 +51,6 @@ func Register(micro *fiber.App) {
 	micro.Route("/site", func(router fiber.Router) {
 		router.Post("/update", middleware.DeserializeUser, controllers.UpdateSite)
 		router.Get("/get", middleware.DeserializeUser, controllers.GetSite)
-
 	})
 
 	micro.Route("/users", func(router fiber.Router) {
@@ -187,7 +182,6 @@ func Register(micro *fiber.App) {
 	})
 
 	micro.Route("/server", func(router fiber.Router) {
-
 		ctx := context.TODO()
 		value, err := initializers.RedisClient.Get(ctx, "statusHealth").Result()
 
@@ -203,7 +197,14 @@ func Register(micro *fiber.App) {
 		} else if err != nil {
 			panic(err)
 		}
+	})
 
+	micro.Route("/managebot", func(router fiber.Router) {
+		router.Post("/registerbot", controllers.SignUpBot)
+		router.Post("/deletbots", controllers.DeleteAllBotUsersWithRelations)
+		router.Post("/createcity", controllers.CreateCity)
+		router.Post("/createcitytranslation", controllers.CreateCityTranslation)
+		router.Delete("/removecity/:id", controllers.DeleteCity)
 	})
 
 	micro.All("*", func(c *fiber.Ctx) error {

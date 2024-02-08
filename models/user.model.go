@@ -97,6 +97,7 @@ type User struct {
 	Domains          []Domain         `json:"domains"`
 	Followings       []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id"`
 	Followers        []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id"`
+	IsBot            bool             `gorm:"default:false"`
 }
 
 type Role string
