@@ -457,10 +457,10 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 	}
 	for _, table := range relatedEntities {
 		whereColumn := "user_id"
-		id := profileID
+		id := user.ID.String()
 		if table == "profiles_guilds" || table == "profiles_city" || table == "profiles_hashtags" || table == "profile_photos" {
 			whereColumn = "profile_id"
-			id = user.ID.String()
+			id = profileID
 		}
 
 		if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
@@ -550,10 +550,10 @@ func DeleteAllBotUsersWithRelations(c *fiber.Ctx) error {
 		}
 		for _, table := range relatedEntities {
 			whereColumn := "user_id"
-			id := profileID
+			id := user.ID.String()
 			if table == "profiles_guilds" || table == "profiles_city" || table == "profiles_hashtags" || table == "profile_photos" {
 				whereColumn = "profile_id"
-				id = user.ID.String()
+				id = profileID
 			}
 
 			if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
