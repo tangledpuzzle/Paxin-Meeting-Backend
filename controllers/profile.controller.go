@@ -412,6 +412,66 @@ func UpdateProfileAdditional(c *fiber.Ctx) error {
 	})
 }
 
+func UpdateBotProfileAdditional(c *fiber.Ctx) error {
+	type RequestBody struct {
+		UserId     string `json:"userid"`
+		Additional string `json:"additional"`
+	}
+
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+
+	profile := models.Profile{}
+	err := initializers.DB.Where("user_id = ?", requestBody.UserId).First(&profile).Error
+	if err != nil {
+		_ = err
+		// Handle the error appropriately (e.g., return an error response)
+	}
+
+	// Fetch languages from the database
+	var langs []models.Langs
+	err = initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
+	if err != nil {
+		return err
+	}
+
+	translations := make(map[string]string)
+
+	for _, lang := range langs {
+
+		result, _ := gt.Translate(requestBody.Additional, profile.Lang, lang.Code)
+		translations[lang.Code] = result
+
+	}
+
+	// Set the translated values in the TitleLangs field
+	profile.MultilangAdditional.En = translations["en"]
+	profile.MultilangAdditional.Ru = translations["ru"]
+	profile.MultilangAdditional.Ka = translations["ka"]
+	profile.MultilangAdditional.Es = translations["es"]
+
+	// Update the "Additional" field in the profile
+	profile.Additional = requestBody.Additional
+
+	// Save the updated profile back to the database
+	err = initializers.DB.Save(&profile).Error
+	if err != nil {
+		_ = err
+		// Handle the error appropriately (e.g., return an error response)
+	}
+
+	// Return a success response
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Profile updated successfully",
+	})
+}
+
 func UpdateProfile(c *fiber.Ctx) error {
 	type RequestBody struct {
 		Firstname  string `json:"firstname"`
