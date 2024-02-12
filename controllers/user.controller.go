@@ -454,6 +454,10 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		"transactions",
 		"blogs",
 		"user_relation",
+		"votes",
+		"codes",
+		"domains",
+		"payments",
 	}
 	for _, table := range relatedEntities {
 		whereColumn := "user_id"
@@ -547,6 +551,10 @@ func DeleteAllBotUsersWithRelations(c *fiber.Ctx) error {
 			"transactions",
 			"blogs",
 			"user_relation",
+			"votes",
+			"codes",
+			"domains",
+			"payments",
 		}
 		for _, table := range relatedEntities {
 			whereColumn := "user_id"
