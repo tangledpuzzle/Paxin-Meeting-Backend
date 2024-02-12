@@ -409,7 +409,6 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		Preload("Billing").
 		Preload("Profile").
 		Preload("Blogs").
-		Preload("OnlineStorage").
 		First(&user, "id = ?", userId.ID).Error; err != nil {
 		// Handle the error (e.g., user not found)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
@@ -446,7 +445,7 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		"profiles_hashtags",
 		"profile_photos",
 		"billings",
-		"online_storages",
+		// "online_storages",
 		"transactions",
 		"blogs",
 	}
@@ -530,7 +529,7 @@ func DeleteAllBotUsersWithRelations(c *fiber.Ctx) error {
 			"profiles_hashtags",
 			"profile_photos",
 			"billings",
-			"online_storages",
+			// "online_storages",
 			"transactions",
 			"blogs",
 		}
