@@ -404,7 +404,6 @@ func deleteDirectory(directoryName string) error {
 }
 
 // Define the route for deleting a user and its relations
-// Define the route for deleting a user and its relations
 func DeleteUserWithRelations(c *fiber.Ctx) error {
 	userId := c.Locals("user").(models.UserResponse)
 
