@@ -1209,7 +1209,7 @@ func UpdateProfilePhotos(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"status": "success",
-		"data":   "hashtag",
+		"data":   "photo gallery",
 	})
 }
 
