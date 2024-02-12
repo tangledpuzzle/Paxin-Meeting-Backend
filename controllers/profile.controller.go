@@ -46,7 +46,6 @@ func GetAllProfile(c *fiber.Ctx) error {
 
 	var profiles []models.Profile
 	query := initializers.DB.
-		Order("created_at DESC").
 		Preload("Guilds.Translations", "language = ?", language).
 		Preload("Hashtags").
 		Preload("City.Translations", "language = ?", language).
@@ -55,6 +54,7 @@ func GetAllProfile(c *fiber.Ctx) error {
 		Preload("User.Blogs.Photos").
 		Preload("User").
 		Joins("JOIN users ON profiles.user_id = users.id").
+		Order("Users.name ASC").
 		Where("Users.filled = ?", true)
 	// Get the query parameters
 	city := c.Query("city")
