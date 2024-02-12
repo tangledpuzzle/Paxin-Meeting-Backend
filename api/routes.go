@@ -203,6 +203,7 @@ func Register(micro *fiber.App) {
 		router.Post("/registerbot", controllers.SignUpBot)
 		router.Post("/deletebots", controllers.DeleteAllBotUsersWithRelations)
 		router.Patch("/updateprofile", controllers.UpdateBotProfile)
+		router.Patch("/updateadditionalinfo", controllers.UpdateBotProfileAdditional)
 	})
 
 	micro.All("*", func(c *fiber.Ctx) error {
