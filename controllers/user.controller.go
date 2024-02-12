@@ -450,21 +450,30 @@ func DeleteUserWithRelations(c *fiber.Ctx) error {
 		"profiles_hashtags",
 		"profile_photos",
 		"billings",
-		// "online_storages",
+		"online_storages",
 		"transactions",
 		"blogs",
+		"user_relation",
 	}
 	for _, table := range relatedEntities {
-		whereColumn := "profile_id"
+		whereColumn := "user_id"
 		id := profileID
-		if table == "billings" || table == "online_storages" || table == "transactions" || table == "blogs" {
-			whereColumn = "user_id"
+		if table == "profiles_guilds" || table == "profiles_city" || table == "profiles_hashtags" || table == "profile_photos" {
+			whereColumn = "profile_id"
 			id = user.ID.String()
 		}
 
 		if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
 			tx.Rollback()
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related entities from " + table})
+		}
+
+		if table == "user_relation" {
+			whereColumn = "following_id"
+			if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
+				tx.Rollback()
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related entities from " + table})
+			}
 		}
 	}
 
@@ -534,21 +543,30 @@ func DeleteAllBotUsersWithRelations(c *fiber.Ctx) error {
 			"profiles_hashtags",
 			"profile_photos",
 			"billings",
-			// "online_storages",
+			"online_storages",
 			"transactions",
 			"blogs",
+			"user_relation",
 		}
 		for _, table := range relatedEntities {
-			whereColumn := "profile_id"
+			whereColumn := "user_id"
 			id := profileID
-			if table == "billings" || table == "online_storages" || table == "transactions" || table == "blogs" {
-				whereColumn = "user_id"
+			if table == "profiles_guilds" || table == "profiles_city" || table == "profiles_hashtags" || table == "profile_photos" {
+				whereColumn = "profile_id"
 				id = user.ID.String()
 			}
 
 			if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
 				tx.Rollback()
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related entities from " + table})
+			}
+
+			if table == "user_relation" {
+				whereColumn = "following_id"
+				if err := tx.Exec("DELETE FROM "+table+" WHERE "+whereColumn+" = ?", id).Error; err != nil {
+					tx.Rollback()
+					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete related entities from " + table})
+				}
 			}
 		}
 
