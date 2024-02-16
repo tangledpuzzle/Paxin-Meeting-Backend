@@ -303,8 +303,16 @@ func CreateBlog(c *fiber.Ctx) error {
 		// Retrieve the Hashtags record from the database based on tag.Hashtag
 		hashtag := models.Hashtags{}
 		if err := initializers.DB.Where("hashtag = ?", tag.Hashtag).First(&hashtag).Error; err != nil {
-			// Handle the error if the hashtag is not found
-			_ = err
+			if err == gorm.ErrRecordNotFound {
+				hashtag.Hashtag = tag.Hashtag
+				if createErr := initializers.DB.Create(&hashtag).Error; createErr != nil {
+					_ = err
+					continue
+				}
+			} else {
+				_ = err
+				continue
+			}
 		}
 		hashtags = append(hashtags, hashtag)
 	}
