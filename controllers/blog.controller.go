@@ -1154,33 +1154,35 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 			photoConfig.Caption += hashtagsText
 		}
 
-		// Send the photo
-		sentMessage, err := bot.Send(photoConfig)
-		if err != nil {
-			// Check if the error is due to a not found or kicked chat
-			if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
-				fmt.Println("Chat not found or bot was kicked, skipping send message.")
-			} else {
-				// Handle other errors
-				log.Panic(err)
+		if user.TelegramActivated == true {
+			// Send the photo
+			sentMessage, err := bot.Send(photoConfig)
+			if err != nil {
+				// Check if the error is due to a not found or kicked chat
+				if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
+					fmt.Println("Chat not found or bot was kicked, skipping send message.")
+				} else {
+					// Handle other errors
+					log.Panic(err)
+				}
 			}
+
+			// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
+			// sentMessage, err := bot.Send(msg)
+			// if err != nil {
+			// 	// Check if the error is due to a not found or kicked chat
+			// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
+			// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
+			// 	} else {
+			// 		// Handle other errors
+			// 		log.Panic(err)
+			// 	}
+			// }
+			// Prepare the private message
+
+			messageID := sentMessage.MessageID
+			blog.TmId = float64(messageID)
 		}
-
-		// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
-		// sentMessage, err := bot.Send(msg)
-		// if err != nil {
-		// 	// Check if the error is due to a not found or kicked chat
-		// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
-		// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
-		// 	} else {
-		// 		// Handle other errors
-		// 		log.Panic(err)
-		// 	}
-		// }
-		// Prepare the private message
-
-		messageID := sentMessage.MessageID
-		blog.TmId = float64(messageID)
 
 		// blog.UserAvatar = user.Photo
 
@@ -1658,6 +1660,13 @@ func GetAll(c *fiber.Ctx) error {
 			categories[i] = categoryJSON
 		}
 
+		var telegramNameVal string
+		if b.User.TelegramName != nil {
+			telegramNameVal = *b.User.TelegramName
+		} else {
+			telegramNameVal = ""
+		}
+
 		blogRes := &blogResponse{
 			ID:             b.ID,
 			Title:          b.Title,
@@ -1689,7 +1698,7 @@ func GetAll(c *fiber.Ctx) error {
 				OnlineHours:       userOnlineHours,
 				TotalOnlineHours:  userTotalOnlineHours,
 				TotalRestBlogs:    b.User.TotalRestBlogs,
-				TelegramName:      *b.User.TelegramName,
+				TelegramName:      telegramNameVal,
 				TelegramActivated: b.User.TelegramActivated,
 			},
 			Hashtags: hashtags,

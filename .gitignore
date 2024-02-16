@@ -3,6 +3,7 @@
 
 # config
 app.env
+app.env.*
 docker-compose.yml
 
 # db data
