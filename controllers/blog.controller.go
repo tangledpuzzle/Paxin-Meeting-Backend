@@ -29,6 +29,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// test
 type TimeEntry struct {
 	Hour    int `json:"hour"`
 	Minutes int `json:"minutes"`
@@ -423,177 +424,218 @@ func CreateBlog(c *fiber.Ctx) error {
 		})
 	}
 
-	queueName := "blog_activity"                      // Replace with your desired queue name
-	conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
+	if user.TelegramActivated {
+		queueName := "blog_activity"                      // Replace with your desired queue name
+		conn, ch := initializers.ConnectRabbitMQ(&config) // Create a new connection and channel for each request
 
-	_, err = ch.QueueDeclare(
-		queueName,
-		false, // durable
-		false, // autoDelete
-		false, // exclusive
-		false, // noWait
-		nil,   // args
-	)
-	if err != nil {
-		log.Printf("Failed to declare a queue: %s", err)
-		// Handle the error if needed
+		_, err = ch.QueueDeclare(
+			queueName,
+			false, // durable
+			false, // autoDelete
+			false, // exclusive
+			false, // noWait
+			nil,   // args
+		)
+		if err != nil {
+			log.Printf("Failed to declare a queue: %s", err)
+			// Handle the error if needed
+		}
+
+		// Publish a message to the declared queue
+		message := "Blog received!" // Replace with your desired message
+		err = utils.PublishMessage(ch, queueName, message)
+		if err != nil {
+			log.Printf("Failed to publish message: %s", err)
+			// Handle the error if needed
+		}
+
+		// Consume messages from the declared queue
+		err = utils.ConsumeMessages(ch, conn, queueName)
+		if err != nil {
+			log.Printf("Failed to consume messages: %s", err)
+			// Handle the error if needed
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		// Start consuming messages in a separate goroutine
+		go func() {
+			defer wg.Done()
+
+			Data := blog
+
+			type forBot struct {
+				Name     string  `json:"title"`
+				Url      string  `json:"url"`
+				Cat      string  `json:"cat"`
+				Username string  `json:"name"`
+				City     string  `json:"city"`
+				Total    float64 `json:"total"`
+			}
+
+			forbot := forBot{
+				// City:     blog.City,
+				// Cat:      Data.Catygory,
+				Name:     Data.Title,
+				Total:    Data.Total,
+				Url:      "https://paxintrade.com/" + Data.UniqId + "/" + Data.Slug,
+				Username: user.Name,
+			}
+
+			utils.UserActivity("newblog", forbot.Username)
+
+			// var msgText string
+			// if blog.Total == 0 {
+			// 	msgText = fmt.Sprintf("Новый пост:\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Url, forbot.Username)
+			// } else {
+			// 	msgText = fmt.Sprintf("Новый пост:\nГород: %s \nРубрика: %s \nЗаголовок: %s \nЦена: %.2f ₽ \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Total, forbot.Url, forbot.Username)
+			// }
+
+			// // Create a new message for the user's private chat
+			// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
+
+			// // Send the private message
+			// _, err = bot.Send(privateMsg)
+			// if err != nil {
+			// 	log.Println("Error sending private message:", err)
+			// }
+
+			// if userResp.Tcid == 0 {
+
+			// 	// Set up an image file to send
+			// 	absolutePath := filepath.Join(config.IMGStorePath, "default.jpg")
+			// 	imageFile, err := os.Open(absolutePath)
+			// 	if err != nil {
+			// 		log.Fatal(err)
+			// 	}
+			// 	defer imageFile.Close()
+
+			// 	// Read the image file into a byte slice
+			// 	imageInfo, _ := imageFile.Stat()
+			// 	imageBytes := make([]byte, imageInfo.Size())
+			// 	_, err = imageFile.Read(imageBytes)
+			// 	if err != nil {
+			// 		log.Fatal(err)
+			// 	}
+
+			// 	// Replace with the chat ID you want to send the image to
+			// 	// chatID := int64(-userResp.Tcid)
+
+			// 	// Create a photo message configuration
+			// 	// Create a photo message configuration
+			// 	photoConfig := tgbotapi.NewPhoto(user.Tid, tgbotapi.FileBytes{
+			// 		Name:  "image.jpg",
+			// 		Bytes: imageBytes,
+			// 	})
+
+			// 	photoConfig.Caption = fmt.Sprintf("Новый пост:\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Url, forbot.Username)
+
+			// 	// Send the photo
+			// 	_, err = bot.Send(photoConfig)
+			// 	if err != nil {
+			// 		log.Fatal(err)
+			// 	}
+
+			// 	privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
+			// 	_, err = bot.Send(privateMsg)
+			// 	if err != nil {
+			// 		log.Println("Error sending private message:", err)
+			// 	}
+			// }
+
+			// Call the controller to process the message
+			// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
+			// sentMessage, err := bot.Send(msg)
+			// if err != nil {
+			// 	// Check if the error is due to a not found or kicked chat
+			// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
+			// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
+			// 	} else {
+			// 		// Handle other errors
+			// 		log.Panic(err)
+			// 	}
+			// }
+			// Prepare the private message
+			blog.UserID = uid
+			blog.ExpiredAt = new(time.Time)
+			blog.UniqId = uniqueID
+
+			if blog.Days == 10 {
+				expDate := time.Now().AddDate(10, 0, 0) // Add 10 years
+				blog.ExpiredAt = &expDate
+			} else {
+				expDate := time.Now().AddDate(0, 0, blog.Days)
+				blog.ExpiredAt = &expDate
+			}
+
+			blog.UserAvatar = user.Photo
+
+			user.TotalBlogs += 1
+
+			if blog.Total == 0 {
+				blog.NotAds = true
+			} else {
+				blog.NotAds = false
+			}
+
+			if err := initializers.DB.Save(&user).Error; err != nil {
+				log.Println("Could not update user's total blogs count:", err)
+			}
+
+			// Create blog record in database
+			if err := initializers.DB.Create(&blog).Error; err != nil {
+				log.Println("Could not create blog:", err)
+			}
+		}()
+
+		// Wait for the goroutine to complete
+		wg.Wait()
+
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"data":   blog,
+		})
 	}
 
-	// Publish a message to the declared queue
-	message := "Blog received!" // Replace with your desired message
-	err = utils.PublishMessage(ch, queueName, message)
-	if err != nil {
-		log.Printf("Failed to publish message: %s", err)
-		// Handle the error if needed
+	blog.UserID = uid
+	blog.ExpiredAt = new(time.Time)
+	blog.UniqId = uniqueID
+
+	if blog.Days == 10 {
+		expDate := time.Now().AddDate(10, 0, 0) // Add 10 years
+		blog.ExpiredAt = &expDate
+	} else {
+		expDate := time.Now().AddDate(0, 0, blog.Days)
+		blog.ExpiredAt = &expDate
 	}
 
-	// Consume messages from the declared queue
-	err = utils.ConsumeMessages(ch, conn, queueName)
-	if err != nil {
-		log.Printf("Failed to consume messages: %s", err)
-		// Handle the error if needed
+	blog.UserAvatar = user.Photo
+
+	user.TotalBlogs += 1
+
+	if blog.Total == 0 {
+		blog.NotAds = true
+	} else {
+		blog.NotAds = false
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	if err := initializers.DB.Save(&user).Error; err != nil {
+		log.Println("Could not update user's total blogs count:", err)
+	}
 
-	// Start consuming messages in a separate goroutine
-	go func() {
-		defer wg.Done()
+	// Create blog record in database
+	if err := initializers.DB.Create(&blog).Error; err != nil {
+		log.Println("Could not create blog:", err)
+	}
 
-		Data := blog
-
-		type forBot struct {
-			Name     string  `json:"title"`
-			Url      string  `json:"url"`
-			Cat      string  `json:"cat"`
-			Username string  `json:"name"`
-			City     string  `json:"city"`
-			Total    float64 `json:"total"`
-		}
-
-		forbot := forBot{
-			// City:     blog.City,
-			// Cat:      Data.Catygory,
-			Name:     Data.Title,
-			Total:    Data.Total,
-			Url:      "https://paxintrade.com/" + Data.UniqId + "/" + Data.Slug,
-			Username: user.Name,
-		}
-
-		utils.UserActivity("newblog", forbot.Username)
-
-		// var msgText string
-		// if blog.Total == 0 {
-		// 	msgText = fmt.Sprintf("Новый пост:\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Url, forbot.Username)
-		// } else {
-		// 	msgText = fmt.Sprintf("Новый пост:\nГород: %s \nРубрика: %s \nЗаголовок: %s \nЦена: %.2f ₽ \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Total, forbot.Url, forbot.Username)
-		// }
-
-		// // Create a new message for the user's private chat
-		// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
-
-		// // Send the private message
-		// _, err = bot.Send(privateMsg)
-		// if err != nil {
-		// 	log.Println("Error sending private message:", err)
-		// }
-
-		// if userResp.Tcid == 0 {
-
-		// 	// Set up an image file to send
-		// 	absolutePath := filepath.Join(config.IMGStorePath, "default.jpg")
-		// 	imageFile, err := os.Open(absolutePath)
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-		// 	defer imageFile.Close()
-
-		// 	// Read the image file into a byte slice
-		// 	imageInfo, _ := imageFile.Stat()
-		// 	imageBytes := make([]byte, imageInfo.Size())
-		// 	_, err = imageFile.Read(imageBytes)
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-
-		// 	// Replace with the chat ID you want to send the image to
-		// 	// chatID := int64(-userResp.Tcid)
-
-		// 	// Create a photo message configuration
-		// 	// Create a photo message configuration
-		// 	photoConfig := tgbotapi.NewPhoto(user.Tid, tgbotapi.FileBytes{
-		// 		Name:  "image.jpg",
-		// 		Bytes: imageBytes,
-		// 	})
-
-		// 	photoConfig.Caption = fmt.Sprintf("Новый пост:\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Url, forbot.Username)
-
-		// 	// Send the photo
-		// 	_, err = bot.Send(photoConfig)
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-
-		// 	privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
-		// 	_, err = bot.Send(privateMsg)
-		// 	if err != nil {
-		// 		log.Println("Error sending private message:", err)
-		// 	}
-		// }
-
-		// Call the controller to process the message
-		// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
-		// sentMessage, err := bot.Send(msg)
-		// if err != nil {
-		// 	// Check if the error is due to a not found or kicked chat
-		// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
-		// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
-		// 	} else {
-		// 		// Handle other errors
-		// 		log.Panic(err)
-		// 	}
-		// }
-		// Prepare the private message
-		blog.UserID = uid
-		blog.ExpiredAt = new(time.Time)
-		blog.UniqId = uniqueID
-
-		if blog.Days == 10 {
-			expDate := time.Now().AddDate(10, 0, 0) // Add 10 years
-			blog.ExpiredAt = &expDate
-		} else {
-			expDate := time.Now().AddDate(0, 0, blog.Days)
-			blog.ExpiredAt = &expDate
-		}
-
-		blog.UserAvatar = user.Photo
-
-		user.TotalBlogs += 1
-
-		if blog.Total == 0 {
-			blog.NotAds = true
-		} else {
-			blog.NotAds = false
-		}
-
-		if err := initializers.DB.Save(&user).Error; err != nil {
-			log.Println("Could not update user's total blogs count:", err)
-		}
-
-		// Create blog record in database
-		if err := initializers.DB.Create(&blog).Error; err != nil {
-			log.Println("Could not create blog:", err)
-		}
-	}()
-
-	// Wait for the goroutine to complete
-	wg.Wait()
+	fmt.Println("END2")
 
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   blog,
 	})
+
 }
 
 func formatPriceWithDots(price int) string {
@@ -1017,69 +1059,119 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 
-	// Start consuming messages in a separate goroutine
-	go func() {
+	if user.TelegramActivated {
+		wg.Add(1)
 
-		defer wg.Done()
+		// Start consuming messages in a separate goroutine
+		go func() {
 
-		type forBot struct {
-			Name     string   `json:"title"`
-			Url      string   `json:"url"`
-			Cat      string   `json:"cat"`
-			Username string   `json:"name"`
-			City     string   `json:"city"`
-			Total    float64  `json:"total"`
-			Hashtags []string `json:"hashtags"`
-		}
+			defer wg.Done()
 
-		forbot := forBot{
-			// City:     blog.City,
-			// Cat:      blog.Catygory,
-			Name:     blog.Title,
-			Total:    blog.Total,
-			Hashtags: hashtags,
-			Url:      "https://" + user.Name + ".paxintrade.com/" + blog.UniqId + "/" + blog.Slug,
-			// Username: user.Name,
-		}
+			type forBot struct {
+				Name     string   `json:"title"`
+				Url      string   `json:"url"`
+				Cat      string   `json:"cat"`
+				Username string   `json:"name"`
+				City     string   `json:"city"`
+				Total    float64  `json:"total"`
+				Hashtags []string `json:"hashtags"`
+			}
 
-		utils.UserActivity("newblog", forbot.Username)
+			forbot := forBot{
+				// City:     blog.City,
+				// Cat:      blog.Catygory,
+				Name:     blog.Title,
+				Total:    blog.Total,
+				Hashtags: hashtags,
+				Url:      "https://" + user.Name + ".paxintrade.com/" + blog.UniqId + "/" + blog.Slug,
+				// Username: user.Name,
+			}
 
-		var msgText string
-		if blog.Total == 0 {
-			msgText = fmt.Sprintf("\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Url, forbot.Username)
-		} else {
-			msgText = fmt.Sprintf("\nГород: %s \nРубрика: %s \nЗаголовок: %s \nЦена: %.2f ₽ \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Total, forbot.Url, forbot.Username)
-		}
+			utils.UserActivity("newblog", forbot.Username)
 
-		if len(forbot.Hashtags) > 0 {
-			hashtagsText := "\nХештеги: " + strings.Join(forbot.Hashtags, ", ")
-			msgText += hashtagsText
-		}
+			var msgText string
+			if blog.Total == 0 {
+				msgText = fmt.Sprintf("\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Url, forbot.Username)
+			} else {
+				msgText = fmt.Sprintf("\nГород: %s \nРубрика: %s \nЗаголовок: %s \nЦена: %.2f ₽ \nURL: %s\nАвтор: @%s", forbot.City, forbot.Cat, forbot.Name, forbot.Total, forbot.Url, forbot.Username)
+			}
 
-		// // Create a new message for the user's private chat
-		// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
+			if len(forbot.Hashtags) > 0 {
+				hashtagsText := "\nХештеги: " + strings.Join(forbot.Hashtags, ", ")
+				msgText += hashtagsText
+			}
 
-		// // Send the private message
-		// _, err = bot.Send(privateMsg)
-		// if err != nil {
-		// 	log.Println("Error sending private message:", err)
-		// }
+			// // Create a new message for the user's private chat
+			// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
 
-		config, _ := initializers.LoadConfig(".")
+			// // Send the private message
+			// _, err = bot.Send(privateMsg)
+			// if err != nil {
+			// 	log.Println("Error sending private message:", err)
+			// }
 
-		cfg := &initializers.Config{
-			TELEGRAM_TOKEN:   config.TELEGRAM_TOKEN,
-			TELEGRAM_CHANNEL: config.TELEGRAM_CHANNEL,
-		}
+			config, _ := initializers.LoadConfig(".")
 
-		bot, err := initializers.ConnectTelegram(cfg)
-		if err != nil {
-			log.Panic(err)
-		}
+			cfg := &initializers.Config{
+				TELEGRAM_TOKEN:   config.TELEGRAM_TOKEN,
+				TELEGRAM_CHANNEL: config.TELEGRAM_CHANNEL,
+			}
 
-		if userResp.Tcid == 0 {
+			bot, err := initializers.ConnectTelegram(cfg)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			if userResp.Tcid == 0 {
+
+				// Set up an image file to send
+				absolutePath := filepath.Join(config.IMGStorePath, path)
+				imageFile, err := os.Open(absolutePath)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer imageFile.Close()
+
+				// Read the image file into a byte slice
+				imageInfo, _ := imageFile.Stat()
+				imageBytes := make([]byte, imageInfo.Size())
+				_, err = imageFile.Read(imageBytes)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// Replace with the chat ID you want to send the image to
+				// chatID := int64(-userResp.Tcid)
+
+				// Create a photo message configuration
+				// Create a photo message configuration
+				photoConfig := tgbotapi.NewPhoto(user.Tid, tgbotapi.FileBytes{
+					Name:  "image.jpg",
+					Bytes: imageBytes,
+				})
+
+				photoConfig.Caption = fmt.Sprintf("\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s", forbot.City, forbot.Cat, forbot.Name, forbot.Url)
+
+				if len(forbot.Hashtags) > 0 {
+					hashtagsText := "\nХештеги: " + strings.Join(forbot.Hashtags, ", ")
+					photoConfig.Caption += hashtagsText
+				}
+
+				// Send the photo
+				_, err = bot.Send(photoConfig)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
+				// _, err = bot.Send(privateMsg)
+				// if err != nil {
+				// 	log.Println("Error sending private message:", err)
+				// }
+			}
+
+			// Call the controller to process the message
 
 			// Set up an image file to send
 			absolutePath := filepath.Join(config.IMGStorePath, path)
@@ -1102,7 +1194,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 
 			// Create a photo message configuration
 			// Create a photo message configuration
-			photoConfig := tgbotapi.NewPhoto(user.Tid, tgbotapi.FileBytes{
+			photoConfig := tgbotapi.NewPhoto(-userResp.Tcid, tgbotapi.FileBytes{
 				Name:  "image.jpg",
 				Bytes: imageBytes,
 			})
@@ -1114,106 +1206,66 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				photoConfig.Caption += hashtagsText
 			}
 
-			// Send the photo
-			_, err = bot.Send(photoConfig)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
-			// _, err = bot.Send(privateMsg)
-			// if err != nil {
-			// 	log.Println("Error sending private message:", err)
-			// }
-		}
-
-		// Call the controller to process the message
-
-		// Set up an image file to send
-		absolutePath := filepath.Join(config.IMGStorePath, path)
-		imageFile, err := os.Open(absolutePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer imageFile.Close()
-
-		// Read the image file into a byte slice
-		imageInfo, _ := imageFile.Stat()
-		imageBytes := make([]byte, imageInfo.Size())
-		_, err = imageFile.Read(imageBytes)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Replace with the chat ID you want to send the image to
-		// chatID := int64(-userResp.Tcid)
-
-		// Create a photo message configuration
-		// Create a photo message configuration
-		photoConfig := tgbotapi.NewPhoto(-userResp.Tcid, tgbotapi.FileBytes{
-			Name:  "image.jpg",
-			Bytes: imageBytes,
-		})
-
-		photoConfig.Caption = fmt.Sprintf("\nГород: %s \nРубрика: %s \nЗаголовок: %s \nURL: %s", forbot.City, forbot.Cat, forbot.Name, forbot.Url)
-
-		if len(forbot.Hashtags) > 0 {
-			hashtagsText := "\nХештеги: " + strings.Join(forbot.Hashtags, ", ")
-			photoConfig.Caption += hashtagsText
-		}
-
-		if user.TelegramActivated == true {
-			// Send the photo
-			sentMessage, err := bot.Send(photoConfig)
-			if err != nil {
-				// Check if the error is due to a not found or kicked chat
-				if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
-					fmt.Println("Chat not found or bot was kicked, skipping send message.")
-				} else {
-					// Handle other errors
-					log.Panic(err)
+			if user.TelegramActivated {
+				// Send the photo
+				sentMessage, err := bot.Send(photoConfig)
+				if err != nil {
+					// Check if the error is due to a not found or kicked chat
+					if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
+						fmt.Println("Chat not found or bot was kicked, skipping send message.")
+					} else {
+						// Handle other errors
+						log.Panic(err)
+					}
 				}
+
+				// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
+				// sentMessage, err := bot.Send(msg)
+				// if err != nil {
+				// 	// Check if the error is due to a not found or kicked chat
+				// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
+				// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
+				// 	} else {
+				// 		// Handle other errors
+				// 		log.Panic(err)
+				// 	}
+				// }
+				// Prepare the private message
+
+				messageID := sentMessage.MessageID
+				blog.TmId = float64(messageID)
 			}
 
-			// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
-			// sentMessage, err := bot.Send(msg)
-			// if err != nil {
-			// 	// Check if the error is due to a not found or kicked chat
-			// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
-			// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
-			// 	} else {
-			// 		// Handle other errors
-			// 		log.Panic(err)
-			// 	}
+			// blog.UserAvatar = user.Photo
+
+			// user.TotalBlogs += 1
+
+			// if blog.Total == 0 {
+			// 	blog.NotAds = true
+			// } else {
+			// 	blog.NotAds = false
 			// }
-			// Prepare the private message
 
-			messageID := sentMessage.MessageID
-			blog.TmId = float64(messageID)
-		}
+			// if err := initializers.DB.Save(&user).Error; err != nil {
+			// 	log.Println("Could not update user's total blogs count:", err)
+			// }
 
-		// blog.UserAvatar = user.Photo
+			// Create blog record in database
+			if err := initializers.DB.Save(&blog).Error; err != nil {
+				log.Println("Could not create blog:", err)
+			}
+		}()
 
-		// user.TotalBlogs += 1
+		wg.Wait()
 
-		// if blog.Total == 0 {
-		// 	blog.NotAds = true
-		// } else {
-		// 	blog.NotAds = false
-		// }
-
-		// if err := initializers.DB.Save(&user).Error; err != nil {
-		// 	log.Println("Could not update user's total blogs count:", err)
-		// }
-
-		// Create blog record in database
-		if err := initializers.DB.Save(&blog).Error; err != nil {
-			log.Println("Could not create blog:", err)
-		}
-	}()
+		return c.JSON(fiber.Map{
+			"message": "Blog photo created successfully",
+		})
+	}
 
 	// Wait for the goroutine to complete
-	wg.Wait()
+
+	fmt.Println("hello 2")
 
 	return c.JSON(fiber.Map{
 		"message": "Blog photo created successfully",
@@ -1296,7 +1348,12 @@ func GetBlogById(c *fiber.Ctx) error {
 				Seconds: entry.Seconds,
 			}
 		}
-
+		var telegramNameVal string
+		if b.User.TelegramName != nil {
+			telegramNameVal = *b.User.TelegramName
+		} else {
+			telegramNameVal = ""
+		}
 		blogRes := &blogResponse{
 			ID:               b.ID,
 			Title:            b.Title,
@@ -1330,7 +1387,7 @@ func GetBlogById(c *fiber.Ctx) error {
 				OnlineHours:       userOnlineHours,
 				TotalOnlineHours:  userTotalOnlineHours,
 				TotalRestBlogs:    b.User.TotalRestBlogs,
-				TelegramName:      *b.User.TelegramName,
+				TelegramName:      telegramNameVal,
 				TelegramActivated: b.User.TelegramActivated,
 			},
 			Hashtags: hashtags,
