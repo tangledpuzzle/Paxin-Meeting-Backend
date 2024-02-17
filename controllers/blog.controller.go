@@ -1347,7 +1347,12 @@ func GetBlogById(c *fiber.Ctx) error {
 				Seconds: entry.Seconds,
 			}
 		}
-
+		var telegramNameVal string
+		if b.User.TelegramName != nil {
+			telegramNameVal = *b.User.TelegramName
+		} else {
+			telegramNameVal = ""
+		}
 		blogRes := &blogResponse{
 			ID:               b.ID,
 			Title:            b.Title,
@@ -1381,7 +1386,7 @@ func GetBlogById(c *fiber.Ctx) error {
 				OnlineHours:       userOnlineHours,
 				TotalOnlineHours:  userTotalOnlineHours,
 				TotalRestBlogs:    b.User.TotalRestBlogs,
-				TelegramName:      *b.User.TelegramName,
+				TelegramName:      telegramNameVal,
 				TelegramActivated: b.User.TelegramActivated,
 			},
 			Hashtags: hashtags,
