@@ -29,6 +29,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// test
 type TimeEntry struct {
 	Hour    int `json:"hour"`
 	Minutes int `json:"minutes"`
