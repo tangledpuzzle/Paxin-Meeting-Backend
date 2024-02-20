@@ -22,7 +22,7 @@ echo -e "$FORMATTED_KEY" > "$PRIVATE_KEY_PATH"
 # Set 600 permission to private key file
 chmod 600 "$PRIVATE_KEY_PATH"
 
-# SSH into the EC2 instance and run npm commands
+# SSH into the EC2 instance
 ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
   BRANCH_NAME="${BRANCH_NAME}" # This assigns the value of the local variable to the remote variable
   cd ~/workspace/paxintrade/backend
