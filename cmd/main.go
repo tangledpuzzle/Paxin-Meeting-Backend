@@ -245,7 +245,7 @@ func main() {
 		go func() {
 			for {
 				languageChan <- language
-				time.Sleep(1 * time.Second)
+				time.Sleep(2 * time.Second)
 			}
 		}()
 
@@ -280,7 +280,7 @@ func main() {
 			}
 		}()
 
-		ticker := time.NewTicker(1 * time.Second)
+		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
 
 		var lang string
