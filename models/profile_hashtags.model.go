@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Hashtagsprofile struct {
+type ProfileHashtag struct {
 	ID        uint       `gorm:"primary_key"`
 	Hashtag   string     `gorm:"not null;unique"`
 	UpdatedAt time.Time  `gorm:"not null"`

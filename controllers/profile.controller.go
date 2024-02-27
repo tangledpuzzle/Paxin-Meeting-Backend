@@ -128,9 +128,7 @@ func GetAllProfile(c *fiber.Ctx) error {
 
 		// Add the hashtags filter to the query
 		query = query.Joins("JOIN profiles_hashtags ON profiles.id = profiles_hashtags.profile_id").
-			Joins("JOIN hashtagsprofiles ON profiles_hashtags.hashtagsprofile_id = hashtagsprofiles.id").
-			Where("hashtagsprofiles.hashtag IN (?)", hashtagValuesWithPrefix)
-
+			Where("profiles_hashtags.hashtag IN (?)", hashtagValuesWithPrefix)
 	}
 
 	var count int64
@@ -589,11 +587,11 @@ func UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	// Create a new slice to store the updated list of hashtags
-	updatedHashtags := []models.Hashtagsprofile{}
+	updatedHashtags := []models.ProfileHashtag{}
 
-	// Iterate over the requestBody.Hashtags and create Hashtagsprofile objects from the IDs
+	// Iterate over the requestBody.Hashtags and create ProfileHashtag objects from the IDs
 	for _, hashtagID := range requestBody.Hashtags {
-		hashtag := models.Hashtagsprofile{
+		hashtag := models.ProfileHashtag{
 			ID: uint(hashtagID.ID),
 		}
 		updatedHashtags = append(updatedHashtags, hashtag)
@@ -800,11 +798,11 @@ func UpdateBotProfile(c *fiber.Ctx) error {
 	}
 
 	// Create a new slice to store the updated list of hashtags
-	updatedHashtags := []models.Hashtagsprofile{}
+	updatedHashtags := []models.ProfileHashtag{}
 
-	// Iterate over the requestBody.Hashtags and create Hashtagsprofile objects from the IDs
+	// Iterate over the requestBody.Hashtags and create ProfileHashtag objects from the IDs
 	for _, hashtagID := range requestBody.Hashtags {
-		hashtag := models.Hashtagsprofile{
+		hashtag := models.ProfileHashtag{
 			ID: uint(hashtagID.ID),
 		}
 		updatedHashtags = append(updatedHashtags, hashtag)
@@ -1215,7 +1213,7 @@ func UpdateProfilePhotos(c *fiber.Ctx) error {
 
 func AddHashTagProfile(c *fiber.Ctx) error {
 
-	var hashtag models.Hashtagsprofile
+	var hashtag models.ProfileHashtag
 	if err := c.BodyParser(&hashtag); err != nil {
 		return err
 	}
@@ -1244,7 +1242,7 @@ func SearchHashTagProfile(c *fiber.Ctx) error {
 	}
 
 	// Find the cities with names similar to the search query (case-insensitive)
-	var hashtags []models.Hashtagsprofile
+	var hashtags []models.ProfileHashtag
 	if err := initializers.DB.Where("hashtag ILIKE ?", "%"+name+"%").Find(&hashtags).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",

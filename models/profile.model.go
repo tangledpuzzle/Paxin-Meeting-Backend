@@ -27,7 +27,7 @@ type Profile struct {
 
 	City      []City             `gorm:"many2many:profiles_city;"`
 	Guilds    []Guilds           `gorm:"many2many:profiles_guilds;"`
-	Hashtags  []Hashtagsprofile  `gorm:"many2many:profiles_hashtags;"`
+	Hashtags  []ProfileHashtag   `gorm:"many2many:profiles_hashtags;"`
 	Photos    []ProfilePhoto     `json:"photos"`
 	Documents []ProfileDocuments `json:"documents"`
 	Service   []ProfileService   `json:"service"`
