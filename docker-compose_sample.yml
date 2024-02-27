@@ -1,9 +1,4 @@
 services:
-  imageproxy:
-    image: willnorris/imageproxy
-    restart: always
-    ports:
-      - "8080:8080"
   postgres:
     image: postgres:16.1-alpine
     restart: always

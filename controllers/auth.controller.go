@@ -228,12 +228,6 @@ func SignUpBot(c *fiber.Ctx) error {
 	newUser.TelegramToken = TokenCode
 	initializers.DB.Save(newUser)
 
-	var firstName = newUser.Name
-
-	if strings.Contains(firstName, " ") {
-		firstName = strings.Split(firstName, " ")[1]
-	}
-
 	billing := models.Billing{
 		UserID: newUser.ID,
 		Amount: 100,
