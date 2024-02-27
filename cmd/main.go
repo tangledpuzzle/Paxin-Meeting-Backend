@@ -216,6 +216,14 @@ func main() {
 
 	var languageChan = make(chan string)
 
+	app.Use("/stream", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
 	app.Get("/stream/live", websocket.New(func(c *websocket.Conn) {
 		idStr := c.Query("session")
 		language := c.Query("language")
