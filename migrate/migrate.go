@@ -315,10 +315,5 @@ func main() {
 		}
 	}
 
-	fmt.Println("✅ Guilds records created")
-	fmt.Println("✅ Guilds and translations saved successfully")
-
-	fmt.Println("✅ Guilds saved successfully")
-
 	fmt.Println("✅ Migration complete")
 }

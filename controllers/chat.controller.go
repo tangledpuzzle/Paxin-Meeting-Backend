@@ -39,9 +39,9 @@ func CreateChatRoom(c *fiber.Ctx) error {
 	}
 
 	// Check existing room with both users
-	var room models.Room
+	var room models.ChatRoom
 	result := initializers.DB.
-		Model(&models.Room{}).
+		Model(&models.ChatRoom{}).
 		Joins("JOIN room_members as rm1 ON rm1.room_id = rooms.id AND rm1.user_id = ?", requestorUser.ID).
 		Joins("JOIN room_members as rm2 ON rm2.room_id = rooms.id AND rm2.user_id = ?", acceptorUser.ID).
 		Where("rooms.id IN (SELECT room_id FROM room_members GROUP BY room_id HAVING COUNT(DISTINCT user_id) >= 2)").
@@ -49,13 +49,13 @@ func CreateChatRoom(c *fiber.Ctx) error {
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// Room does not exist, so proceed with creation
-		newRoom := models.Room{Name: requestorUser.Name + " & " + acceptorUser.Name}
+		newRoom := models.ChatRoom{Name: requestorUser.Name + " & " + acceptorUser.Name}
 		if err := initializers.DB.Create(&newRoom).Error; err != nil {
 			// Handle potential error during room creation
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to create room"})
 		}
 
-		roomMembers := []models.RoomMember{
+		roomMembers := []models.ChatRoomMember{
 			{RoomID: newRoom.ID, UserID: requestorUser.ID, IsSubscribed: true},
 			{RoomID: newRoom.ID, UserID: acceptorUser.ID, IsNew: true},
 		}
@@ -89,7 +89,7 @@ func CreateChatRoom(c *fiber.Ctx) error {
 func GetRoomDetails(c *fiber.Ctx) error {
 	roomId := c.Params("roomId")
 
-	var room models.Room
+	var room models.ChatRoom
 	if err := initializers.DB.Preload("Members.User").Where("id = ?", roomId).First(&room).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "Room not found", "error": err.Error()})
 	}
@@ -103,8 +103,8 @@ func GetRoomDetails(c *fiber.Ctx) error {
 func GetSubscribedRooms(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
-	var rooms []models.Room
-	result := initializers.DB.Model(&models.Room{}).
+	var rooms []models.ChatRoom
+	result := initializers.DB.Model(&models.ChatRoom{}).
 		Joins("JOIN room_members ON rooms.id = room_members.room_id").
 		Where("room_members.user_id = ? AND room_members.is_subscribed = ?", user.ID, true).
 		Find(&rooms)
@@ -127,8 +127,8 @@ func GetSubscribedRooms(c *fiber.Ctx) error {
 func GetNewUnsubscribedRooms(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
-	var rooms []models.Room
-	result := initializers.DB.Model(&models.Room{}).
+	var rooms []models.ChatRoom
+	result := initializers.DB.Model(&models.ChatRoom{}).
 		Joins("JOIN room_members ON rooms.id = room_members.room_id").
 		Where("room_members.user_id = ? AND room_members.is_subscribed = ? AND room_members.is_new = ?", user.ID, false, true).
 		Find(&rooms)
@@ -165,7 +165,7 @@ func SubscribeNewRoom(c *fiber.Ctx) error {
 	}
 
 	// Verify that the room exists.
-	var room models.Room
+	var room models.ChatRoom
 	if err := initializers.DB.First(&room, roomId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -181,7 +181,7 @@ func SubscribeNewRoom(c *fiber.Ctx) error {
 	}
 
 	// Check if the user is already a member of the room but not subscribed.
-	var roomMember models.RoomMember
+	var roomMember models.ChatRoomMember
 	err := initializers.DB.Where("room_id = ? AND user_id = ? AND is_subscribed = ?", roomId, user.ID, false).First(&roomMember).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -231,7 +231,7 @@ func UnsubscribeRoom(c *fiber.Ctx) error {
 	}
 
 	// Verify that the room exists.
-	var room models.Room
+	var room models.ChatRoom
 	if err := initializers.DB.First(&room, roomId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -247,7 +247,7 @@ func UnsubscribeRoom(c *fiber.Ctx) error {
 	}
 
 	// Check if the user is a subscribed member of the room.
-	var roomMember models.RoomMember
+	var roomMember models.ChatRoomMember
 	err := initializers.DB.Where("room_id = ? AND user_id = ? AND is_subscribed = ?", roomId, user.ID, true).First(&roomMember).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
