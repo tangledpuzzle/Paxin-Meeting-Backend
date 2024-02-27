@@ -18,13 +18,14 @@ type ChatRoomMember struct {
 }
 
 type ChatRoom struct {
-	ID          uint             `gorm:"primaryKey"`
-	Name        string           `gorm:"size:64;unique"`
-	Members     []ChatRoomMember `gorm:"foreignKey:RoomID"`
-	Version     uint64           `gorm:"default:0"`
-	CreatedAt   time.Time        `gorm:"not null;default:now()"`
-	BumpedAt    time.Time        `gorm:"not null;default:now()"`
-	LastMessage *ChatMessage
+	ID            uint             `gorm:"primaryKey"`
+	Name          string           `gorm:"size:64;unique"`
+	Members       []ChatRoomMember `gorm:"foreignKey:RoomID"`
+	Version       uint64           `gorm:"default:0"`
+	CreatedAt     time.Time        `gorm:"not null;default:now()"`
+	BumpedAt      time.Time        `gorm:"not null;default:now()"`
+	LastMessageID *uint            `gorm:"column:last_message_id"`
+	LastMessage   *ChatMessage     `gorm:"foreignKey:LastMessageID"`
 }
 
 type ChatMessage struct {
