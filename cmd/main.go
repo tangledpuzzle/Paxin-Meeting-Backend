@@ -211,6 +211,116 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	var ClientsLock sync.Mutex
+	var Clients = make(map[string]*websocket.Conn)
+
+	var languageChan = make(chan string)
+
+	app.Get("/stream/live", websocket.New(func(c *websocket.Conn) {
+		idStr := c.Query("session")
+		language := c.Query("language")
+		if language == "" {
+			language = "en"
+		}
+
+		ClientsLock.Lock()
+		Clients[idStr] = c
+		ClientsLock.Unlock()
+
+		defer func() {
+			ClientsLock.Lock()
+			delete(Clients, idStr)
+			ClientsLock.Unlock()
+			c.Close()
+		}()
+
+		go func() {
+			for {
+				languageChan <- language
+				time.Sleep(1 * time.Second)
+			}
+		}()
+
+		type messageSocket struct {
+			MessageType string                   `json:"messageType"`
+			Data        []map[string]interface{} `json:"data"`
+		}
+
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				fmt.Println("error reading message from client:", err)
+				break
+			}
+
+			var messageData messageSocket
+			err = json.Unmarshal(message, &messageData)
+			if err != nil {
+				fmt.Println("error parsing message:", err)
+				continue
+			}
+
+			fmt.Println("Received message:", messageData)
+
+		}
+	}))
+
+	go func() {
+		defer func() {
+			for _, conn := range Clients {
+				conn.Close()
+			}
+		}()
+
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+		var lang string
+		for {
+			select {
+			case <-ticker.C:
+				ClientsLock.Lock()
+				hasActiveClients := len(Clients) > 0
+				ClientsLock.Unlock()
+
+				if hasActiveClients {
+					var blog models.Blog
+					err := initializers.DB.
+						Preload("Photos").
+						Preload("City.Translations", "language = ?", lang).
+						Preload("Catygory.Translations", "language = ?", lang).
+						Preload("User").
+						Preload("Hashtags").
+						Order("RANDOM()").
+						Limit(1).
+						First(&blog).
+						Error
+					if err != nil {
+						fmt.Println("error fetching random blog:", err)
+						continue
+					}
+
+					blogJSON, err := json.Marshal(blog)
+					if err != nil {
+						fmt.Println("error encoding blog to JSON:", err)
+						continue
+					}
+
+					ClientsLock.Lock()
+					for _, conn := range Clients {
+						err := conn.WriteMessage(websocket.TextMessage, blogJSON)
+						if err != nil {
+							fmt.Println("error writing message to client:", err)
+						}
+					}
+					ClientsLock.Unlock()
+				}
+			case newLang := <-languageChan:
+				lang = newLang
+			}
+		}
+	}()
+
 	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
 
 		type messageSocket struct {
@@ -245,23 +355,6 @@ func main() {
 			fmt.Println("error writing message to client", idStr, ":", err)
 			return
 		}
-
-		// session := initializers.GetSession()
-		// res, err := r.Table("users").Nth(0).Run(session)
-		// if err != nil {
-		// 	log.Println("RethinkDB query error:", err)
-		// 	return
-		// }
-		// defer res.Close()
-		// type User struct {
-		// 	ID    string `json:"id" rethinkdb:"id"`
-		// 	UsersOnline string `json:"usersOnline" rethinkdb:"usersOnline"`
-		// }
-		// var user User
-		// if res.Next(&user) {
-		// 	// Access the data from the user struct
-		// 	fmt.Println(user)
-		// }
 
 		// Initialize Redis client
 		configPath := "./app.env"
@@ -580,19 +673,6 @@ func main() {
 
 			if Message.MessageType == "webcall" {
 
-				type payloadData struct {
-					Command string `json:"command"`
-					Payload []struct {
-						Caller  string `json:"caller"`
-						Session string `json:"session"`
-						Handle  string `json:"handle"`
-						SDP     []struct {
-							Type string `json:"type"`
-							Sdp  string `json:"sdp"`
-						} `json:"sdp"`
-					} `json:"payload"`
-				}
-
 				var Message messageSocket
 				if err := json.Unmarshal(message, &Message); err != nil {
 					fmt.Println("error unmarshalling JSON:", err)
@@ -766,7 +846,7 @@ func main() {
 			// 	}
 
 			// 	var data map[string]interface{}
-			// 	if err := json.Unmarshal([]byte(message), &data); err != nil {
+			// 	if err := json.Unmarfshal([]byte(message), &data); err != nil {
 			// 		fmt.Println("Ошибка при разборе JSON:", err)
 			// 		return
 			// 	}
