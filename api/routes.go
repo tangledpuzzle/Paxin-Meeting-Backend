@@ -84,7 +84,6 @@ func Register(micro *fiber.App) {
 	micro.Route("/calls", func(router fiber.Router) {
 		router.Post("/makecall", controllers.MakeCall)
 		router.Post("/stopcall", controllers.StopCall)
-
 	})
 
 	micro.Route("/cities", func(router fiber.Router) {
@@ -111,7 +110,6 @@ func Register(micro *fiber.App) {
 
 		router.Get("/name", controllers.GetGuildName)
 		router.Get("/namecustom", controllers.GetGuildNameA)
-
 	})
 
 	micro.Route("/guildstranslator", func(router fiber.Router) {
@@ -141,7 +139,6 @@ func Register(micro *fiber.App) {
 	micro.Route("/payment", func(router fiber.Router) {
 		router.Post("/invoice", middleware.DeserializeUser, controllers.CreateInvoice)
 		router.Post("/pending", controllers.Pending)
-
 	})
 
 	micro.Route("/profilehashtags", func(router fiber.Router) {
@@ -174,11 +171,19 @@ func Register(micro *fiber.App) {
 		router.Delete("/delete/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteBlog)
 	})
 
+	micro.Route("/chat", func(router fiber.Router) {
+		router.Get("/room/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetRoomDetails)
+		router.Get("/rooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetSubscribedRooms)
+		router.Get("/newRooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetNewUnsubscribedRooms)
+		router.Post("/createRoom", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.CreateChatRoom)
+		router.Post("/subscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SubscribeNewRoom)
+		router.Post("/unsubscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UnsubscribeRoom)
+	})
+
 	micro.Route("/files", func(router fiber.Router) {
 		router.Post("/upload/file", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadPdf)
 		router.Post("/upload", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadImage)
 		router.Post("/upload/images", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadImages)
-
 	})
 
 	micro.Route("/server", func(router fiber.Router) {

@@ -51,6 +51,9 @@ func main() {
 	initializers.DB.AutoMigrate(&models.Langs{})
 	initializers.DB.AutoMigrate(&models.DevicesIOS{})
 	initializers.DB.AutoMigrate(&models.Vote{})
+	initializers.DB.AutoMigrate(&models.RoomMember{})
+	initializers.DB.AutoMigrate(&models.Room{})
+	initializers.DB.AutoMigrate(&models.Message{})
 
 	// Check if there are any users in the database
 	var userCount int64
@@ -58,7 +61,7 @@ func main() {
 
 	if userCount == 0 {
 		// If there are no users, create a new user with role admin
-		password := "techaa123"
+		password := "1234567890"
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			log.Fatal("? Could not hash password", err)
