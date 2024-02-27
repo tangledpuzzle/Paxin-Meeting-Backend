@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgtype"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -51,9 +50,9 @@ func main() {
 	initializers.DB.AutoMigrate(&models.Langs{})
 	initializers.DB.AutoMigrate(&models.DevicesIOS{})
 	initializers.DB.AutoMigrate(&models.Vote{})
-	initializers.DB.AutoMigrate(&models.RoomMember{})
-	initializers.DB.AutoMigrate(&models.Room{})
-	initializers.DB.AutoMigrate(&models.Message{})
+	initializers.DB.AutoMigrate(&models.ChatRoomMember{})
+	initializers.DB.AutoMigrate(&models.ChatRoom{})
+	initializers.DB.AutoMigrate(&models.ChatMessage{})
 
 	// Check if there are any users in the database
 	var userCount int64
