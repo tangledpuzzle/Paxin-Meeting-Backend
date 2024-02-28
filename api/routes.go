@@ -84,7 +84,6 @@ func Register(micro *fiber.App) {
 	micro.Route("/calls", func(router fiber.Router) {
 		router.Post("/makecall", controllers.MakeCall)
 		router.Post("/stopcall", controllers.StopCall)
-
 	})
 
 	micro.Route("/cities", func(router fiber.Router) {
@@ -111,7 +110,6 @@ func Register(micro *fiber.App) {
 
 		router.Get("/name", controllers.GetGuildName)
 		router.Get("/namecustom", controllers.GetGuildNameA)
-
 	})
 
 	micro.Route("/guildstranslator", func(router fiber.Router) {
@@ -141,7 +139,6 @@ func Register(micro *fiber.App) {
 	micro.Route("/payment", func(router fiber.Router) {
 		router.Post("/invoice", middleware.DeserializeUser, controllers.CreateInvoice)
 		router.Post("/pending", controllers.Pending)
-
 	})
 
 	micro.Route("/profilehashtags", func(router fiber.Router) {
@@ -174,11 +171,24 @@ func Register(micro *fiber.App) {
 		router.Delete("/delete/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteBlog)
 	})
 
+	micro.Route("/chat", func(router fiber.Router) {
+		router.Get("/room/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetRoomDetailsForDM)
+		router.Get("/rooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetSubscribedRoomsForDM)
+		router.Get("/newRooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetNewUnsubscribedRoomsForDM)
+		router.Post("/createRoom", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.CreateChatRoomForDM)
+		router.Patch("/subscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SubscribeNewRoomForDM)
+		router.Patch("/unsubscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UnsubscribeRoomForDM)
+
+		router.Get("/message/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetChatMessagesForDM)
+		router.Post("/message/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SendMessageForDM)
+		router.Patch("/message/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.EditMessageForDM)
+		router.Delete("/message/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteMessageForDM)
+	})
+
 	micro.Route("/files", func(router fiber.Router) {
 		router.Post("/upload/file", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadPdf)
 		router.Post("/upload", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadImage)
 		router.Post("/upload/images", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadImages)
-
 	})
 
 	micro.Route("/server", func(router fiber.Router) {
