@@ -227,6 +227,7 @@ func main() {
 	app.Get("/stream/live", websocket.New(func(c *websocket.Conn) {
 		idStr := c.Query("session")
 		language := c.Query("language")
+
 		if language == "" {
 			language = "en"
 		}
@@ -268,8 +269,36 @@ func main() {
 				continue
 			}
 
-			fmt.Println("Received message:", messageData)
+			if messageData.MessageType == "getADS" {
+				var blog models.Blog
+				err := initializers.DB.
+					Preload("Photos").
+					Preload("City.Translations", "language = ?", language).
+					Preload("Catygory.Translations", "language = ?", language).
+					Preload("User").
+					Preload("Hashtags").
+					Order("RANDOM()").
+					Limit(4).
+					First(&blog).
+					Error
+				if err != nil {
+					fmt.Println("error fetching random blog:", err)
+					continue
+				}
 
+				blogJSON, err := json.Marshal(blog)
+				if err != nil {
+					fmt.Println("error encoding blog to JSON:", err)
+					continue
+				}
+
+				// Send the JSON data to the client
+				err = c.WriteMessage(websocket.TextMessage, blogJSON)
+				if err != nil {
+					fmt.Println("error sending blog JSON to client:", err)
+					continue
+				}
+			}
 		}
 	}))
 
@@ -645,9 +674,6 @@ func main() {
 				fmt.Println("error unmarshalling JSON:", err)
 				continue
 			}
-
-			fmt.Println("Received message from client", idStr, ":", Message)
-
 			if Message.MessageType == "getMySessionId" {
 				fmt.Println("WebSocket client connected with ID:", idStr)
 				w.Add(1)
