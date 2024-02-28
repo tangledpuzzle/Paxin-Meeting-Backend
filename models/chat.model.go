@@ -33,10 +33,9 @@ type ChatMessage struct {
 	Content   string `gorm:"not null"`
 	UserID    uuid.UUID
 	RoomID    uint
-	User      *User     `gorm:"foreignKey:UserID"`
-	Room      ChatRoom  `gorm:"foreignKey:RoomID"`
-	IsEdited  bool      `gorm:"not null;default:false"`
-	IsDeleted bool      `gorm:"not null;default:false"`
-	CreatedAt time.Time `gorm:"not null;default:now()"`
-	DeletedAt *time.Time
+	User      *User      `gorm:"foreignKey:UserID"`
+	Room      ChatRoom   `gorm:"foreignKey:RoomID"`
+	IsEdited  bool       `gorm:"not null;default:false"`
+	CreatedAt time.Time  `gorm:"not null;default:now()"`
+	DeletedAt *time.Time `gorm:"index"`
 }

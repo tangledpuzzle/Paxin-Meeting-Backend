@@ -397,7 +397,8 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 	roomID := c.Params("roomId")
 
 	var messages []models.ChatMessage
-	result := initializers.DB.Where("room_id = ?", roomID).Not("is_deleted", true).Find(&messages)
+	// Fetch all messages, including those marked as deleted
+	result := initializers.DB.Unscoped().Where("room_id = ?", roomID).Find(&messages)
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -405,9 +406,9 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Optional: Hide or alter the content of deleted messages
+	// Iterate through messages to hide content of deleted messages
 	for i, msg := range messages {
-		if msg.IsDeleted {
+		if msg.DeletedAt != nil {
 			messages[i].Content = "This message has been deleted."
 		}
 	}
