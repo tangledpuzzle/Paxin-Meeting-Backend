@@ -23,7 +23,6 @@ type Config struct {
 	RedisUri     string `mapstructure:"REDIS_URL"`
 	Amqpurl      string `mapstructure:"AMQP_URL"`
 	RabbitMQUri  string `mapstructure:"RABBITMQ_URL"`
-	RethinkDBUri string `mapstructure:"RETHINK_URL"`
 
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
