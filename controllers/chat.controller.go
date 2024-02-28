@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -64,7 +65,6 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 		// Room does not exist, so proceed with creation
 		newRoom := models.ChatRoom{Name: requestorUser.Name + " & " + acceptorUser.Name}
 		if err := initializers.DB.Create(&newRoom).Error; err != nil {
-			// Handle potential error during room creation
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to create room"})
 		}
 
@@ -74,18 +74,29 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 		}
 
 		if err := initializers.DB.CreateInBatches(roomMembers, len(roomMembers)).Error; err != nil {
-			// Handle potential error during room members creation
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to add members to room"})
+		}
+		// Create initial message
+		initialMessage := models.ChatMessage{
+			RoomID:  newRoom.ID,
+			UserID:  requestorUser.ID, // Assuming this is the sender
+			Content: payload.InitialMessage,
+		}
+		if err := initializers.DB.Create(&initialMessage).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to send initial message"})
+		}
+
+		// Update the room's LastMessageId with the ID of the initial message
+		if err := initializers.DB.Model(&newRoom).Update("LastMessageId", initialMessage.ID).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to update room's last message"})
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"status": "success",
 			"data": fiber.Map{
-				"room":    newRoom,
-				"members": roomMembers,
+				"room": newRoom,
 			},
 		})
-
 	} else if result.Error != nil {
 		// Handle errors other than Not Found error
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Error checking for existing room"})
@@ -101,6 +112,7 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 
 func GetRoomDetailsForDM(c *fiber.Ctx) error {
 	roomId := c.Params("roomId")
+	user := c.Locals("user").(models.UserResponse)
 
 	var room models.ChatRoom
 	if err := initializers.DB.
@@ -108,9 +120,13 @@ func GetRoomDetailsForDM(c *fiber.Ctx) error {
 			return db.Joins("User")
 		}).
 		Preload("LastMessage").
-		Where("id = ?", roomId).
+		Joins("JOIN chat_room_members on chat_room_members.room_id = chat_rooms.id").
+		Where("chat_rooms.id = ? AND chat_room_members.user_id = ?", roomId, user.ID).
 		First(&room).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "Room not found", "error": err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "Room not found or access denied", "error": err.Error()})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to retrieve room details", "error": err.Error()})
 	}
 
 	return c.JSON(fiber.Map{
@@ -309,7 +325,6 @@ func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 
 func SendMessageForDM(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
-
 	roomId := c.Params("roomId")
 	u64, err := strconv.ParseUint(roomId, 10, 64)
 	if err != nil {
@@ -326,6 +341,26 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		})
 	}
 
+	// Check if the user is a member of the room and if the other member is subscribed.
+	var count int64
+	initializers.DB.Model(&models.ChatRoomMember{}).
+		Where("room_id = ? AND user_id = ?", uint(u64), user.ID).
+		Count(&count)
+	// Check if the user is indeed a member of the room
+	if count == 0 {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "error", "message": "User is not a member of the room"})
+	}
+
+	// check if there's another subscribed member in this room
+	initializers.DB.Model(&models.ChatRoomMember{}).
+		Where("room_id = ? AND user_id != ? AND is_subscribed = ?", uint(u64), user.ID, true).
+		Count(&count)
+	if count == 0 {
+		// This means the other member is not subscribed or does not exist
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "The other member is not subscribed or does not exist"})
+	}
+
+	// Proceed to send message if the checks pass
 	message := models.ChatMessage{
 		Content: payload.Content,
 		UserID:  user.ID,
@@ -336,12 +371,24 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to send message"})
 	}
 
+	// Update the room's LastMessageId after sending a new message
+	if err := initializers.DB.Model(&models.ChatRoom{}).Where("id = ?", message.RoomID).Update("LastMessageId", message.ID).Error; err != nil {
+		fmt.Println("Failed to update room's last message: ", err)
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "Message sent"})
 }
 
 func EditMessageForDM(c *fiber.Ctx) error {
 	userID := c.Locals("user").(models.UserResponse).ID
-	messageID := c.Params("messageId")
+	messageIDParam := c.Params("messageId")
+	messageID, err := strconv.ParseUint(messageIDParam, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid messageId format",
+		})
+	}
 
 	payload := new(EditMessageRequest)
 	if err := c.BodyParser(payload); err != nil {
@@ -357,13 +404,19 @@ func EditMessageForDM(c *fiber.Ctx) error {
 	if result.Error != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Message not found",
+			"message": "Message not found or not owned by user",
 		})
 	}
 
 	message.Content = payload.Content
 	message.IsEdited = true
-	initializers.DB.Save(&message)
+	if err := initializers.DB.Save(&message).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update message",
+			"error":   err.Error(),
+		})
+	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
@@ -373,16 +426,21 @@ func EditMessageForDM(c *fiber.Ctx) error {
 
 func DeleteMessageForDM(c *fiber.Ctx) error {
 	userID := c.Locals("user").(models.UserResponse).ID
-	messageID := c.Params("messageId")
+	messageIDParam := c.Params("messageId")
+	messageID, err := strconv.ParseUint(messageIDParam, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid messageId format",
+		})
+	}
 
-	// Assuming messages are associated with a UserID for authorization
 	var message models.ChatMessage
 	result := initializers.DB.First(&message, "id = ? AND user_id = ?", messageID, userID)
-
 	if result.Error != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Message not found",
+			"message": "Message not found or not owned by user",
 		})
 	}
 
@@ -401,12 +459,30 @@ func DeleteMessageForDM(c *fiber.Ctx) error {
 }
 
 func GetChatMessagesForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
 	roomID := c.Params("roomId")
+	roomIDParsed, err := uuid.Parse(roomID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid room ID format",
+		})
+	}
 
+	// Check if the user is a member of the room
+	var member models.ChatRoomMember
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
+	if err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "error",
+			"message": "User is not a member of the room or room does not exist",
+		})
+	}
+
+	// Fetch all messages from the room, including those marked as deleted.
 	var messages []models.ChatMessage
-	// Fetch all messages, including those marked as deleted
-	result := initializers.DB.Unscoped().Where("room_id = ?", roomID).Find(&messages)
-	if result.Error != nil {
+	err = initializers.DB.Unscoped().Where("room_id = ?", roomIDParsed).Find(&messages).Error
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to fetch messages",
