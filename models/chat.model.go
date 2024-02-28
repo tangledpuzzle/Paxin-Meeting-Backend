@@ -11,7 +11,7 @@ type ChatRoomMember struct {
 	RoomID       uint
 	UserID       uuid.UUID
 	Room         ChatRoom  `gorm:"foreignKey:RoomID"`
-	User         *User     `gorm:"foreignKey:UserID"`
+	User         User      `gorm:"foreignKey:UserID"`
 	IsSubscribed bool      `gorm:"not null;default:false"`
 	IsNew        bool      `gorm:"not null;default:false"`
 	JoinedAt     time.Time `gorm:"not null;default:now()"`
@@ -24,7 +24,7 @@ type ChatRoom struct {
 	Version       uint64           `gorm:"default:0"`
 	CreatedAt     time.Time        `gorm:"not null;default:now()"`
 	BumpedAt      time.Time        `gorm:"not null;default:now()"`
-	LastMessageID uint
+	LastMessageID *uint
 	LastMessage   *ChatMessage `gorm:"foreignKey:LastMessageID"`
 }
 
@@ -33,7 +33,7 @@ type ChatMessage struct {
 	Content   string `gorm:"not null"`
 	UserID    uuid.UUID
 	RoomID    uint
-	User      *User      `gorm:"foreignKey:UserID"`
+	User      User       `gorm:"foreignKey:UserID"`
 	Room      ChatRoom   `gorm:"foreignKey:RoomID"`
 	IsEdited  bool       `gorm:"not null;default:false"`
 	CreatedAt time.Time  `gorm:"not null;default:now()"`
