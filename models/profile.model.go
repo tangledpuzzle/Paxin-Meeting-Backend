@@ -25,12 +25,12 @@ type Profile struct {
 	Descr          string         `gorm:"not null"`
 	MultilangDescr MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_Descr_"`
 
-	City      []City             `gorm:"many2many:profiles_city;"`
-	Guilds    []Guilds           `gorm:"many2many:profiles_guilds;"`
-	Hashtags  []ProfileHashtag   `gorm:"many2many:profiles_hashtags;"`
-	Photos    []ProfilePhoto     `json:"photos"`
-	Documents []ProfileDocuments `json:"documents"`
-	Service   []ProfileService   `json:"service"`
+	City      []City               `gorm:"many2many:profiles_city;"`
+	Guilds    []Guilds             `gorm:"many2many:profiles_guilds;"`
+	Hashtags  []HashtagsForProfile `gorm:"many2many:profiles_hashtags;"`
+	Photos    []ProfilePhoto       `json:"photos"`
+	Documents []ProfileDocuments   `json:"documents"`
+	Service   []ProfileService     `json:"service"`
 
 	Additional          string         `json:"additional"`
 	MultilangAdditional MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_Additional_"`

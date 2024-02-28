@@ -72,7 +72,7 @@ func main() {
 	if err := initializers.DB.AutoMigrate(&models.Hashtags{}); err != nil {
 		panic(err)
 	}
-	if err := initializers.DB.AutoMigrate(&models.ProfileHashtag{}); err != nil {
+	if err := initializers.DB.AutoMigrate(&models.HashtagsForProfile{}); err != nil {
 		panic(err)
 	}
 	if err := initializers.DB.AutoMigrate(&models.ProfilePhoto{}); err != nil {
