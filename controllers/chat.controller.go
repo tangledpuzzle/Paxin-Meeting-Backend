@@ -376,7 +376,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		fmt.Println("Failed to update room's last message: ", err)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "Message sent"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"message": message}})
 }
 
 func EditMessageForDM(c *fiber.Ctx) error {
