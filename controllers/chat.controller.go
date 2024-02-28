@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -17,7 +18,6 @@ type CreateRoomRequest struct {
 
 type SendMessageRequest struct {
 	Content string `json:"content"`
-	RoomID  uint   `json:"roomId"`
 }
 
 type EditMessageRequest struct {
@@ -310,6 +310,13 @@ func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 func SendMessageForDM(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
+	roomId := c.Params("roomId")
+	u64, err := strconv.ParseUint(roomId, 10, 64)
+	if err != nil {
+		fmt.Println("Conversion error:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to parse roomId"})
+	}
+
 	payload := new(SendMessageRequest)
 	if err := c.BodyParser(payload); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -322,7 +329,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	message := models.ChatMessage{
 		Content: payload.Content,
 		UserID:  user.ID,
-		RoomID:  payload.RoomID,
+		RoomID:  uint(u64),
 	}
 
 	if err := initializers.DB.Create(&message).Error; err != nil {
