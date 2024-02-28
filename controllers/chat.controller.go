@@ -501,6 +501,8 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status": "success",
-		"data":   messages,
+		"data": fiber.Map{
+			"messages": messages,
+		},
 	})
 }
