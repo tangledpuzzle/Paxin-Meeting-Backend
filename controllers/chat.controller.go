@@ -87,7 +87,7 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 		}
 
 		// Update the room's LastMessageId with the ID of the initial message
-		if err := initializers.DB.Model(&newRoom).Update("LastMessageId", initialMessage.ID).Error; err != nil {
+		if err := initializers.DB.Model(&newRoom).Update("last_message_id", initialMessage.ID).Error; err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to update room's last message"})
 		}
 
@@ -372,7 +372,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	}
 
 	// Update the room's LastMessageId after sending a new message
-	if err := initializers.DB.Model(&models.ChatRoom{}).Where("id = ?", message.RoomID).Update("LastMessageId", message.ID).Error; err != nil {
+	if err := initializers.DB.Model(&models.ChatRoom{}).Where("id = ?", message.RoomID).Update("last_message_id", message.ID).Error; err != nil {
 		fmt.Println("Failed to update room's last message: ", err)
 	}
 
