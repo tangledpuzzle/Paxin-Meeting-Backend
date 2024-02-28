@@ -421,6 +421,9 @@ func EditMessageForDM(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
 		"message": "Message updated successfully",
+		"data": fiber.Map{
+			"message": message,
+		},
 	})
 }
 
