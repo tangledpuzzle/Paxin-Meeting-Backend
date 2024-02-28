@@ -42,6 +42,8 @@ services:
     command: centrifugo -c config.json
     expose:
       - 8000
+    # ports:
+    #   - 8888:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,7 +125,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod # Dockerfile.dev when development mode, Dockerfile.prod when production mode
-    restart: always
+    restart: unless-stopped
     image: paxintrade-api:latest-prod # paxintrade-api:latest-dev when development mode, paxintrade-api:latest-prod when production mode
     ports:
       - "8000:8000/tcp"
@@ -135,3 +137,4 @@ services:
       - redis
       - rabbitmq
       - postgres
+      - centrifugo
