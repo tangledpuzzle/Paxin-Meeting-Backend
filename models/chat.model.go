@@ -7,10 +7,10 @@ import (
 )
 
 type ChatRoomMember struct {
-	ID           uint `gorm:"primaryKey"`
-	RoomID       uint
-	UserID       uuid.UUID
-	Room         ChatRoom  `gorm:"foreignKey:RoomID"`
+	ID     uint `gorm:"primaryKey"`
+	RoomID uint
+	UserID uuid.UUID
+	// Room         ChatRoom  `gorm:"foreignKey:RoomID"`
 	User         *User     `gorm:"foreignKey:UserID"`
 	IsSubscribed bool      `gorm:"not null;default:false"`
 	IsNew        bool      `gorm:"not null;default:false"`

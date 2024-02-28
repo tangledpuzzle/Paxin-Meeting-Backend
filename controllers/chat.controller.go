@@ -5,14 +5,35 @@ import (
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
 type CreateRoomRequest struct {
-	AcceptorId     string `json:"id"`
-	InitialMessage string `json:"message"`
+	AcceptorId     string `json:"acceptorId"`
+	InitialMessage string `json:"initialMessage"`
+}
+
+type RoomResponse struct {
+	ID          uint                 `json:"id"`
+	Name        string               `json:"name"`
+	Members     []RoomMemberResponse `json:"members"`
+	Version     uint                 `json:"version"`
+	CreatedAt   time.Time            `json:"createdAt"`
+	BumpedAt    time.Time            `json:"bumpedAt"`
+	LastMessage *models.ChatMessage  `json:"lastMessage,omitempty"`
+}
+
+type RoomMemberResponse struct {
+	ID           uint        `json:"id"`
+	RoomID       uint        `json:"roomId"`
+	UserID       string      `json:"userId"`
+	User         models.User `json:"user"`
+	IsSubscribed bool        `json:"isSubscribed"`
+	IsNew        bool        `json:"isNew"`
+	JoinedAt     time.Time   `json:"joinedAt"`
 }
 
 func CreateChatRoom(c *fiber.Ctx) error {
@@ -42,9 +63,13 @@ func CreateChatRoom(c *fiber.Ctx) error {
 	var room models.ChatRoom
 	result := initializers.DB.
 		Model(&models.ChatRoom{}).
-		Joins("JOIN room_members as rm1 ON rm1.room_id = rooms.id AND rm1.user_id = ?", requestorUser.ID).
-		Joins("JOIN room_members as rm2 ON rm2.room_id = rooms.id AND rm2.user_id = ?", acceptorUser.ID).
-		Where("rooms.id IN (SELECT room_id FROM room_members GROUP BY room_id HAVING COUNT(DISTINCT user_id) >= 2)").
+		Joins("JOIN chat_room_members as rm1 ON rm1.room_id = chat_rooms.id AND rm1.user_id = ?", requestorUser.ID).
+		Joins("JOIN chat_room_members as rm2 ON rm2.room_id = chat_rooms.id AND rm2.user_id = ?", acceptorUser.ID).
+		Where("chat_rooms.id IN (SELECT room_id FROM chat_room_members GROUP BY room_id HAVING COUNT(DISTINCT user_id) >= 2)").
+		Preload("Members", func(db *gorm.DB) *gorm.DB {
+			return db.Joins("User")
+		}).
+		Preload("LastMessage").
 		First(&room)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -90,7 +115,13 @@ func GetRoomDetails(c *fiber.Ctx) error {
 	roomId := c.Params("roomId")
 
 	var room models.ChatRoom
-	if err := initializers.DB.Preload("Members.User").Where("id = ?", roomId).First(&room).Error; err != nil {
+	if err := initializers.DB.
+		Preload("Members", func(db *gorm.DB) *gorm.DB {
+			return db.Joins("User")
+		}).
+		Preload("LastMessage").
+		Where("id = ?", roomId).
+		First(&room).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "Room not found", "error": err.Error()})
 	}
 
@@ -104,9 +135,14 @@ func GetSubscribedRooms(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
 	var rooms []models.ChatRoom
-	result := initializers.DB.Model(&models.ChatRoom{}).
-		Joins("JOIN room_members ON rooms.id = room_members.room_id").
-		Where("room_members.user_id = ? AND room_members.is_subscribed = ?", user.ID, true).
+	result := initializers.DB.
+		Model(&models.ChatRoom{}).
+		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
+		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ?", user.ID, true).
+		Preload("Members", func(db *gorm.DB) *gorm.DB {
+			return db.Joins("User")
+		}).
+		Preload("LastMessage").
 		Find(&rooms)
 
 	if result.Error != nil {
@@ -128,20 +164,25 @@ func GetNewUnsubscribedRooms(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
 	var rooms []models.ChatRoom
-	result := initializers.DB.Model(&models.ChatRoom{}).
-		Joins("JOIN room_members ON rooms.id = room_members.room_id").
-		Where("room_members.user_id = ? AND room_members.is_subscribed = ? AND room_members.is_new = ?", user.ID, false, true).
+	result := initializers.DB.
+		Model(&models.ChatRoom{}).
+		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
+		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ? AND chat_room_members.is_new = ?", user.ID, false, true).
+		Preload("Members", func(db *gorm.DB) *gorm.DB {
+			return db.Joins("User")
+		}).
+		Preload("LastMessage").
 		Find(&rooms)
 
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Could not fetch new, unsubscribed rooms",
+			"message": "Could not fetch new, unsubscribed chat rooms",
 			"error":   result.Error.Error(),
 		})
 	}
 
-	// If no error occurs and rooms were found, return them
+	// If no error occurs and rooms are found, return them
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   rooms,
@@ -173,7 +214,6 @@ func SubscribeNewRoom(c *fiber.Ctx) error {
 				"message": "Room not found",
 			})
 		}
-		// Handle other possible errors.
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Database error",
@@ -186,18 +226,18 @@ func SubscribeNewRoom(c *fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"status":  "fail",
+				"status":  "error",
 				"message": "User is either not a member or already subscribed",
 			})
 		}
-		// Handle other possible errors.
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Database error",
 		})
 	}
 
-	// User is a member but not subscribed, so proceed to update the subscription.
+	// User is a member but not subscribed, so proceed to update the subscription and IsNew to false.
+	roomMember.IsNew = false
 	roomMember.IsSubscribed = true
 	if err := initializers.DB.Save(&roomMember).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -207,8 +247,7 @@ func SubscribeNewRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	// Successfully updated the subscription state.
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "Successfully subscribed to room",
 	})
