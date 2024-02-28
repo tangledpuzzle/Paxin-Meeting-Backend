@@ -24,7 +24,7 @@ type ChatRoom struct {
 	Version       uint64           `gorm:"default:0"`
 	CreatedAt     time.Time        `gorm:"not null;default:now()"`
 	BumpedAt      time.Time        `gorm:"not null;default:now()"`
-	LastMessageID *uint
+	LastMessageID uint
 	LastMessage   *ChatMessage `gorm:"foreignKey:LastMessageID"`
 }
 
