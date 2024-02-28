@@ -172,12 +172,17 @@ func Register(micro *fiber.App) {
 	})
 
 	micro.Route("/chat", func(router fiber.Router) {
-		router.Get("/room/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetRoomDetails)
-		router.Get("/rooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetSubscribedRooms)
-		router.Get("/newRooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetNewUnsubscribedRooms)
-		router.Post("/createRoom", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.CreateChatRoom)
-		router.Post("/subscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SubscribeNewRoom)
-		router.Post("/unsubscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UnsubscribeRoom)
+		router.Get("/room/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetRoomDetailsForDM)
+		router.Get("/rooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetSubscribedRoomsForDM)
+		router.Get("/newRooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetNewUnsubscribedRoomsForDM)
+		router.Post("/createRoom", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.CreateChatRoomForDM)
+		router.Patch("/subscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SubscribeNewRoomForDM)
+		router.Patch("/unsubscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UnsubscribeRoomForDM)
+
+		router.Get("/message/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetChatMessagesForDM)
+		router.Post("/message/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SendMessageForDM)
+		router.Patch("/message/edit/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.EditMessageForDM)
+		router.Delete("/message/delete/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteMessageForDM)
 	})
 
 	micro.Route("/files", func(router fiber.Router) {

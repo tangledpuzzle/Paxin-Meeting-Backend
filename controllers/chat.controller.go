@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -16,27 +15,16 @@ type CreateRoomRequest struct {
 	InitialMessage string `json:"initialMessage"`
 }
 
-type RoomResponse struct {
-	ID          uint                 `json:"id"`
-	Name        string               `json:"name"`
-	Members     []RoomMemberResponse `json:"members"`
-	Version     uint                 `json:"version"`
-	CreatedAt   time.Time            `json:"createdAt"`
-	BumpedAt    time.Time            `json:"bumpedAt"`
-	LastMessage *models.ChatMessage  `json:"lastMessage,omitempty"`
+type SendMessageRequest struct {
+	Content string `json:"content"`
+	RoomID  uint   `json:"roomId"`
 }
 
-type RoomMemberResponse struct {
-	ID           uint        `json:"id"`
-	RoomID       uint        `json:"roomId"`
-	UserID       string      `json:"userId"`
-	User         models.User `json:"user"`
-	IsSubscribed bool        `json:"isSubscribed"`
-	IsNew        bool        `json:"isNew"`
-	JoinedAt     time.Time   `json:"joinedAt"`
+type EditMessageRequest struct {
+	Content string `json:"content"`
 }
 
-func CreateChatRoom(c *fiber.Ctx) error {
+func CreateChatRoomForDM(c *fiber.Ctx) error {
 	requestor := c.Locals("user").(models.UserResponse)
 
 	// Parse request body
@@ -111,7 +99,7 @@ func CreateChatRoom(c *fiber.Ctx) error {
 	})
 }
 
-func GetRoomDetails(c *fiber.Ctx) error {
+func GetRoomDetailsForDM(c *fiber.Ctx) error {
 	roomId := c.Params("roomId")
 
 	var room models.ChatRoom
@@ -131,7 +119,7 @@ func GetRoomDetails(c *fiber.Ctx) error {
 	})
 }
 
-func GetSubscribedRooms(c *fiber.Ctx) error {
+func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
 	var rooms []models.ChatRoom
@@ -160,7 +148,7 @@ func GetSubscribedRooms(c *fiber.Ctx) error {
 	})
 }
 
-func GetNewUnsubscribedRooms(c *fiber.Ctx) error {
+func GetNewUnsubscribedRoomsForDM(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
 	var rooms []models.ChatRoom
@@ -189,7 +177,7 @@ func GetNewUnsubscribedRooms(c *fiber.Ctx) error {
 	})
 }
 
-func SubscribeNewRoom(c *fiber.Ctx) error {
+func SubscribeNewRoomForDM(c *fiber.Ctx) error {
 	// Extract the authenticated user from the context.
 	user := c.Locals("user").(models.UserResponse)
 
@@ -253,7 +241,7 @@ func SubscribeNewRoom(c *fiber.Ctx) error {
 	})
 }
 
-func UnsubscribeRoom(c *fiber.Ctx) error {
+func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 	// Extract the authenticated user from the context.
 	user := c.Locals("user").(models.UserResponse)
 
@@ -316,5 +304,116 @@ func UnsubscribeRoom(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
 		"message": "Successfully unsubscribed from room",
+	})
+}
+
+func SendMessageForDM(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+
+	payload := new(SendMessageRequest)
+	if err := c.BodyParser(payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
+	}
+
+	message := models.ChatMessage{
+		Content: payload.Content,
+		UserID:  user.ID,
+		RoomID:  payload.RoomID,
+	}
+
+	if err := initializers.DB.Create(&message).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to send message"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "Message sent"})
+}
+
+func EditMessageForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
+	messageID := c.Params("messageId")
+
+	payload := new(EditMessageRequest)
+	if err := c.BodyParser(payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
+	}
+
+	var message models.ChatMessage
+	result := initializers.DB.First(&message, "id = ? AND user_id = ?", messageID, userID)
+	if result.Error != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Message not found",
+		})
+	}
+
+	message.Content = payload.Content
+	message.IsEdited = true
+	initializers.DB.Save(&message)
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Message updated successfully",
+	})
+}
+
+func DeleteMessageForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
+	messageID := c.Params("messageId")
+
+	// Assuming messages are associated with a UserID for authorization
+	var message models.ChatMessage
+	result := initializers.DB.First(&message, "id = ? AND user_id = ?", messageID, userID)
+
+	if result.Error != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Message not found",
+		})
+	}
+
+	if err := initializers.DB.Delete(&message).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete message",
+			"error":   err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Message deleted successfully",
+	})
+}
+
+func GetChatMessagesForDM(c *fiber.Ctx) error {
+	roomID := c.Params("roomId")
+
+	var messages []models.ChatMessage
+	result := initializers.DB.Where("room_id = ?", roomID).Not("is_deleted", true).Find(&messages)
+	if result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch messages",
+		})
+	}
+
+	// Optional: Hide or alter the content of deleted messages
+	for i, msg := range messages {
+		if msg.IsDeleted {
+			messages[i].Content = "This message has been deleted."
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "success",
+		"data":   messages,
 	})
 }
