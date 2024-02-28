@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -465,11 +464,11 @@ func DeleteMessageForDM(c *fiber.Ctx) error {
 func GetChatMessagesForDM(c *fiber.Ctx) error {
 	userID := c.Locals("user").(models.UserResponse).ID
 	roomID := c.Params("roomId")
-	roomIDParsed, err := uuid.Parse(roomID)
+	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Invalid room ID format",
+			"message": "Invalid room ID format, must be a positive number",
 		})
 	}
 
@@ -485,7 +484,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 
 	// Fetch all messages from the room, including those marked as deleted.
 	var messages []models.ChatMessage
-	err = initializers.DB.Unscoped().Where("room_id = ?", roomIDParsed).Find(&messages).Error
+	err = initializers.DB.Unscoped().Where("room_id = ?", roomIDParsed).Order("created_at DESC").Preload("User").Find(&messages).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
