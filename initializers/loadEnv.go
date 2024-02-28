@@ -39,6 +39,12 @@ type Config struct {
 	SMTPPass  string `mapstructure:"SMTP_PASS"`
 	SMTPPort  int    `mapstructure:"SMTP_PORT"`
 	SMTPUser  string `mapstructure:"SMTP_USER"`
+
+	CentrifugoTokenSecret      string `mapstructure:"CENTRIFUGO_TOKEN_SECRET"`
+	CentrifugoHttpApiEndpoint  string `mapstructure:"CENTRIFUGO_HTTP_API_ENDPOINT"`
+	CentrifugoHttpApiKey       string `mapstructure:"CENTRIFUGO_HTTP_API_KEY"`
+	CentrifugoBroadcastMode    string `mapstructure:"CENTRIFUGO_BROADCAST_MODE"`
+	CentrifugoOutboxPartitions int    `mapstructure:"CENTRIFUGO_OUTBOX_PARTITIONS"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
