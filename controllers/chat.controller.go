@@ -79,7 +79,7 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 		// Create initial message
 		initialMessage := models.ChatMessage{
 			RoomID:  newRoom.ID,
-			UserID:  requestorUser.ID, // Assuming this is the sender
+			UserID:  requestorUser.ID,
 			Content: payload.InitialMessage,
 		}
 		if err := initializers.DB.Create(&initialMessage).Error; err != nil {
