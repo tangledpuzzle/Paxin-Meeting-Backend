@@ -36,6 +36,7 @@ type ChatMessage struct {
 	User      User       `gorm:"foreignKey:UserID"`
 	Room      ChatRoom   `gorm:"foreignKey:RoomID"`
 	IsEdited  bool       `gorm:"not null;default:false"`
+	IsDeleted bool       `gorm:"not null;default:false"`
 	CreatedAt time.Time  `gorm:"not null;default:now()"`
 	DeletedAt *time.Time `gorm:"index"`
 }

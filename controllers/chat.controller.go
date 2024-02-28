@@ -6,6 +6,7 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -444,17 +445,20 @@ func DeleteMessageForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := initializers.DB.Delete(&message).Error; err != nil {
+	// Perform soft delete by updating IsDeleted to true and setting DeletedAt to the current time
+	now := time.Now()
+	updateResult := initializers.DB.Model(&message).Updates(models.ChatMessage{IsDeleted: true, DeletedAt: &now})
+	if updateResult.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Failed to delete message",
-			"error":   err.Error(),
+			"message": "Failed to flag message as deleted",
+			"error":   updateResult.Error.Error(),
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
-		"message": "Message deleted successfully",
+		"message": "Message flagged as deleted successfully",
 	})
 }
 
@@ -491,7 +495,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 
 	// Iterate through messages to hide content of deleted messages
 	for i, msg := range messages {
-		if msg.DeletedAt != nil {
+		if msg.IsDeleted {
 			messages[i].Content = "This message has been deleted."
 		}
 	}
