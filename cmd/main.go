@@ -276,7 +276,7 @@ func main() {
 					Preload("User").
 					Preload("Hashtags").
 					Order("RANDOM()").
-					Limit(4).
+					Limit(2).
 					Find(&blogs).
 					Error
 				if err != nil {
