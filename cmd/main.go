@@ -88,8 +88,6 @@ func init() {
 	initializers.ConnectDB(&config)
 	initializers.ConnectRedis(&config)
 	initializers.ConnectTelegram(&config)
-	// initializers.ConnectRethinkDB(&config)
-
 }
 
 // @title Paxintrade core api

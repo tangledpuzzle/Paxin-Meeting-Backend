@@ -185,6 +185,11 @@ func Register(micro *fiber.App) {
 		router.Delete("/message/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteMessageForDM)
 	})
 
+	micro.Route("/contrifugoToken", func(router fiber.Router) {
+		router.Get("/connection", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetCentrifugoConnectionToken)
+		router.Get("/subscription", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetCentrifugoSubscriptionToken)
+	})
+
 	micro.Route("/files", func(router fiber.Router) {
 		router.Post("/upload/file", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadPdf)
 		router.Post("/upload", middleware.DeserializeUser, middleware.CheckProfileFilled(), controllers.UploadImage)

@@ -3,7 +3,6 @@ redis_data
 postgres_data
 rabbitmq_data
 rabbitmq_logs
-rethinkdb_data
 
 # bininary
 bin/*

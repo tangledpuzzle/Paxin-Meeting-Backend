@@ -1,0 +1,29 @@
+{
+  "address": "0.0.0.0",
+  "log_level": "debug",
+  "allowed_origins": "*",
+  "token_hmac_secret_key": "<secret>",
+  "api_key": "<api_key>",
+  "namespaces": [
+    {
+      "name": "personal",
+      "history_size": 300,
+      "history_ttl": "600s",
+      "force_recovery": true
+    }
+  ],
+  "consumers": [
+    {
+      "name": "postgresql",
+      "type": "postgresql",
+      "postgresql": {
+        "dsn": "postgresql://paxintrade:<password>@postgres:5432/paxintrade",
+        "outbox_table_name": "chat_outbox",
+        "num_partitions": 1,
+        "partition_select_limit": 100,
+        "partition_poll_interval": "300ms",
+        "partition_notification_channel": "centrifugo_partition_change"
+      }
+    }
+  ]
+}
