@@ -88,8 +88,6 @@ func init() {
 	initializers.ConnectDB(&config)
 	initializers.ConnectRedis(&config)
 	initializers.ConnectTelegram(&config)
-	// initializers.ConnectRethinkDB(&config)
-
 }
 
 // @title Paxintrade core api
@@ -270,7 +268,7 @@ func main() {
 			}
 
 			if messageData.MessageType == "getADS" {
-				var blog models.Blog
+				var blogs []models.Blog
 				err := initializers.DB.
 					Preload("Photos").
 					Preload("City.Translations", "language = ?", language).
@@ -278,27 +276,30 @@ func main() {
 					Preload("User").
 					Preload("Hashtags").
 					Order("RANDOM()").
-					Limit(4).
-					First(&blog).
+					Limit(2).
+					Find(&blogs).
 					Error
 				if err != nil {
-					fmt.Println("error fetching random blog:", err)
-					continue
+					fmt.Println("error fetching random blogs:", err)
+					return // Exit or handle the error appropriately
 				}
 
-				blogJSON, err := json.Marshal(blog)
-				if err != nil {
-					fmt.Println("error encoding blog to JSON:", err)
-					continue
-				}
+				for _, blog := range blogs {
+					blogJSON, err := json.Marshal(blog)
+					if err != nil {
+						fmt.Println("error encoding blog to JSON:", err)
+						continue
+					}
 
-				// Send the JSON data to the client
-				err = c.WriteMessage(websocket.TextMessage, blogJSON)
-				if err != nil {
-					fmt.Println("error sending blog JSON to client:", err)
-					continue
+					// Send the JSON data to the client
+					err = c.WriteMessage(websocket.TextMessage, blogJSON)
+					if err != nil {
+						fmt.Println("error sending blog JSON to client:", err)
+						continue
+					}
 				}
 			}
+
 		}
 	}))
 
