@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16.1-alpine
-    restart: unless-stopped
+    restart: on-failure:5
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "paxintrade", "-d", "paxintrade"]
       interval: 1s
@@ -20,13 +20,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
+    restart: on-failure:5
     # ports:
     #     - "6379:6379"
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    restart: unless-stopped
+    restart: on-failure:5
     # ports:
     #   # - 5672:5672 # for sender and consumer connections
     #   - 15672:15672 # for serve RabbitMQ GUI
@@ -36,7 +36,7 @@ services:
 
   centrifugo:
     image: centrifugo/centrifugo:v5.2.0
-    restart: unless-stopped
+    restart: on-failure:5
     volumes:
       - ./centrifugo/config.json:/centrifugo/config.json
     command: centrifugo -c config.json
@@ -125,7 +125,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod # Dockerfile.dev when development mode, Dockerfile.prod when production mode
-    restart: unless-stopped
+    restart: on-failure:5
     image: paxintrade-api:latest-prod # paxintrade-api:latest-dev when development mode, paxintrade-api:latest-prod when production mode
     ports:
       - "8000:8000/tcp"
