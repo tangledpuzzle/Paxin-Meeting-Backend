@@ -1,6 +1,7 @@
 #!/bin/sh
 
-BRANCH_NAME="release/prod"
+SERVICE_PATH="~/workspace/paxintrade/mainsite/backend"
+SERVICE_NAME="paxintrade-api"
 
 # Abort on errors
 set -e
@@ -24,32 +25,30 @@ chmod 600 "$PRIVATE_KEY_PATH"
 
 # SSH into the EC2 instance
 ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
-  BRANCH_NAME="${BRANCH_NAME}" # This assigns the value of the local variable to the remote variable
-  cd ~/workspace/paxintrade/backend
+  cd $SERVICE_PATH
+  source ~/.bashrc
+  ecr_login.sh
+  git restore .
+  git pull
+  docker compose stop $SERVICE_NAME || { echo "Failed to stop $SERVICE_NAME"; exit 1; }
+  docker compose pull $SERVICE_NAME || { echo "Failed to pull $SERVICE_NAME"; exit 1; }
+  docker compose up -d || { echo "Failed to start services with Docker Compose."; exit 1; }
 
-  # Ensure the target branch exists and check it out
-  branch_exists_locally=\$(git branch --list \$BRANCH_NAME)
-  branch_exists_remotely=\$(git ls-remote --heads origin \$BRANCH_NAME)
+  echo "Docker Compose started successfully. Checking if the $SERVICE_NAME service is running..."
+  sleep 5
 
-  if [[ -z "\$branch_exists_locally" ]]; then
-    if [[ -n "\$branch_exists_remotely" ]]; then
-      git remote prune origin
-      git fetch origin
-      git checkout -b \$BRANCH_NAME origin/\$BRANCH_NAME
-    else
-      echo "Error: The branch '\$BRANCH_NAME' does not exist locally or on 'origin'."
-      exit 1
-    fi
+  if ! docker compose top $SERVICE_NAME; then
+    echo "Failed to confirm that $SERVICE_NAME service is running. Please check logs."
+    exit 1
   else
-    git checkout \$BRANCH_NAME
+    echo "$SERVICE_NAME service is up and running."
   fi
-
-  # Continue to pull, install, build, and restart
-  git pull origin \$BRANCH_NAME
-  docker compose down paxintrade-api
-  docker rmi paxintrade-api:latest-prod
-  docker compose up -d --build
 ENDSSH
+
+if [ $? -ne 0 ]; then
+  echo "Deployment script encountered an error. Failing the pipeline."
+  exit 1
+fi
 
 # Clean up the private key
 rm "$PRIVATE_KEY_PATH"

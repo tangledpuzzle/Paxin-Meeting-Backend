@@ -7,9 +7,8 @@ import (
 func MainView(app *fiber.App) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
-			"Title":       "Powerful paxintrade server",
-			"Description": "server developed by paxintrade",
+			"Title":       "Powerful Paxintrade API Server",
+			"Description": "Server is developed by paxintrade",
 		})
 	})
-
 }

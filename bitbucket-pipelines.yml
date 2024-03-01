@@ -1,22 +1,95 @@
-image: golang:1.21-alpine
+definitions:
+  steps:
+    - &check_changes_step
+      name: "Check Main Files and Directories for Changes"
+      image: alpine:3
+      script:
+        - apk add --no-cache git
+        - |
+          echo "Checking for changes in specific directories/files..."
+          CHANGED_FILES=$(git diff-tree -m --no-commit-id --name-only -r $BITBUCKET_COMMIT)
+          echo "Changed files/directories: $CHANGED_FILES"
+          
+          CHECKED_PATHS="api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum"
+          SHOULD_BUILD=1
+          
+          if echo "$CHANGED_FILES" | grep -Eq $CHECKED_PATHS; then
+            echo "Relevant changes detected. Proceeding with build..."
+          else
+            echo "No relevant changes in critical paths. Skipping build and push step."
+            SHOULD_BUILD=0
+          fi
+          
+          BUILD_CHECK_ENV=build_check_env
+          echo "export SHOULD_BUILD=$SHOULD_BUILD" > $BUILD_CHECK_ENV
+      artifacts:
+        - build_check_env
 
 pipelines:
-  # default:
-  #   - parallel:
-  #       - step:
-  #           name: "Build and Test"
-  #           script:
-  #             - go mod download
-  #             - go build -o bin/paxintrade-api cmd/main.go
   branches:
-    release/prod:
+    main:
+      - step: *check_changes_step
       - step:
-          name: "Build"
+          name: "Build and Test"
+          image: golang:1.21-alpine
           script:
-            - go mod download
-            - go build -o bin/paxintrade-api cmd/main.go
+            - chmod +x build_check_env
+            - source build_check_env
+            - |
+              if [ "$SHOULD_BUILD" -eq "1" ]; then
+                echo "Building Golang API..."
+                go mod download
+                go build -o bin/paxintrade-api cmd/main.go
+              else
+                echo "Skipping build and push step as per previous step's decision."
+                exit 0
+              fi
+    release/prod:
+      - step: *check_changes_step
+      - step:
+          name: "Build and Push Docker Image to ECR"
+          image: python:3.9-alpine3.19
+          size: 2x
+          services:
+            - docker
+          caches:
+            - pip
+            - docker
+          script:
+            - chmod +x build_check_env
+            - source build_check_env
+            - |
+              if [ "$SHOULD_BUILD" -eq "1" ]; then
+                echo "Building and pushing Docker image to ECR..."
+                # Define environment values
+                export AWS_ACCESS_KEY_ID=AKIAQ3EGUQQP5JDZ6K5X
+                export REGION=us-west-2
+                export REPOSITORY_URI=058264421407.dkr.ecr.us-west-2.amazonaws.com
+                export IMAGE_NAME=paxintrade-api
+                export IMAGE_TAG=$(echo $BITBUCKET_COMMIT | cut -c 1-7)
+                export IMAGE_LATEST_TAG=latest
+
+                # Install dependencies required for the AWS CLI
+                apk add --no-cache groff less mailcap
+                # Install AWS CLI
+                pip install awscli
+
+                # Login to AWS ECR
+                aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+                # Build and tag the Docker image
+                docker build -f Dockerfile.prod -t $IMAGE_NAME .
+                docker tag $IMAGE_NAME $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_TAG
+                docker tag $IMAGE_NAME $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_LATEST_TAG
+                # Push the Docker image to AWS ECR
+                docker push $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_TAG
+                docker push $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_LATEST_TAG
+              else
+                echo "Skipping build and push step as per previous step's decision."
+                exit 0
+              fi
       - step:
           name: "Deploy to Production Environment"
+          image: alpine:3
           deployment: Production
           script:
             - echo "Deploying to production environment"
