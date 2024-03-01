@@ -93,13 +93,13 @@ func main() {
 	if err := initializers.DB.AutoMigrate(&models.Vote{}); err != nil {
 		panic(err)
 	}
+	if err := initializers.DB.AutoMigrate(&models.ChatMessage{}); err != nil {
+		panic(err)
+	}
 	if err := initializers.DB.AutoMigrate(&models.ChatRoom{}); err != nil {
 		panic(err)
 	}
 	if err := initializers.DB.AutoMigrate(&models.ChatRoomMember{}); err != nil {
-		panic(err)
-	}
-	if err := initializers.DB.AutoMigrate(&models.ChatMessage{}); err != nil {
 		panic(err)
 	}
 
