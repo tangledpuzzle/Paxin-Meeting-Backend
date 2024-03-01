@@ -1,6 +1,9 @@
 # vscode settings
 .vscode
 
+# modules
+node_modules
+
 # config
 app.env
 app.env.*
