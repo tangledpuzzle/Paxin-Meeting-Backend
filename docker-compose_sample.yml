@@ -164,5 +164,5 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      - paxmeet-server
-      - livekit
+      - paxintrade-api
+      - centrifugo
