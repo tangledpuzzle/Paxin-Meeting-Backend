@@ -24,12 +24,13 @@ echo -e "$FORMATTED_KEY" > "$PRIVATE_KEY_PATH"
 chmod 600 "$PRIVATE_KEY_PATH"
 
 # SSH into the EC2 instance
-ssh -t -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << EOF
+ssh -t -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << 'EOF'
+  set -x
   SERVICE_PATH='${SERVICE_PATH}'
   SERVICE_NAME='${SERVICE_NAME}'
-  source ~/.bashrc
-  ecr_login.sh
-  cd \$SERVICE_PATH
+  source ~/.bashrc || { echo "Failed to source .bashrc"; exit 1; }
+  ecr_login.sh || { echo "Failed to docker login to ECR."; exit 1; }
+  cd "\$SERVICE_PATH" || { echo "Failed to cd into \$SERVICE_PATH"; exit 1; }
   git restore .
   git pull
   docker compose stop \$SERVICE_NAME || { echo "Failed to stop \$SERVICE_NAME"; exit 1; }
