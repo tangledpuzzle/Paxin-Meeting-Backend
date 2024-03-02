@@ -24,31 +24,28 @@ echo -e "$FORMATTED_KEY" > "$PRIVATE_KEY_PATH"
 chmod 600 "$PRIVATE_KEY_PATH"
 
 # SSH into the EC2 instance
-ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
-  cd $SERVICE_PATH
+ssh -t -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << EOF
+  SERVICE_PATH='${SERVICE_PATH}'
+  SERVICE_NAME='${SERVICE_NAME}'
   source ~/.bashrc
   ecr_login.sh
+  cd \$SERVICE_PATH
   git restore .
   git pull
-  docker compose stop $SERVICE_NAME || { echo "Failed to stop $SERVICE_NAME"; exit 1; }
-  docker compose pull $SERVICE_NAME || { echo "Failed to pull $SERVICE_NAME"; exit 1; }
+  docker compose stop \$SERVICE_NAME || { echo "Failed to stop \$SERVICE_NAME"; exit 1; }
+  docker compose pull \$SERVICE_NAME || { echo "Failed to pull \$SERVICE_NAME"; exit 1; }
   docker compose up -d || { echo "Failed to start services with Docker Compose."; exit 1; }
 
-  echo "Docker Compose started successfully. Checking if the $SERVICE_NAME service is running..."
+  echo "Docker Compose started successfully. Checking if the \$SERVICE_NAME service is running..."
   sleep 5
 
-  if ! docker compose top $SERVICE_NAME; then
-    echo "Failed to confirm that $SERVICE_NAME service is running. Please check logs."
+  if ! docker compose top \$SERVICE_NAME; then
+    echo "Failed to confirm that \$SERVICE_NAME service is running. Please check logs."
     exit 1
   else
-    echo "$SERVICE_NAME service is up and running."
+    echo "\$SERVICE_NAME service is up and running."
   fi
-ENDSSH
-
-if [ $? -ne 0 ]; then
-  echo "Deployment script encountered an error. Failing the pipeline."
-  exit 1
-fi
+EOF
 
 # Clean up the private key
 rm "$PRIVATE_KEY_PATH"
