@@ -88,6 +88,7 @@ func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload Centri
 		return "", err // Return empty string on error
 	}
 
+	// TODO: use rabbitmq instead of api call using request
 	apiURL := fmt.Sprintf("%s/api", apiEndpoint)
 	request, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
@@ -108,7 +109,7 @@ func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload Centri
 
 	if response.StatusCode != http.StatusOK {
 		errorMsg := fmt.Sprintf("received non-OK response from Centrifugo: %d", response.StatusCode)
-		log.Printf(errorMsg)
+		log.Print(errorMsg)
 		return "", fmt.Errorf(errorMsg) // Return empty string on error
 	}
 
