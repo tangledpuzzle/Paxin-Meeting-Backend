@@ -1258,3 +1258,17 @@ func SearchHashTagProfile(c *fiber.Ctx) error {
 		"data":   hashtags,
 	})
 }
+
+func Get10RandomTags(c *fiber.Ctx) error {
+	var hashtags []models.HashtagsForProfile
+	if err := initializers.DB.Order("RANDOM()").Limit(10).Find(&hashtags).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch random tags from database",
+		})
+	}
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   hashtags,
+	})
+}
