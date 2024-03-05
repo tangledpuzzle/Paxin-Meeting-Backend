@@ -106,7 +106,7 @@ pipelines:
             - pip install awscli
 
             # Login to AWS ECR
-            - export ECR_PASSWORD=$(aws ecr get-login-password --region $AWS_DEFAULT_REGION)
+            - export ECR_PASSWORD=$(aws ecr get-login-password --region $REGION)
 
             # Deploy to Production
             - apk add --no-cache openssh
