@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"hyperpage/utils"
+	"log"
 	"strconv"
 	"time"
 
@@ -89,6 +91,28 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 		// Update the room's LastMessageId with the ID of the initial message
 		if err := initializers.DB.Model(&newRoom).Update("last_message_id", initialMessage.ID).Error; err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to update room's last message"})
+		}
+
+		serializedRoom := utils.SerializeChatRoomWithDetails(newRoom)
+		channels, err := GetRoomMemberChannels(newRoom.ID)
+		if err != nil {
+			log.Printf("Failed to get room member channels: %s", err)
+		} else {
+			broadcastPayload := CentrifugoBroadcastPayload{
+				Channels: channels,
+				Data: struct {
+					Type string                 `json:"type"`
+					Body map[string]interface{} `json:"body"`
+				}{
+					Type: "new_room",
+					Body: serializedRoom,
+				},
+				IdempotencyKey: fmt.Sprintf("create_room_%d", newRoom.ID),
+			}
+
+			if _, err := CentrifugoBroadcastRoom(fmt.Sprint(newRoom.ID), broadcastPayload); err != nil {
+				log.Printf("Failed to broadcast room creation: %s", err)
+			}
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
@@ -251,6 +275,28 @@ func SubscribeNewRoomForDM(c *fiber.Ctx) error {
 		})
 	}
 
+	serializedRoom := utils.SerializeChatRoomWithDetails(room)
+	channels, err := GetRoomMemberChannels(room.ID)
+	if err != nil {
+		log.Printf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "subscribe_room",
+				Body: serializedRoom,
+			},
+			IdempotencyKey: fmt.Sprintf("subscribe_room_%d", room.ID),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(room.ID), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast room subscription: %s", err)
+		}
+	}
+
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "Successfully subscribed to room",
@@ -316,6 +362,28 @@ func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 		})
 	}
 
+	serializedRoom := utils.SerializeChatRoomWithDetails(room)
+	channels, err := GetRoomMemberChannels(room.ID)
+	if err != nil {
+		log.Printf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "unsubscribe_room",
+				Body: serializedRoom,
+			},
+			IdempotencyKey: fmt.Sprintf("unsubscribe_room_%d", room.ID),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(room.ID), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast room unsubscription: %s", err)
+		}
+	}
+
 	// Successfully updated the subscription to unsubscribed.
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
@@ -339,6 +407,15 @@ func SendMessageForDM(c *fiber.Ctx) error {
 			"message": "Invalid request body",
 			"error":   err.Error(),
 		})
+	}
+
+	// Check if the user is a subscribed member of the room
+	var member models.ChatRoomMember
+	result := initializers.DB.Model(&models.ChatRoomMember{}).
+		Where("room_id = ? AND user_id = ?", uint(u64), user.ID).
+		First(&member)
+	if result.Error != nil || !member.IsSubscribed {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "error", "message": "User is not subscribed to the room"})
 	}
 
 	// Check if the user is a member of the room and if the other member is subscribed.
@@ -374,6 +451,28 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	// Update the room's LastMessageId after sending a new message
 	if err := initializers.DB.Model(&models.ChatRoom{}).Where("id = ?", message.RoomID).Update("last_message_id", message.ID).Error; err != nil {
 		fmt.Println("Failed to update room's last message: ", err)
+	}
+
+	serializedMessage := utils.SerializeChatMessage(message)
+	channels, err := GetRoomMemberChannels(message.RoomID)
+	if err != nil {
+		log.Printf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "new_message",
+				Body: serializedMessage,
+			},
+			IdempotencyKey: fmt.Sprintf("send_message_%d", message.ID),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(message.RoomID), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast new message: %s", err)
+		}
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"message": message}})
@@ -418,6 +517,28 @@ func EditMessageForDM(c *fiber.Ctx) error {
 		})
 	}
 
+	serializedMessage := utils.SerializeChatMessage(message)
+	channels, err := GetRoomMemberChannels(message.RoomID)
+	if err != nil {
+		log.Printf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "edit_message",
+				Body: serializedMessage,
+			},
+			IdempotencyKey: fmt.Sprintf("edit_message_%d", message.ID),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(message.RoomID), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast message update: %s", err)
+		}
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
 		"message": "Message updated successfully",
@@ -456,6 +577,30 @@ func DeleteMessageForDM(c *fiber.Ctx) error {
 			"message": "Failed to flag message as deleted",
 			"error":   updateResult.Error.Error(),
 		})
+	}
+
+	tempMessage := message
+	tempMessage.Content = "This message has been deleted."
+	serializedMessage := utils.SerializeChatMessage(tempMessage)
+	channels, err := GetRoomMemberChannels(message.RoomID)
+	if err != nil {
+		log.Printf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "delete_message",
+				Body: serializedMessage,
+			},
+			IdempotencyKey: fmt.Sprintf("delete_message_%d", message.ID),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(message.RoomID), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast message deletion notice: %s", err)
+		}
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
