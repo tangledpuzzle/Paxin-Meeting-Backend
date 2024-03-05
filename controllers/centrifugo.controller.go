@@ -78,20 +78,21 @@ type CentrifugoBroadcastPayload struct {
 		Type string                 `json:"type"`
 		Body map[string]interface{} `json:"body"`
 	} `json:"data"`
+	IdempotencyKey string `json:"idempotency_key"`
 }
 
-func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload CentrifugoBroadcastPayload) error {
+func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload CentrifugoBroadcastPayload) (string, error) {
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshaling payload: %s", err)
-		return err
+		return "", err // Return empty string on error
 	}
 
 	apiURL := fmt.Sprintf("%s/api", apiEndpoint)
 	request, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		log.Printf("Error creating request: %s", err)
-		return err
+		return "", err // Return empty string on error
 	}
 
 	request.Header.Set("Content-Type", "application/json")
@@ -101,19 +102,21 @@ func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload Centri
 	response, err := client.Do(request)
 	if err != nil {
 		log.Printf("Error sending request to Centrifugo: %s", err)
-		return err
+		return "", err // Return empty string on error
 	}
-
 	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
-		log.Printf("Received non-OK response from Centrifugo: %d", response.StatusCode)
-		return fmt.Errorf("received non-OK response from Centrifugo: %d", response.StatusCode)
+		errorMsg := fmt.Sprintf("received non-OK response from Centrifugo: %d", response.StatusCode)
+		log.Printf(errorMsg)
+		return "", fmt.Errorf(errorMsg) // Return empty string on error
 	}
 
-	return nil
+	// Return a success message when no errors occur.
+	return "Broadcast sent successfully to Centrifugo", nil
 }
 
-func CentrifugoBroadcastRoom(roomID string, broadcastPayload CentrifugoBroadcastPayload) error {
+func CentrifugoBroadcastRoom(roomID string, broadcastPayload CentrifugoBroadcastPayload) (string, error) {
 	configPath := "./app.env"
 	config, _ := initializers.LoadConfig(configPath)
 
@@ -122,6 +125,6 @@ func CentrifugoBroadcastRoom(roomID string, broadcastPayload CentrifugoBroadcast
 		return CentrifugoBroadcastViaAPI(config.CentrifugoHttpApiEndpoint, config.CentrifugoHttpApiKey, broadcastPayload)
 	default:
 		log.Printf("Broadcast mode '%s' is not implemented", config.CentrifugoBroadcastMode)
-		return fmt.Errorf("broadcast mode '%s' is not implemented", config.CentrifugoBroadcastMode)
+		return "", fmt.Errorf("broadcast mode '%s' is not implemented", config.CentrifugoBroadcastMode)
 	}
 }
