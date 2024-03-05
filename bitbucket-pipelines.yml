@@ -89,10 +89,26 @@ pipelines:
               fi
       - step:
           name: "Deploy to Production Environment"
-          image: alpine:3
           deployment: Production
+          image: python:3.9-alpine3.19
+          caches:
+            - pip
           script:
             - echo "Deploying to production environment"
+            # Define environment values
+            - export AWS_ACCESS_KEY_ID=AKIAQ3EGUQQP5JDZ6K5X
+            - export REGION=us-west-2
+            - export REPOSITORY_URI=058264421407.dkr.ecr.us-west-2.amazonaws.com
+
+            # Install dependencies required for the AWS CLI
+            - apk add --no-cache groff less mailcap
+            # Install AWS CLI
+            - pip install awscli
+
+            # Login to AWS ECR
+            - export ECR_PASSWORD=$(aws ecr get-login-password --region $REGION)
+
+            # Deploy to Production
             - apk add --no-cache openssh
             - chmod +x ./deploy_release-prod.sh
             - ./deploy_release-prod.sh
