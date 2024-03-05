@@ -4,6 +4,7 @@ import (
 	"time"
 
 	uuid "github.com/satori/go.uuid"
+	"gorm.io/datatypes"
 )
 
 type ChatRoomMember struct {
@@ -39,4 +40,18 @@ type ChatMessage struct {
 	IsDeleted bool       `gorm:"not null;default:false"`
 	CreatedAt time.Time  `gorm:"not null;default:now()"`
 	DeletedAt *time.Time `gorm:"index"`
+}
+
+type ChatOutbox struct {
+	Method    string `gorm:"type:text;default:publish"`
+	Payload   datatypes.JSON
+	Partition int64 `gorm:"default:0"`
+	CreatedAt time.Time
+}
+
+type ChatCDC struct {
+	Method    string `gorm:"type:text;default:publish"`
+	Payload   datatypes.JSON
+	Partition int64 `gorm:"default:0"`
+	CreatedAt time.Time
 }
