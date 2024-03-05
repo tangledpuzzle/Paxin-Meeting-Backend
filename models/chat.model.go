@@ -43,6 +43,7 @@ type ChatMessage struct {
 }
 
 type ChatOutbox struct {
+	ID        uint   `gorm:"primaryKey"`
 	Method    string `gorm:"type:text;default:publish"`
 	Payload   datatypes.JSON
 	Partition int64 `gorm:"default:0"`
@@ -50,6 +51,7 @@ type ChatOutbox struct {
 }
 
 type ChatCDC struct {
+	ID        uint   `gorm:"primaryKey"`
 	Method    string `gorm:"type:text;default:publish"`
 	Payload   datatypes.JSON
 	Partition int64 `gorm:"default:0"`
