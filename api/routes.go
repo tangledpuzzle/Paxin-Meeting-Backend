@@ -155,6 +155,7 @@ func Register(micro *fiber.App) {
 		router.Post("/addblogtime", middleware.DeserializeUser, controllers.AddBlogTime)
 		router.Post("/addhashtag", middleware.DeserializeUser, controllers.AddHashTag)
 		router.Get("/findTag", controllers.SearchHashTag)
+		router.Get("/taketags", controllers.Get10RandomBlogHashtags)
 
 		router.Get("/allvotes/:id", controllers.GetAllVotes)
 		router.Post("/addvote/:id", middleware.DeserializeUser, controllers.AddVote)
