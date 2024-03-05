@@ -144,6 +144,8 @@ func Register(micro *fiber.App) {
 	micro.Route("/profilehashtags", func(router fiber.Router) {
 		router.Post("/addhashtag", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.AddHashTagProfile)
 		router.Get("/findTag", controllers.SearchHashTagProfile)
+		router.Get("/get", controllers.Get10RandomTags)
+
 	})
 
 	micro.Route("/blog", func(router fiber.Router) {
