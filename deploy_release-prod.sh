@@ -27,7 +27,7 @@ chmod 600 "$PRIVATE_KEY_PATH"
 ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
   cd $SERVICE_PATH
   source ~/.bashrc
-  ecr_login.sh
+  echo $ECR_PASSWORD | docker login --username AWS --password-stdin $REPOSITORY_URI
   git restore .
   git pull
   docker compose stop $SERVICE_NAME || { echo "Failed to stop $SERVICE_NAME"; exit 1; }
