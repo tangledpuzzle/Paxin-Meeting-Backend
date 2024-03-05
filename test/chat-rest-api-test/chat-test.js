@@ -6,7 +6,7 @@ const loginUser = async (
   email,
   password,
   session,
-  closeWebSocket
+  closeWebSocket,
 ) => {
   const payload = {
     email: email,
@@ -50,7 +50,7 @@ const login = ({
         if (parsedData?.session) {
           console.log(parsedData);
           loginUser(loginUrl, email, password, parsedData.session, () =>
-            websocket.close()
+            websocket.close(),
           )
             .then(resolve)
             .catch(reject);
@@ -75,7 +75,7 @@ const requestHelper = async ({ token, session, url, method, data }) => {
 
     // If a session is provided, include it in the headers
     if (session) {
-      headers["Session"] = session;
+      headers.Session = session;
     }
 
     // Set the content type to JSON for POST, PUT methods
@@ -103,8 +103,9 @@ const requestHelper = async ({ token, session, url, method, data }) => {
   } catch (error) {
     console.error(
       "Error in request:",
-      error.response ? error.response.data : error.message
+      error.response ? error.response.data : error.message,
     );
+    if (error.response?.data) return error.response.data;
     throw error;
   }
 };
@@ -370,9 +371,9 @@ async function runTestCases() {
   try {
     // Case: Initial Room Creation
     console.log("Attempting to create a room with Demir and Eddie...");
-    let roomCreateResp = await authenticateAndCreateRoom(
+    const roomCreateResp = await authenticateAndCreateRoom(
       users[0].email,
-      users[1].userId
+      users[1].userId,
     );
     if (roomCreateResp.status !== "success" || !roomCreateResp.data.room.ID)
       throw new Error("Room creation failed");
@@ -384,28 +385,28 @@ async function runTestCases() {
     try {
       await authenticateAndCreateRoom(users[0].email, users[1].userId);
       console.error(
-        "Room was recreated; the system failed to prevent duplicate rooms."
+        "Room was recreated; the system failed to prevent duplicate rooms.",
       );
     } catch (error) {
       console.log(
         "Expected error preventing room recreation received:",
-        error.message
+        error.message,
       );
     }
 
     // Case: Attempt to Create a Room in Reverse Order
     console.log(
-      "Attempting to create a room with Eddie and Demir (reverse order)..."
+      "Attempting to create a room with Eddie and Demir (reverse order)...",
     );
     try {
       await authenticateAndCreateRoom(users[1].email, users[0].userId);
       console.error(
-        "Room was recreated in reverse order; the system failed to prevent duplicate rooms."
+        "Room was recreated in reverse order; the system failed to prevent duplicate rooms.",
       );
     } catch (error) {
       console.log(
         "Expected error preventing room recreation in reverse order received:",
-        error.message
+        error.message,
       );
     }
 
@@ -416,12 +417,12 @@ async function runTestCases() {
     } catch (error) {
       console.log(
         "Expected error on sending message without full subscription:",
-        error.message
+        error.message,
       );
     }
 
     // Case: Subscribe all members
-    console.log(`Subscribing Eddie to the room...`);
+    console.log("Subscribing Eddie to the room...");
     await authenticateAndSubscribe(users[1].email, roomId);
     console.log("All members subscribed.");
 
@@ -430,7 +431,7 @@ async function runTestCases() {
     const sendMessageResp = await sendMessage(
       users[0].email,
       roomId,
-      "Hello from Demir!"
+      "Hello from Demir!",
     );
     if (!sendMessageResp.data.message.ID)
       throw new Error("Sending message failed");
@@ -441,7 +442,7 @@ async function runTestCases() {
     console.log("Sending multiple messages to check ordering...");
     const messageIds = [];
     for (let i = 0; i < 3; i++) {
-      let resp = await sendMessage(users[0].email, roomId, `Message ${i}`);
+      const resp = await sendMessage(users[0].email, roomId, `Message ${i}`);
       if (!resp.data.message.ID) throw new Error("Sending message failed");
       messageIds.push(resp.data.message.ID);
     }
@@ -454,7 +455,7 @@ async function runTestCases() {
     } catch (error) {
       console.log(
         "Test passed: Non-member could not send a message. Error:",
-        error.message
+        error.message,
       );
     }
 
@@ -463,7 +464,7 @@ async function runTestCases() {
     const editMessageResp = await editMessage(
       users[0].email,
       messageId,
-      "Updated message content"
+      "Updated message content",
     );
     // Assuming editMessage function returns the updated message or status. Adjust according to your implementation.
     if (editMessageResp.status !== "success")
@@ -471,11 +472,8 @@ async function runTestCases() {
 
     // Case: Delete the message and verify deletion
     console.log("Deleting the message...");
-    const deleteMessageResp = await deleteMessage(
-      users[0].email,
-      roomId,
-      messageId
-    );
+    const deleteMessageResp = await deleteMessage(users[0].email, messageId);
+    console.log(deleteMessageResp);
     // Assuming deleteMessage function returns a status. Adjust according to your implementation.
     if (deleteMessageResp.status !== "success")
       throw new Error("Deleting message failed");
@@ -488,7 +486,7 @@ async function runTestCases() {
     } catch (error) {
       console.log(
         "Test passed: Non-owner could not edit the message. Error:",
-        error.message
+        error.message,
       );
     }
 
@@ -498,7 +496,7 @@ async function runTestCases() {
     if (!allMessagesResp || !Array.isArray(allMessagesResp.data.messages))
       throw new Error("Fetching messages failed");
     console.log(
-      `Total messages fetched: ${allMessagesResp.data.messages.length}`
+      `Total messages fetched: ${allMessagesResp.data.messages.length}`,
     );
   } catch (error) {
     console.error("Test case failed with error:", error);
