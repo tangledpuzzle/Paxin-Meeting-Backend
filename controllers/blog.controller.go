@@ -243,6 +243,20 @@ func generateUniqueID() string {
 	return encodedID
 }
 
+func Get10RandomBlogHashtags(c *fiber.Ctx) error {
+	var blogHashtags []models.Hashtags
+	if err := initializers.DB.Order("RANDOM()").Limit(10).Find(&blogHashtags).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch random blog hashtags from database",
+		})
+	}
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   blogHashtags,
+	})
+}
+
 func CreateBlog(c *fiber.Ctx) error {
 	configPath := "./app.env"
 	config, _ := initializers.LoadConfig(configPath)
