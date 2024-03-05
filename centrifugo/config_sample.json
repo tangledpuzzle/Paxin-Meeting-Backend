@@ -18,7 +18,7 @@
       "type": "postgresql",
       "postgresql": {
         "dsn": "postgresql://paxintrade:<password>@postgres:5432/paxintrade",
-        "outbox_table_name": "chat_outbox",
+        "outbox_table_name": "chat_outboxes",
         "num_partitions": 1,
         "partition_select_limit": 100,
         "partition_poll_interval": "300ms",
