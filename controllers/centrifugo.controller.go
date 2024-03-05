@@ -89,7 +89,7 @@ func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload Centri
 	}
 
 	// TODO: use rabbitmq instead of api call using request
-	apiURL := fmt.Sprintf("%s/api", apiEndpoint)
+	apiURL := fmt.Sprintf("%s/api/broadcast", apiEndpoint)
 	request, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		log.Printf("Error creating request: %s", err)
@@ -97,7 +97,9 @@ func CentrifugoBroadcastViaAPI(apiEndpoint string, apiKey string, payload Centri
 	}
 
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("apikey %s", apiKey))
+	// request.Header.Set("Authorization", fmt.Sprintf("apikey %s", apiKey))
+	request.Header.Set("X-API-Key", apiKey)
+	request.Header.Set("X-Centrifugo-Error-Mode", "transport")
 
 	client := &http.Client{}
 	response, err := client.Do(request)
