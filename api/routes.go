@@ -24,6 +24,10 @@ func Register(micro *fiber.App) {
 		router.Post("/ios", controllers.CreateDevice)
 	})
 
+	micro.Route("/newreq", func(router fiber.Router) {
+		router.Post("/post", middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.Userq)
+	})
+
 	micro.Route("/auth", func(router fiber.Router) {
 		router.Post("/register", controllers.SignUpUser)
 
