@@ -684,6 +684,7 @@ func SetVipUser(c *fiber.Ctx) error {
 			"error": "Failed to update user role",
 		})
 	}
+
 	if result.RowsAffected == 0 {
 		// User not found
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
