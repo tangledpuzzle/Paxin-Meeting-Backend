@@ -27,7 +27,8 @@ func FetchUserByID(userID uuid.UUID) (models.User, error) {
 }
 
 func SerializeChatRoomMember(member models.ChatRoomMember) map[string]interface{} {
-	userSerialized := SerializeUser(member.User)
+	user, _ := FetchUserByID(member.User.ID)
+	userSerialized := SerializeUser(user)
 	return map[string]interface{}{
 		"id":            member.ID,
 		"room_id":       member.RoomID,
