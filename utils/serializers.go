@@ -7,38 +7,17 @@ import (
 	"hyperpage/models"
 
 	uuid "github.com/satori/go.uuid"
+	"gorm.io/gorm"
 )
-
-func FetchCitiesForProfile(profileID uint64) ([]models.City, error) {
-	var cities []models.City
-	err := initializers.DB.Joins("JOIN profiles_city ON profiles_city.city_id = cities.id").Where("profiles_city.profile_id = ?", profileID).Find(&cities).Error
-	if err != nil {
-		return nil, err
-	}
-	return cities, nil
-}
-
-func FetchGuildsForProfile(profileID uint64) ([]models.Guilds, error) {
-	var guilds []models.Guilds
-	err := initializers.DB.Joins("JOIN profiles_guilds ON profiles_guilds.guild_id = guilds.id").Where("profiles_guilds.profile_id = ?", profileID).Find(&guilds).Error
-	if err != nil {
-		return nil, err
-	}
-	return guilds, nil
-}
-
-func FetchHashtagsForProfile(profileID uint64) ([]models.Hashtags, error) {
-	var hashtags []models.Hashtags
-	err := initializers.DB.Joins("JOIN profiles_hashtags ON profiles_hashtags.hashtag_id = hashtags.id").Where("profiles_hashtags.profile_id = ?", profileID).Find(&hashtags).Error
-	if err != nil {
-		return nil, err
-	}
-	return hashtags, nil
-}
 
 func FetchUserByID(userID uuid.UUID) (models.User, error) {
 	var user models.User
-	err := initializers.DB.Where("id = ?", userID).First(&user).Error
+
+	// Adjust to preload Profile and its nested associations
+	err := initializers.DB.Preload("Profile", func(db *gorm.DB) *gorm.DB {
+		return db.Preload("City").Preload("Guilds").Preload("Hashtags").Preload("Photos")
+	}).Where("id = ?", userID).First(&user).Error
+
 	if err != nil {
 		return models.User{}, err
 	}
@@ -144,7 +123,7 @@ func SerializeGuild(guild models.Guilds) map[string]interface{} {
 	}
 }
 
-func SerializeHashtag(hashtag models.Hashtags) map[string]interface{} {
+func SerializeHashtag(hashtag models.HashtagsForProfile) map[string]interface{} {
 	return map[string]interface{}{
 		"id":         hashtag.ID,
 		"hashtag":    hashtag.Hashtag,
@@ -167,23 +146,25 @@ func SerializeProfilePhoto(photo models.ProfilePhoto) map[string]interface{} {
 	}
 }
 
-func SerializeProfile(profile models.Profile, cities []models.City, guilds []models.Guilds, hashtags []models.Hashtags, photos []models.ProfilePhoto) map[string]interface{} {
-	var serializedCities, serializedGuilds, serializedHashtags []map[string]interface{}
+func SerializeProfile(profile models.Profile) map[string]interface{} {
 
-	for _, city := range cities {
+	serializedCities := make([]map[string]interface{}, 0)
+	for _, city := range profile.City {
 		serializedCities = append(serializedCities, SerializeCity(city))
 	}
 
-	for _, guild := range guilds {
+	serializedGuilds := make([]map[string]interface{}, 0)
+	for _, guild := range profile.Guilds {
 		serializedGuilds = append(serializedGuilds, SerializeGuild(guild))
 	}
 
-	for _, hashtag := range hashtags {
+	serializedHashtags := make([]map[string]interface{}, 0)
+	for _, hashtag := range profile.Hashtags {
 		serializedHashtags = append(serializedHashtags, SerializeHashtag(hashtag))
 	}
 
-	var serializedPhotos []map[string]interface{}
-	for _, photo := range photos {
+	serializedPhotos := make([]map[string]interface{}, 0)
+	for _, photo := range profile.Photos {
 		serializedPhotos = append(serializedPhotos, SerializeProfilePhoto(photo))
 	}
 
@@ -205,13 +186,10 @@ func SerializeProfile(profile models.Profile, cities []models.City, guilds []mod
 }
 
 func SerializeUser(user models.User) map[string]interface{} {
-	serializedProfiles := []map[string]interface{}{}
+	serializedProfiles := make([]map[string]interface{}, 0)
 	for _, profile := range user.Profile {
-		cities, _ := FetchCitiesForProfile(profile.ID)
-		guilds, _ := FetchGuildsForProfile(profile.ID)
-		hashtags, _ := FetchHashtagsForProfile(profile.ID)
-		photos, _ := FetchPhotosForProfile(profile.ID)
-		serializedProfiles = append(serializedProfiles, SerializeProfile(profile, cities, guilds, hashtags, photos))
+		serializedProfile := SerializeProfile(profile)
+		serializedProfiles = append(serializedProfiles, serializedProfile)
 	}
 
 	return map[string]interface{}{
