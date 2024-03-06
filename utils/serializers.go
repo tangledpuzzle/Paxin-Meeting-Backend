@@ -12,10 +12,12 @@ import (
 
 func FetchUserByID(userID uuid.UUID) (models.User, error) {
 	var user models.User
-
-	// Adjust to preload Profile and its nested associations
 	err := initializers.DB.Preload("Profile", func(db *gorm.DB) *gorm.DB {
-		return db.Preload("City").Preload("Guilds").Preload("Hashtags").Preload("Photos")
+		return db.Preload("City", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Translations")
+		}).Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Translations")
+		}).Preload("Hashtags").Preload("Photos")
 	}).Where("id = ?", userID).First(&user).Error
 
 	if err != nil {
@@ -24,16 +26,25 @@ func FetchUserByID(userID uuid.UUID) (models.User, error) {
 	return user, nil
 }
 
-func FetchPhotosForProfile(profileID uint64) ([]models.ProfilePhoto, error) {
-	var photos []models.ProfilePhoto
-	err := initializers.DB.Where("profile_id = ?", profileID).Find(&photos).Error
-	if err != nil {
-		return nil, err
+func SerializeChatRoomMember(member models.ChatRoomMember) map[string]interface{} {
+	userSerialized := SerializeUser(member.User)
+	return map[string]interface{}{
+		"id":            member.ID,
+		"room_id":       member.RoomID,
+		"user":          userSerialized,
+		"is_subscribed": member.IsSubscribed,
+		"is_new":        member.IsNew,
+		"joined_at":     member.JoinedAt,
 	}
-	return photos, nil
 }
 
-func SerializeChatRoomWithDetails(room models.ChatRoom) map[string]interface{} {
+func SerializeChatRoom(roomID uint) map[string]interface{} {
+	var room models.ChatRoom
+	err := initializers.DB.Preload("Members.User").Preload("LastMessage").First(&room, roomID).Error
+	if err != nil {
+		return nil
+	}
+
 	roomMap := map[string]interface{}{
 		"id":           room.ID,
 		"name":         room.Name,
@@ -72,17 +83,6 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 		"is_edited":  message.IsEdited,
 		"created_at": message.CreatedAt,
 		"is_deleted": message.IsDeleted,
-	}
-}
-
-func SerializeChatRoomMember(member models.ChatRoomMember) map[string]interface{} {
-	return map[string]interface{}{
-		"id":            member.ID,
-		"room_id":       member.RoomID,
-		"user_id":       member.UserID.String(),
-		"is_subscribed": member.IsSubscribed,
-		"is_new":        member.IsNew,
-		"joined_at":     member.JoinedAt,
 	}
 }
 
