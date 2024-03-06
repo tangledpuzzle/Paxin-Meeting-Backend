@@ -93,7 +93,7 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Failed to update room's last message"})
 		}
 
-		serializedRoom := utils.SerializeChatRoomWithDetails(newRoom)
+		serializedRoom := utils.SerializeChatRoom(newRoom.ID)
 		channels, err := GetRoomMemberChannels(newRoom.ID)
 		if err != nil {
 			log.Printf("Failed to get room member channels: %s", err)
@@ -275,7 +275,7 @@ func SubscribeNewRoomForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	serializedRoom := utils.SerializeChatRoomWithDetails(room)
+	serializedRoom := utils.SerializeChatRoom(room.ID)
 	channels, err := GetRoomMemberChannels(room.ID)
 	if err != nil {
 		log.Printf("Failed to get room member channels for broadcasting: %s", err)
@@ -362,7 +362,7 @@ func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	serializedRoom := utils.SerializeChatRoomWithDetails(room)
+	serializedRoom := utils.SerializeChatRoom(room.ID)
 	channels, err := GetRoomMemberChannels(room.ID)
 	if err != nil {
 		log.Printf("Failed to get room member channels for broadcasting: %s", err)
