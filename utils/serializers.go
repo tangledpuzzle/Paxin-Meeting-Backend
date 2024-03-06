@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 func FetchCitiesForProfile(profileID uint64) ([]models.City, error) {
@@ -32,6 +34,15 @@ func FetchHashtagsForProfile(profileID uint64) ([]models.Hashtags, error) {
 		return nil, err
 	}
 	return hashtags, nil
+}
+
+func FetchUserByID(userID uuid.UUID) (models.User, error) {
+	var user models.User
+	err := initializers.DB.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return models.User{}, err
+	}
+	return user, nil
 }
 
 func FetchPhotosForProfile(profileID uint64) ([]models.ProfilePhoto, error) {
@@ -67,7 +78,11 @@ func SerializeChatRoomWithDetails(room models.ChatRoom) map[string]interface{} {
 }
 
 func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
-	serializedUser := SerializeUser(message.User)
+	user, err := FetchUserByID(message.UserID)
+	if err != nil {
+		return nil
+	}
+	serializedUser := SerializeUser(user)
 
 	return map[string]interface{}{
 		"id":         message.ID,
