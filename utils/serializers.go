@@ -12,25 +12,18 @@ import (
 
 func FetchUserByID(userID uuid.UUID) (models.User, error) {
 	var user models.User
-
-	// Adjust to preload Profile and its nested associations
 	err := initializers.DB.Preload("Profile", func(db *gorm.DB) *gorm.DB {
-		return db.Preload("City").Preload("Guilds").Preload("Hashtags").Preload("Photos")
+		return db.Preload("City", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Translations")
+		}).Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Translations")
+		}).Preload("Hashtags").Preload("Photos")
 	}).Where("id = ?", userID).First(&user).Error
 
 	if err != nil {
 		return models.User{}, err
 	}
 	return user, nil
-}
-
-func FetchPhotosForProfile(profileID uint64) ([]models.ProfilePhoto, error) {
-	var photos []models.ProfilePhoto
-	err := initializers.DB.Where("profile_id = ?", profileID).Find(&photos).Error
-	if err != nil {
-		return nil, err
-	}
-	return photos, nil
 }
 
 func SerializeChatRoomWithDetails(room models.ChatRoom) map[string]interface{} {
