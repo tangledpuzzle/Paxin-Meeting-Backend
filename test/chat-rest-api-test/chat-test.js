@@ -1,117 +1,8 @@
-const WebSocket = require("ws");
-const axios = require("axios");
-
-const loginUser = async (
-  loginUrl,
-  email,
-  password,
-  session,
-  closeWebSocket,
-) => {
-  const payload = {
-    email: email,
-    password: password,
-  };
-
-  const response = await axios.post(loginUrl, payload, {
-    headers: {
-      Session: session,
-    },
-  });
-
-  const cookie = response.headers["set-cookie"];
-  const cookieString = Array.isArray(cookie) ? cookie.join("; ") : cookie;
-
-  return {
-    authInfo: response.data,
-    cookie: cookieString,
-    session: session,
-    closeWebSocket,
-  };
-};
-
-const login = ({
-  email,
-  password,
-  loginUrl = "https://go.paxintrade.com/api/auth/login",
-  wsUrl = "wss://go.paxintrade.com/socket.io/?EIO=4&transport=websocket",
-}) => {
-  return new Promise((resolve, reject) => {
-    const websocket = new WebSocket(wsUrl);
-
-    websocket.on("open", () => {
-      console.log("Connected to the WebSocket server.");
-    });
-
-    websocket.on("message", (data) => {
-      try {
-        const parsedData = JSON.parse(data);
-
-        if (parsedData?.session) {
-          console.log(parsedData);
-          loginUser(loginUrl, email, password, parsedData.session, () =>
-            websocket.close(),
-          )
-            .then(resolve)
-            .catch(reject);
-        }
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    websocket.on("error", (error) => {
-      reject(error);
-    });
-  });
-};
-
-const requestHelper = async ({ token, session, url, method, data }) => {
-  try {
-    // Prepare the headers
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
-
-    // If a session is provided, include it in the headers
-    if (session) {
-      headers.Session = session;
-    }
-
-    // Set the content type to JSON for POST, PUT methods
-    if (["POST", "PATCH"].includes(method.toUpperCase())) {
-      headers["Content-Type"] = "application/json";
-    }
-
-    // Prepare request configuration
-    const config = {
-      method,
-      url,
-      headers,
-    };
-
-    // Add request body for methods that require it
-    if (["POST", "PATCH"].includes(method.toUpperCase()) && data) {
-      config.data = data;
-    }
-
-    // Send the request using axios and return the response data
-    const response = await axios(config);
-
-    // Return the necessary data from the response
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Error in request:",
-      error.response ? error.response.data : error.message,
-    );
-    if (error.response?.data) return error.response.data;
-    throw error;
-  }
-};
+const { login } = require("./utils/pax_login");
+const { requestHelper } = require("./utils/utils");
 
 const authenticateAndCreateRoom = async (email, acceptorId) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -124,7 +15,7 @@ const authenticateAndCreateRoom = async (email, acceptorId) => {
         acceptorId: acceptorId,
         initialMessage: "Hi",
       },
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -137,7 +28,7 @@ const authenticateAndCreateRoom = async (email, acceptorId) => {
 };
 
 const authenticateAndGetSubscribedRooms = async (email) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -146,7 +37,7 @@ const authenticateAndGetSubscribedRooms = async (email) => {
     const res = await requestHelper({
       url: "https://go.paxintrade.com/api/chat/rooms",
       method: "GET",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -159,7 +50,7 @@ const authenticateAndGetSubscribedRooms = async (email) => {
 };
 
 const authenticateAndGetUnsubscribedNewRooms = async (email) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -168,7 +59,7 @@ const authenticateAndGetUnsubscribedNewRooms = async (email) => {
     const res = await requestHelper({
       url: "https://go.paxintrade.com/api/chat/newRooms",
       method: "GET",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -181,7 +72,7 @@ const authenticateAndGetUnsubscribedNewRooms = async (email) => {
 };
 
 const authenticateAndSubscribe = async (email, roomId) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -190,7 +81,7 @@ const authenticateAndSubscribe = async (email, roomId) => {
     const res = await requestHelper({
       url: `https://go.paxintrade.com/api/chat/subscribe/${roomId}`,
       method: "PATCH",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -203,7 +94,7 @@ const authenticateAndSubscribe = async (email, roomId) => {
 };
 
 const authenticateAndUnSubscribe = async (email, roomId) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -212,7 +103,7 @@ const authenticateAndUnSubscribe = async (email, roomId) => {
     const res = await requestHelper({
       url: `https://go.paxintrade.com/api/chat/unsubscribe/${roomId}`,
       method: "PATCH",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -225,7 +116,7 @@ const authenticateAndUnSubscribe = async (email, roomId) => {
 };
 
 const authenticateAndGetRoomDetails = async (email, roomId) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -234,7 +125,7 @@ const authenticateAndGetRoomDetails = async (email, roomId) => {
     const res = await requestHelper({
       url: `https://go.paxintrade.com/api/chat/room/${roomId}`,
       method: "GET",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -247,7 +138,7 @@ const authenticateAndGetRoomDetails = async (email, roomId) => {
 };
 
 const sendMessage = async (email, roomId, messageContent) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -259,7 +150,7 @@ const sendMessage = async (email, roomId, messageContent) => {
       data: {
         content: messageContent,
       },
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -272,7 +163,7 @@ const sendMessage = async (email, roomId, messageContent) => {
 };
 
 const editMessage = async (email, messageId, newContent) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -284,7 +175,7 @@ const editMessage = async (email, messageId, newContent) => {
       data: {
         content: newContent,
       },
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -297,7 +188,7 @@ const editMessage = async (email, messageId, newContent) => {
 };
 
 const deleteMessage = async (email, messageId) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -306,7 +197,7 @@ const deleteMessage = async (email, messageId) => {
     const res = await requestHelper({
       url: `https://go.paxintrade.com/api/chat/message/${messageId}`,
       method: "DELETE",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
@@ -319,7 +210,7 @@ const deleteMessage = async (email, messageId) => {
 };
 
 const getAllMessages = async (email, roomId) => {
-  const { authInfo, session, closeWebSocket } = await login({
+  const { token, session, closeWebSocket } = await login({
     email: email,
     password: "123123",
   });
@@ -328,7 +219,7 @@ const getAllMessages = async (email, roomId) => {
     const res = await requestHelper({
       url: `https://go.paxintrade.com/api/chat/message/${roomId}`,
       method: "GET",
-      token: authInfo.access_token,
+      token: token,
       session: session,
     });
     console.log(JSON.stringify(res, null, 2));
