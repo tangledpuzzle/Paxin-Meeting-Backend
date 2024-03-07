@@ -628,13 +628,6 @@ func ResetPassword(c *fiber.Ctx) error {
 		})
 	}
 
-	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"status":  "fail",
-			"message": "Invalid reset token",
-		})
-	}
-
 	// Get the user with the specified reset token
 	var user models.User
 	result := initializers.DB.Where("password_reset_token = ? AND password_reset_at > ?", resetToken, time.Now()).First(&user)
