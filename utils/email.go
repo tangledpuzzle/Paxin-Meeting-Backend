@@ -49,6 +49,15 @@ type ComplainPost struct {
 	Subject string
 }
 
+type ContactUs struct {
+	Subject    string
+	Name       string
+	SecondName string
+	Email      string
+	Phone      string
+	Msg        string
+}
+
 // ? Email template parser
 
 func ParseTemplateDir(dir string) (*template.Template, error) {
@@ -99,6 +108,8 @@ func SendEmail(user *models.User, data interface{}, emailTemplatePrefix string, 
 		emailTemplate = emailTemplatePrefix + "_" + language + ".html"
 	case *ComplainPost:
 		emailTemplate = emailTemplatePrefix + "_" + language + ".html"
+	case *ContactUs:
+		emailTemplate = emailTemplatePrefix + "_" + language + ".html"
 	default:
 		log.Fatal("Unsupported email data type")
 	}
@@ -124,6 +135,8 @@ func SendEmail(user *models.User, data interface{}, emailTemplatePrefix string, 
 	case *ComplainUser:
 		m.SetHeader("Subject", data.Subject)
 	case *ComplainPost:
+		m.SetHeader("Subject", data.Subject)
+	case *ContactUs:
 		m.SetHeader("Subject", data.Subject)
 	default:
 		log.Println("Unsupported email data type")
