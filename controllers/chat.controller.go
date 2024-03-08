@@ -420,7 +420,7 @@ func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 
 	// Check if the user is a subscribed member of the room.
 	var roomMember models.ChatRoomMember
-	err := initializers.DB.Where("room_id = ? AND user_id = ? AND is_subscribed = ?", roomId, user.ID, true).First(&roomMember).Error
+	err := initializers.DB.Where("room_id = ? AND user_id = ?", roomId, user.ID).First(&roomMember).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -437,6 +437,7 @@ func UnsubscribeRoomForDM(c *fiber.Ctx) error {
 
 	// User is subscribed, proceed to update the subscription to false.
 	roomMember.IsSubscribed = false
+	roomMember.IsNew = false
 	if err := initializers.DB.Save(&roomMember).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
