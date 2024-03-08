@@ -140,12 +140,26 @@ func GetRoomDetailsForDM(c *fiber.Ctx) error {
 
 	var room models.ChatRoom
 	if err := initializers.DB.
+		Model(&models.ChatRoom{}).
+		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
+		Where("chat_rooms.id = ? AND chat_room_members.user_id = ?", roomId, user.ID).
 		Preload("Members", func(db *gorm.DB) *gorm.DB {
-			return db.Joins("User")
+			return db.Joins("User").
+				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
 		}).
 		Preload("LastMessage").
-		Joins("JOIN chat_room_members on chat_room_members.room_id = chat_rooms.id").
-		Where("chat_rooms.id = ? AND chat_room_members.user_id = ?", roomId, user.ID).
 		First(&room).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "Room not found or access denied", "error": err.Error()})
@@ -168,7 +182,20 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
 		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ?", user.ID, true).
 		Preload("Members", func(db *gorm.DB) *gorm.DB {
-			return db.Joins("User")
+			return db.Joins("User").
+				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
 		}).
 		Preload("LastMessage").
 		Find(&rooms)
@@ -197,7 +224,20 @@ func GetNewUnsubscribedRoomsForDM(c *fiber.Ctx) error {
 		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
 		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ? AND chat_room_members.is_new = ?", user.ID, false, true).
 		Preload("Members", func(db *gorm.DB) *gorm.DB {
-			return db.Joins("User")
+			return db.Joins("JOIN users ON chat_room_members.user_id = users.id").
+				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
 		}).
 		Preload("LastMessage").
 		Find(&rooms)
@@ -206,6 +246,49 @@ func GetNewUnsubscribedRoomsForDM(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Could not fetch new, unsubscribed chat rooms",
+			"error":   result.Error.Error(),
+		})
+	}
+
+	// If no error occurs and rooms are found, return them
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   rooms,
+	})
+}
+
+func GetUnsubscribedNotNewRoomsForDM(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+
+	var rooms []models.ChatRoom
+	result := initializers.DB.
+		Model(&models.ChatRoom{}).
+		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
+		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ? AND chat_room_members.is_new = ?", user.ID, false, false).
+		Preload("Members", func(db *gorm.DB) *gorm.DB {
+			return db.Joins("JOIN users ON chat_room_members.user_id = users.id").
+				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
+		}).
+		Preload("LastMessage").
+		Order("created_at DESC"). // You may wish to order the rooms
+		Find(&rooms)
+
+	if result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not fetch unsubscribed, not new chat rooms",
 			"error":   result.Error.Error(),
 		})
 	}
@@ -632,7 +715,25 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 
 	// Fetch all messages from the room, including those marked as deleted.
 	var messages []models.ChatMessage
-	err = initializers.DB.Unscoped().Where("room_id = ?", roomIDParsed).Order("created_at DESC").Preload("User").Find(&messages).Error
+	err = initializers.DB.Unscoped().
+		Where("room_id = ?", roomIDParsed).
+		Order("created_at DESC").
+		Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Profile", func(db *gorm.DB) *gorm.DB {
+				return db.
+					Preload("City", func(db *gorm.DB) *gorm.DB {
+						return db.Preload("Translations")
+					}).
+					Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+						return db.Preload("Translations")
+					}).
+					Preload("Hashtags").
+					Preload("Photos").
+					Preload("Documents").
+					Preload("Service")
+			})
+		}).
+		Find(&messages).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
