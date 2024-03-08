@@ -108,6 +108,8 @@ func SendEmail(user *models.User, data interface{}, emailTemplatePrefix string, 
 		emailTemplate = emailTemplatePrefix + "_" + language + ".html"
 	case *ComplainPost:
 		emailTemplate = emailTemplatePrefix + "_" + language + ".html"
+	case *ContactUs:
+		emailTemplate = emailTemplatePrefix + "_" + language + ".html"
 	default:
 		log.Fatal("Unsupported email data type")
 	}
@@ -133,6 +135,8 @@ func SendEmail(user *models.User, data interface{}, emailTemplatePrefix string, 
 	case *ComplainUser:
 		m.SetHeader("Subject", data.Subject)
 	case *ComplainPost:
+		m.SetHeader("Subject", data.Subject)
+	case *ContactUs:
 		m.SetHeader("Subject", data.Subject)
 	default:
 		log.Println("Unsupported email data type")
