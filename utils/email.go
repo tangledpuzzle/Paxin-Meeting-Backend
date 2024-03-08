@@ -49,6 +49,15 @@ type ComplainPost struct {
 	Subject string
 }
 
+type ContactUs struct {
+	Subject    string
+	Name       string
+	SecondName string
+	Email      string
+	Phone      string
+	Msg        string
+}
+
 // ? Email template parser
 
 func ParseTemplateDir(dir string) (*template.Template, error) {

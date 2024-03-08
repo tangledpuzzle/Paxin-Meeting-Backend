@@ -82,6 +82,27 @@ func Userq(c *fiber.Ctx) error {
 			Descr:   requestBody.Descr,
 			Type:    requestBody.Type,
 		}
+	case "ContactUs":
+		var requestBody struct {
+			Name       string `json:"name"`
+			SecondName string `json:"secondname"`
+			Email      string `json:"email"`
+			Phone      string `json:"phone"`
+			Msg        string `json:"msg"`
+		}
+		if err := c.BodyParser(&requestBody); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Failed to parse JSON body",
+			})
+		}
+		emailData = &utils.ContactUs{
+			Subject:    "New mail",
+			Name:       requestBody.Name,
+			SecondName: requestBody.SecondName,
+			Email:      requestBody.Email,
+			Phone:      requestBody.Phone,
+			Msg:        requestBody.Msg,
+		}
 	default:
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid mode specified",
