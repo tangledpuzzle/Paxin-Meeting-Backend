@@ -182,6 +182,7 @@ func Register(micro *fiber.App) {
 		router.Get("/room/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetRoomDetailsForDM)
 		router.Get("/rooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetSubscribedRoomsForDM)
 		router.Get("/newRooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetNewUnsubscribedRoomsForDM)
+		router.Get("/archivedRooms", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetUnsubscribedNotNewRoomsForDM)
 		router.Post("/createRoom", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.CreateChatRoomForDM)
 		router.Patch("/subscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SubscribeNewRoomForDM)
 		router.Patch("/unsubscribe/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UnsubscribeRoomForDM)
