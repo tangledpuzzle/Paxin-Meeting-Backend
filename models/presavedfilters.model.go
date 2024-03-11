@@ -9,15 +9,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Meta представляет пользовательский тип для метаданных
 type Meta map[string]string
 
-// Value преобразует Meta в JSONB
 func (m Meta) Value() (driver.Value, error) {
 	return json.Marshal(m)
 }
 
-// Scan преобразует JSONB в Meta
 func (m *Meta) Scan(src interface{}) error {
 	if src == nil {
 		return errors.New("source is nil")
