@@ -108,6 +108,9 @@ func main() {
 	if err := initializers.DB.AutoMigrate(&models.ChatOutbox{}); err != nil {
 		panic(err)
 	}
+	if err := initializers.DB.AutoMigrate(&models.Presavedfilters{}); err != nil {
+		panic(err)
+	}
 
 	// Check if there are any users in the database
 	var userCount int64
