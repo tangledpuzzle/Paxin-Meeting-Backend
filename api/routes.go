@@ -20,6 +20,13 @@ func Register(micro *fiber.App) {
 		router.Patch("/updatelang/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin"}), controllers.UpdateLang)
 	})
 
+	micro.Route("/presavedfilter", func(router fiber.Router) {
+		router.Get("/get", controllers.CreateDevice)
+		router.Post("/post", middleware.DeserializeUser, controllers.CreatePresavedfilter)
+		router.Patch("/patch", controllers.CreateDevice)
+		router.Delete("/delete", controllers.CreateDevice)
+	})
+
 	micro.Route("/devices", func(router fiber.Router) {
 		router.Post("/ios", controllers.CreateDevice)
 	})
