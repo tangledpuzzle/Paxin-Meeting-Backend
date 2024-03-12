@@ -756,3 +756,63 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		},
 	})
 }
+
+func MarkMessageAsReadForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
+	messageIDParam := c.Params("messageId")
+	messageID, err := strconv.ParseUint(messageIDParam, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid messageId format",
+		})
+	}
+
+	var message models.ChatMessage
+	result := initializers.DB.First(&message, "id = ? AND user_id = ?", messageID, userID)
+	if result.Error != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Message not found or not owned by user",
+		})
+	}
+
+	message.IsRead = true
+	if err := initializers.DB.Save(&message).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update message",
+			"error":   err.Error(),
+		})
+	}
+
+	serializedMessage := utils.SerializeChatMessage(message)
+	channels, err := GetRoomMemberChannels(message.RoomID)
+	if err != nil {
+		log.Printf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "read_message",
+				Body: serializedMessage,
+			},
+			IdempotencyKey: fmt.Sprintf("read_message_%d", message.ID),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(message.RoomID), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast message mark as read: %s", err)
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Message is marked as read",
+		// "data": fiber.Map{
+		// 	"message": message,
+		// },
+	})
+}

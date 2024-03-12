@@ -40,6 +40,7 @@ type ChatMessage struct {
 	IsDeleted bool       `gorm:"not null;default:false"`
 	CreatedAt time.Time  `gorm:"not null;default:now()"`
 	DeletedAt *time.Time `gorm:"index"`
+	IsRead    bool       `gorm:"not null;default:false"`
 }
 
 type ChatOutbox struct {
