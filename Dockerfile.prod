@@ -15,6 +15,7 @@ WORKDIR /app
 COPY --from=builder  /app/bin/paxintrade-api .
 COPY templates ./templates
 COPY views ./views
+# Copy Keys Folder
 COPY keys ./keys
 RUN chmod ++x /app/paxintrade-api
 
