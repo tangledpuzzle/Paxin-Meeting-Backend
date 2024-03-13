@@ -10,7 +10,7 @@ definitions:
           CHANGED_FILES=$(git diff-tree -m --no-commit-id --name-only -r $BITBUCKET_COMMIT)
           echo "Changed files/directories: $CHANGED_FILES"
 
-          CHECKED_PATHS="api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum"
+          CHECKED_PATHS="api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum|Dockerfile.prod"
           SHOULD_BUILD=1
 
           if echo "$CHANGED_FILES" | grep -Eq $CHECKED_PATHS; then
