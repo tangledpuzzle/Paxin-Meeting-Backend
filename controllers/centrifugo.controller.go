@@ -58,7 +58,7 @@ func GetCentrifugoSubscriptionToken(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"token": signedToken})
 }
 
-func GetRoomMemberChannels(roomID uint) ([]string, error) {
+func GetRoomMemberChannels(roomID uint64) ([]string, error) {
 	var members []models.ChatRoomMember
 	if err := initializers.DB.Where("room_id = ?", roomID).Find(&members).Error; err != nil {
 		return nil, err
