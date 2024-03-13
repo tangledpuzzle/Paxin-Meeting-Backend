@@ -85,6 +85,7 @@ type userResponse struct {
 	TotalRestBlogs    int              `json:"totalrestblog"`
 	TelegramName      string           `json:"telegramname"`
 	TelegramActivated bool             `json:"telegramactivated"`
+	IsBot             bool             `json:"is_bot"`
 }
 
 type CategoryJSON struct {
@@ -1403,6 +1404,7 @@ func GetBlogById(c *fiber.Ctx) error {
 				TotalRestBlogs:    b.User.TotalRestBlogs,
 				TelegramName:      telegramNameVal,
 				TelegramActivated: b.User.TelegramActivated,
+				IsBot:             b.User.IsBot,
 			},
 			Hashtags: hashtags,
 		}
@@ -1779,6 +1781,7 @@ func GetAll(c *fiber.Ctx) error {
 				TotalRestBlogs:    b.User.TotalRestBlogs,
 				TelegramName:      telegramNameVal,
 				TelegramActivated: b.User.TelegramActivated,
+				IsBot:             b.User.IsBot,
 			},
 			Hashtags: hashtags,
 		}
@@ -1935,6 +1938,7 @@ func EditBlogGetId(c *fiber.Ctx) error {
 				OnlineHours:      userOnlineHours,
 				TotalOnlineHours: userTotalOnlineHours,
 				TotalRestBlogs:   b.User.TotalRestBlogs,
+				IsBot:            b.User.IsBot,
 			},
 			Hashtags: hashtags,
 		}
