@@ -15,6 +15,7 @@ WORKDIR /app
 COPY --from=builder  /app/bin/paxintrade-api .
 COPY templates ./templates
 COPY views ./views
+COPY keys ./keys
 RUN chmod ++x /app/paxintrade-api
 
 CMD ["pm2-runtime", "paxintrade-api"]
