@@ -32,6 +32,11 @@ func Register(micro *fiber.App) {
 		router.Post("/push", controllers.SendNot)
 	})
 
+	micro.Route("/relations", func(router fiber.Router) {
+		// router.Post("/following", controllers.getFollowing)
+		router.Get("/followers", middleware.DeserializeUser, controllers.GetFollowers)
+	})
+
 	micro.Route("/newreq", func(router fiber.Router) {
 		router.Post("/post", middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.Userq)
 	})

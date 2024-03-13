@@ -2,17 +2,33 @@ package models
 
 import (
 	// "hyperpage/initializers"
+	"database/sql/driver"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	uuid "github.com/satori/go.uuid"
 )
 
+func (m *MultilangTitle) Scan(value interface{}) error {
+	// Implement how to scan value from the database into your struct
+	// Example:
+	// var data []byte
+	// err := json.Unmarshal(value.([]byte), &m)
+	return nil
+}
+
+func (m MultilangTitle) Value() (driver.Value, error) {
+	// Implement how to get the value from your struct to be stored in the database
+	// Example:
+	// return json.Marshal(m)
+	return nil, nil
+}
+
 type Blog struct {
 	ID               uint64         `gorm:"primaryKey"`
 	Title            string         `gorm:"not null"`
 	Votes            []Vote         `gorm:"foreignKey:BlogID"`
-	MultilangTitle   MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_title_"`
+	MultilangTitle   MultilangTitle `json:"multilangtitle" gorm:"embedded"`
 	Descr            string         `gorm:"not null"`
 	MultilangDescr   MultilangTitle `gorm:"embedded;embeddedPrefix:multilang_descr_"`
 	Slug             string         `gorm:"not null"`
@@ -44,7 +60,7 @@ type Blog struct {
 type BlogResponse struct {
 	ID               uint64         `json:"id"`
 	Title            string         `json:"title"`
-	Votes            []Vote         `json:"votes"`
+	Votes            []Vote         `json:"votes" gorm:"foreignKey:BlogID"`
 	MultilangTitle   MultilangTitle `json:"multilangtitle"`
 	MultilangDescr   MultilangTitle `json:"multilangdescr"`
 	MultilangContent MultilangTitle `json:"multilangcontent"`
