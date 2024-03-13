@@ -31,6 +31,7 @@ require (
 
 require (
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
+	github.com/sideshow/apns2 v0.23.0 // indirect
 	gorm.io/driver/mysql v1.4.7 // indirect
 )
 

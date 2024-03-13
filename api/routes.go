@@ -29,10 +29,11 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/devices", func(router fiber.Router) {
 		router.Post("/ios", controllers.CreateDevice)
+		router.Post("/push", controllers.SendNot)
 	})
 
 	micro.Route("/newreq", func(router fiber.Router) {
-		router.Post("/post", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.Userq)
+		router.Post("/post", middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.Userq)
 	})
 
 	micro.Route("/auth", func(router fiber.Router) {
