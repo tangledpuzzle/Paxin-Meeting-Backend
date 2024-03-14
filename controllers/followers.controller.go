@@ -198,7 +198,7 @@ func GetFollowers(c *fiber.Ctx) error {
 	}
 
 	var usF models.User
-	if err := initializers.DB.Preload("Followers").Preload("Followers.Profile").Preload("Followers.Profile.Hashtags").Preload("Followers.Domains").Preload("Followers.Profile.Photos").Preload("Followers.Profile.City.Translations", "language = ?", language).Preload("Followers.Followings").Preload("Followers.Followers").Preload("Followers.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
+	if err := initializers.DB.Preload("Followers").Preload("Blogs").Preload("Followers.Profile").Preload("Followers.Profile.Hashtags").Preload("Followers.Domains").Preload("Followers.Profile.Photos").Preload("Followers.Profile.City.Translations", "language = ?", language).Preload("Followers.Followings").Preload("Followers.Followers").Preload("Followers.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
 		// Handle database error
 		return err
 	}
@@ -208,5 +208,43 @@ func GetFollowers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   usF.Followers,
+	})
+}
+
+func GetFollowing(c *fiber.Ctx) error {
+	user := c.Locals("user")
+	if user == nil {
+		// Handle the case when user is nil
+		return errors.New("user not found")
+	}
+
+	userResp, ok := user.(models.UserResponse)
+	if !ok {
+		// Handle the case when user is not of type models.UserResponse
+		return errors.New("invalid user type")
+	}
+
+	userObj := models.User{
+		ID:   userResp.ID,
+		Role: userResp.Role,
+	}
+
+	language := c.Query("language")
+
+	if language == "" {
+		language = "en"
+	}
+
+	var usF models.User
+	if err := initializers.DB.Preload("Followings").Preload("Followings.Profile").Preload("Followings.Profile.Hashtags").Preload("Followings.Domains").Preload("Followings.Profile.Photos").Preload("Followings.Profile.City.Translations", "language = ?", language).Preload("Followings.Followings").Preload("Followings.Followers").Preload("Followings.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
+		// Handle database error
+		return err
+	}
+
+	fmt.Println(usF)
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   usF.Followings,
 	})
 }
