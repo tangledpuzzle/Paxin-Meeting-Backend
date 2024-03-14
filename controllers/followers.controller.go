@@ -203,8 +203,6 @@ func GetFollowers(c *fiber.Ctx) error {
 		return err
 	}
 
-	fmt.Println(usF)
-
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   usF.Followers,
@@ -236,12 +234,10 @@ func GetFollowing(c *fiber.Ctx) error {
 	}
 
 	var usF models.User
-	if err := initializers.DB.Preload("Followings").Preload("Followings.Profile").Preload("Followings.Profile.Hashtags").Preload("Followings.Domains").Preload("Followings.Profile.Photos").Preload("Followings.Profile.City.Translations", "language = ?", language).Preload("Followings.Followings").Preload("Followings.Followers").Preload("Followings.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
+	if err := initializers.DB.Preload("Followings").Preload("Blogs").Preload("Followings.Profile").Preload("Followings.Profile.Hashtags").Preload("Followings.Domains").Preload("Followings.Profile.Photos").Preload("Followings.Profile.City.Translations", "language = ?", language).Preload("Followings.Followings").Preload("Followings.Followers").Preload("Followings.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
 		// Handle database error
 		return err
 	}
-
-	fmt.Println(usF)
 
 	return c.JSON(fiber.Map{
 		"status": "success",
