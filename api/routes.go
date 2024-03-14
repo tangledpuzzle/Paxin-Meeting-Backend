@@ -33,7 +33,7 @@ func Register(micro *fiber.App) {
 	})
 
 	micro.Route("/relations", func(router fiber.Router) {
-		// router.Post("/following", controllers.getFollowing)
+		router.Get("/following", middleware.DeserializeUser, controllers.GetFollowing)
 		router.Get("/followers", middleware.DeserializeUser, controllers.GetFollowers)
 	})
 
