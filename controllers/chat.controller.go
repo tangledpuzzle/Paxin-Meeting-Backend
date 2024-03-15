@@ -843,6 +843,33 @@ func MarkMessageAsReadForDM(c *fiber.Ctx) error {
 		})
 	}
 
+	channels, err := GetRoomMemberChannels(roomIDParsed)
+	if err != nil {
+		log.Printf("Failed to get room member channels: %s", err)
+	} else {
+
+		// Prepare the 'Body' map
+		bodyMap := map[string]interface{}{}
+
+		bodyMap["lastReadMessageID"] = uint64PtrToString(member.LastReadMessageID)
+
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "updated_last_read_msg_id",
+				Body: bodyMap,
+			},
+			IdempotencyKey: fmt.Sprintf("create_room_%d", roomIDParsed),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(roomIDParsed), broadcastPayload); err != nil {
+			log.Printf("Failed to broadcast update latest read msg ID: %s", err)
+		}
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "success",
 		"message": "Message is marked as read",
@@ -860,4 +887,14 @@ func maxUint64Ptr(a *uint64, b uint64) *uint64 {
 		return &b // If b is greater, return b
 	}
 	return a // Otherwise, return a as it's already the maximum
+}
+
+func uint64PtrToString(val *uint64) string {
+	if val == nil {
+		// If the input is nil, you might want to return a default value
+		// or indicate somehow that conversion wasn't possible.
+		return ""
+	}
+	// Dereference the pointer, convert the uint64 value to a string.
+	return strconv.FormatUint(*val, 10)
 }
