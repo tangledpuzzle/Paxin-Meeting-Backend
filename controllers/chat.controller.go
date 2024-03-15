@@ -852,7 +852,7 @@ func MarkMessageAsReadForDM(c *fiber.Ctx) error {
 		bodyMap := map[string]interface{}{}
 
 		bodyMap["lastReadMessageId"] = uint64PtrToString(member.LastReadMessageID)
-		bodyMap["ownerId"] = message.User.ID.String()
+		bodyMap["ownerId"] = message.UserID.String()
 		bodyMap["roomId"] = strconv.FormatUint(message.RoomID, 10)
 
 		broadcastPayload := CentrifugoBroadcastPayload{
