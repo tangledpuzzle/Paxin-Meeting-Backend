@@ -27,6 +27,10 @@ type EditMessageRequest struct {
 	Content string `json:"content"`
 }
 
+type UserLatestMsgRequest struct {
+	MessageId string `json:"messageId"`
+}
+
 func CreateChatRoomForDM(c *fiber.Ctx) error {
 	requestor := c.Locals("user").(models.UserResponse)
 
@@ -496,7 +500,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	// Check if the user is a subscribed member of the room
 	var member models.ChatRoomMember
 	result := initializers.DB.Model(&models.ChatRoomMember{}).
-		Where("room_id = ? AND user_id = ?", uint(u64), user.ID).
+		Where("room_id = ? AND user_id = ?", u64, user.ID).
 		First(&member)
 	if result.Error != nil || !member.IsSubscribed {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "error", "message": "User is not subscribed to the room"})
@@ -505,7 +509,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	// Check if the user is a member of the room and if the other member is subscribed.
 	var count int64
 	initializers.DB.Model(&models.ChatRoomMember{}).
-		Where("room_id = ? AND user_id = ?", uint(u64), user.ID).
+		Where("room_id = ? AND user_id = ?", u64, user.ID).
 		Count(&count)
 	// Check if the user is indeed a member of the room
 	if count == 0 {
@@ -514,7 +518,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 
 	// check if there's another subscribed member in this room
 	initializers.DB.Model(&models.ChatRoomMember{}).
-		Where("room_id = ? AND user_id != ? AND is_subscribed = ?", uint(u64), user.ID, true).
+		Where("room_id = ? AND user_id != ? AND is_subscribed = ?", u64, user.ID, true).
 		Count(&count)
 	if count == 0 {
 		// This means the other member is not subscribed or does not exist
@@ -525,7 +529,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	message := models.ChatMessage{
 		Content: payload.Content,
 		UserID:  user.ID,
-		RoomID:  uint(u64),
+		RoomID:  u64,
 	}
 
 	if err := initializers.DB.Create(&message).Error; err != nil {
@@ -755,4 +759,88 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 			"messages": messages,
 		},
 	})
+}
+
+func MarkMessageAsReadForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
+	roomID := c.Params("roomId")
+	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid room ID format, must be a positive number",
+		})
+	}
+
+	// Check if the user is a member of the room
+	var member models.ChatRoomMember
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
+	if err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "error",
+			"message": "User is not a member of the room or room does not exist",
+		})
+	}
+
+	// Parse request body
+	payload := new(UserLatestMsgRequest)
+	if err := c.BodyParser(payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
+	}
+
+	messageIDParsed, err := strconv.ParseUint(payload.MessageId, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid message ID format, must be a positive number",
+		})
+	}
+
+	var message models.ChatMessage
+	result := initializers.DB.First(&message, "id = ?", messageIDParsed)
+	if result.Error != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Message not found or not owned by user",
+		})
+	}
+
+	if message.RoomID != roomIDParsed {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Message not found in this room",
+		})
+	}
+
+	member.LastReadMessageID = maxUint64Ptr(member.LastReadMessageID, messageIDParsed)
+
+	if err := initializers.DB.Save(&member).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update latest read message",
+			"error":   err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Message is marked as read",
+		"data": fiber.Map{
+			"updated_latest_read": member.LastReadMessageID,
+		},
+	})
+}
+
+func maxUint64Ptr(a *uint64, b uint64) *uint64 {
+	if a == nil {
+		return &b // If a is nil, return b
+	}
+	if *a < b {
+		return &b // If b is greater, return b
+	}
+	return a // Otherwise, return a as it's already the maximum
 }

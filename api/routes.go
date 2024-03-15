@@ -204,6 +204,8 @@ func Register(micro *fiber.App) {
 		router.Post("/message/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SendMessageForDM)
 		router.Patch("/message/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.EditMessageForDM)
 		router.Delete("/message/:messageId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteMessageForDM)
+		// Marks a message as read by the recipient
+		router.Patch("/read/:roomId", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.MarkMessageAsReadForDM)
 	})
 
 	micro.Route("/contrifugoToken", func(router fiber.Router) {
