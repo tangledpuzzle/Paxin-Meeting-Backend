@@ -42,6 +42,8 @@ type ChatMessage struct {
 	CreatedAt time.Time  `gorm:"not null;default:now()"`
 	DeletedAt *time.Time `gorm:"index"`
 	// IsRead    bool       `gorm:"not null;default:false"`
+	ParentMessageID *uint64
+	ParentMessage   *ChatMessage `gorm:"foreignKey:ParentMessageID"`
 }
 
 type ChatOutbox struct {
