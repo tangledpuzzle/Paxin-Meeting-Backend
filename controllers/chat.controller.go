@@ -20,7 +20,8 @@ type CreateRoomRequest struct {
 }
 
 type SendMessageRequest struct {
-	Content string `json:"content"`
+	Content         string `json:"content"`
+	ParentMessageID string `json:"parentMessageId,omitempty"` // Use omitempty for an optional field
 }
 
 type EditMessageRequest struct {
@@ -525,11 +526,27 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "The other member is not subscribed or does not exist"})
 	}
 
-	// Proceed to send message if the checks pass
+	// Initialize the ChatMessage with common fields
 	message := models.ChatMessage{
 		Content: payload.Content,
 		UserID:  user.ID,
 		RoomID:  u64,
+	}
+
+	// Check if ParentMessageID is present and valid
+	if payload.ParentMessageID != "" {
+		parentMessageId, err := strconv.ParseUint(payload.ParentMessageID, 10, 64)
+		if err != nil {
+			fmt.Println("parentMessageId Conversion error:", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to parse parentMessageId",
+			})
+		}
+		message.ParentMessageID = &parentMessageId
+	} else {
+		// When ParentMessageID is not present, it's implicitly understood that message.ParentMessageID is nil
+		fmt.Println("Creating new message with content")
 	}
 
 	if err := initializers.DB.Create(&message).Error; err != nil {
