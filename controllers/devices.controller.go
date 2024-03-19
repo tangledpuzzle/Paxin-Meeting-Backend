@@ -73,7 +73,7 @@ func SendNot(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "New push added successfully",
-		"data":    "200",
+		"data":    res,
 	})
 }
 
