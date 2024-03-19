@@ -183,52 +183,11 @@ func GetRoomDetailsForDM(c *fiber.Ctx) error {
 func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
-	// Pagination parameters
-	page := c.QueryInt("page", 1)
-
-	pageSize := c.QueryInt("pageSize", 10)
-
-	// Step 1: Calculate total number of matching records
-	var totalCount int64
-	initializers.DB.
-		Model(&models.ChatRoom{}).
-		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
-		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ?", user.ID, true).
-		Count(&totalCount)
-
-	// Handle case when totalCount is less than pageSize
-	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
-	if page > totalPages {
-		page = totalPages
-	}
-	if totalCount == 0 { // Handle case with no records
-		return c.JSON(fiber.Map{
-			"status":     "success",
-			"data":       []models.ChatRoom{},
-			"page":       page,
-			"pageSize":   pageSize,
-			"totalPages": totalPages,
-			"totalCount": totalCount,
-		})
-	}
-
-	// Step 2: Calculate offset for reverse pagination
-	offset := totalCount - int64(page)*int64(pageSize)
-	if offset < 0 {
-		pageSize += int(offset) // Adjust pageSize for the last page if it contains fewer items
-		offset = 0
-	}
-
 	var rooms []models.ChatRoom
 	result := initializers.DB.
 		Model(&models.ChatRoom{}).
 		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
 		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ?", user.ID, true).
-		// Reverse ordering typically by an indexed column like creation date for efficiency
-		Order("chat_rooms.id DESC").
-		Offset(int(offset)).
-		Limit(pageSize).
-		// Preload associations as before
 		Preload("Members", func(db *gorm.DB) *gorm.DB {
 			return db.Joins("User").
 				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
@@ -256,14 +215,10 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Return results along with pagination info
+	// If no error occurs and rooms were found, return them
 	return c.JSON(fiber.Map{
-		"status":     "success",
-		"data":       rooms,
-		"page":       page,
-		"pageSize":   pageSize,
-		"totalPages": totalPages,
-		"totalCount": totalCount,
+		"status": "success",
+		"data":   rooms,
 	})
 }
 
@@ -804,11 +759,50 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
+	// Pagination parameters
+	page := c.QueryInt("page", 1)
+
+	pageSize := c.QueryInt("pageSize", 10)
+
+	// Total number of messages for pagination info
+	var totalCount int64
+	initializers.DB.Model(&models.ChatMessage{}).
+		Where("room_id = ?", roomIDParsed).
+		Count(&totalCount)
+
+		// Handle case when totalCount is less than pageSize
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	if page > totalPages {
+		page = totalPages
+	}
+
+	if totalCount == 0 { // Handle case with no records
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"data": fiber.Map{
+				"messages": []models.ChatMessage{},
+			},
+			"page":       page,
+			"pageSize":   pageSize,
+			"totalPages": totalPages,
+			"totalCount": totalCount,
+		})
+	}
+
+	// Step 2: Calculate offset for reverse pagination
+	offset := totalCount - int64(page)*int64(pageSize)
+	if offset < 0 {
+		pageSize += int(offset) // Adjust pageSize for the last page if it contains fewer items
+		offset = 0
+	}
+
 	// Fetch all messages from the room, including those marked as deleted.
 	var messages []models.ChatMessage
 	err = initializers.DB.Unscoped().
 		Where("room_id = ?", roomIDParsed).
 		Order("created_at DESC").
+		Offset(int(offset)).
+		Limit(pageSize).
 		Preload("User", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("Profile", func(db *gorm.DB) *gorm.DB {
 				return db.
@@ -829,6 +823,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to fetch messages",
+			"error":   err.Error(),
 		})
 	}
 
@@ -839,11 +834,14 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status": "success",
-		"data": fiber.Map{
-			"messages": messages,
-		},
+	// Return paginated chat messages
+	return c.JSON(fiber.Map{
+		"status":     "success",
+		"data":       messages,
+		"page":       page,
+		"pageSize":   pageSize,
+		"totalPages": totalPages,
+		"totalCount": totalCount,
 	})
 }
 
