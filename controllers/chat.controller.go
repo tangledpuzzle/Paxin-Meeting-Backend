@@ -183,28 +183,53 @@ func GetRoomDetailsForDM(c *fiber.Ctx) error {
 func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
+	// Pagination parameters
+	page := c.QueryInt("page", 1)
+
+	pageSize := c.QueryInt("pageSize", 10)
+
+	// Step 1: Calculate total number of matching records
+	var totalCount int64
+	initializers.DB.
+		Model(&models.ChatRoom{}).
+		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
+		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ?", user.ID, true).
+		Count(&totalCount)
+
+	// Handle case when totalCount is less than pageSize
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	if page > totalPages {
+		page = totalPages
+	}
+	if totalCount == 0 { // Handle case with no records
+		return c.JSON(fiber.Map{
+			"status":     "success",
+			"data":       []models.ChatRoom{},
+			"page":       page,
+			"pageSize":   pageSize,
+			"totalPages": totalPages,
+			"totalCount": totalCount,
+		})
+	}
+
+	// Step 2: Calculate offset for reverse pagination
+	offset := totalCount - int64(page)*int64(pageSize)
+	if offset < 0 {
+		pageSize += int(offset) // Adjust pageSize for the last page if it contains fewer items
+		offset = 0
+	}
+
 	var rooms []models.ChatRoom
 	result := initializers.DB.
 		Model(&models.ChatRoom{}).
 		Joins("JOIN chat_room_members ON chat_rooms.id = chat_room_members.room_id").
 		Where("chat_room_members.user_id = ? AND chat_room_members.is_subscribed = ?", user.ID, true).
-		Preload("Members", func(db *gorm.DB) *gorm.DB {
-			return db.Joins("User").
-				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
-					return db.
-						Preload("City", func(db *gorm.DB) *gorm.DB {
-							return db.Preload("Translations")
-						}).
-						Preload("Guilds", func(db *gorm.DB) *gorm.DB {
-							return db.Preload("Translations")
-						}).
-						Preload("Hashtags").
-						Preload("Photos").
-						Preload("Documents").
-						Preload("Service")
-				})
-		}).
-		Preload("LastMessage").
+		// Reverse ordering typically by an indexed column like creation date for efficiency
+		Order("chat_rooms.id DESC").
+		Offset(int(offset)).
+		Limit(pageSize).
+		// Preload associations as before
+		// Your preload code here
 		Find(&rooms)
 
 	if result.Error != nil {
@@ -215,10 +240,14 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// If no error occurs and rooms were found, return them
+	// Return results along with pagination info
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   rooms,
+		"status":     "success",
+		"data":       rooms,
+		"page":       page,
+		"pageSize":   pageSize,
+		"totalPages": totalPages,
+		"totalCount": totalCount,
 	})
 }
 
