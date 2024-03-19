@@ -86,7 +86,9 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 		"is_edited":     message.IsEdited,
 		"created_at":    message.CreatedAt,
 		"is_deleted":    message.IsDeleted,
-		"parent_msg_id": uint64PtrToString(message.ParentMessageID),
+		"parent_msg_id": message.ParentMessageID,
+		"jsonData":      message.JsonData,
+		"msgType":       message.MsgType,
 	}
 }
 
