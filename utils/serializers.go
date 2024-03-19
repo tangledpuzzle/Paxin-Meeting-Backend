@@ -6,6 +6,8 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 
+	"strconv"
+
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
@@ -76,14 +78,15 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 	serializedUser := SerializeUser(user)
 
 	return map[string]interface{}{
-		"id":         message.ID,
-		"content":    message.Content,
-		"user_id":    message.UserID.String(),
-		"user":       serializedUser,
-		"room_id":    message.RoomID,
-		"is_edited":  message.IsEdited,
-		"created_at": message.CreatedAt,
-		"is_deleted": message.IsDeleted,
+		"id":            message.ID,
+		"content":       message.Content,
+		"user_id":       message.UserID.String(),
+		"user":          serializedUser,
+		"room_id":       message.RoomID,
+		"is_edited":     message.IsEdited,
+		"created_at":    message.CreatedAt,
+		"is_deleted":    message.IsDeleted,
+		"parent_msg_id": uint64PtrToString(message.ParentMessageID),
 	}
 }
 
@@ -212,4 +215,14 @@ func SerializeUser(user models.User) map[string]interface{} {
 		"totalrestblog":  user.TotalRestBlogs,
 		"totalfollowers": user.TotalFollowers,
 	}
+}
+
+func uint64PtrToString(val *uint64) string {
+	if val == nil {
+		// If the input is nil, you might want to return a default value
+		// or indicate somehow that conversion wasn't possible.
+		return ""
+	}
+	// Dereference the pointer, convert the uint64 value to a string.
+	return strconv.FormatUint(*val, 10)
 }
