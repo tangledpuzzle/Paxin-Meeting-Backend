@@ -22,6 +22,7 @@ type CreateRoomRequest struct {
 type SendMessageRequest struct {
 	Content         string `json:"content"`
 	ParentMessageID string `json:"parentMessageId,omitempty"` // Use omitempty for an optional field
+	MsgType         string `json:"msgType,omitempty"`
 }
 
 type EditMessageRequest struct {
@@ -531,6 +532,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		Content: payload.Content,
 		UserID:  user.ID,
 		RoomID:  u64,
+		MsgType: 0,
 	}
 
 	// Check if ParentMessageID is present and valid
@@ -547,6 +549,22 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	} else {
 		// When ParentMessageID is not present, it's implicitly understood that message.ParentMessageID is nil
 		fmt.Println("Creating new message with content")
+	}
+
+	// Check whether there is a msgType
+	if payload.MsgType != "" {
+		msgType, err := strconv.ParseUint(payload.MsgType, 10, 8)
+		if err != nil {
+			fmt.Println("msgType Conversion error:", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to parse msgType",
+			})
+		}
+		message.MsgType = uint8(msgType)
+	} else {
+		// When msgType is not present, it's implicitly understood that message.ParentMessageID is nil
+		fmt.Println("Creating new message with content, default msgType is 0...")
 	}
 
 	if err := initializers.DB.Create(&message).Error; err != nil {
