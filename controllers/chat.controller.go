@@ -790,11 +790,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 	}
 
 	// Step 2: Calculate offset for reverse pagination
-	offset := totalCount - int64(page)*int64(pageSize)
-	if offset < 0 {
-		pageSize += int(offset) // Adjust pageSize for the last page if it contains fewer items
-		offset = 0
-	}
+	offset := (page - 1) * pageSize
 
 	// Fetch all messages from the room, including those marked as deleted.
 	var messages []models.ChatMessage
