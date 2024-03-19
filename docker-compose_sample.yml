@@ -12,7 +12,7 @@ services:
       start_period: 10s
 
   postgres:
-    image: postgres:16.1-alpine
+    image: postgres:16-alpine
     restart: on-failure:5
     environment:
       POSTGRES_USER: paxintrade
@@ -48,7 +48,7 @@ services:
       start_period: 10s
 
   centrifugo:
-    image: centrifugo/centrifugo:v5.2.0
+    image: centrifugo/centrifugo:v5.2
     restart: on-failure:5
     volumes:
       - ./centrifugo/config.json:/centrifugo/config.json
