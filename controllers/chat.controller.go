@@ -23,6 +23,7 @@ type SendMessageRequest struct {
 	Content         string `json:"content"`
 	ParentMessageID string `json:"parentMessageId,omitempty"` // Use omitempty for an optional field
 	MsgType         string `json:"msgType,omitempty"`
+	JsonData        string `json:"jsonData,omitempty"` // this is msg field for system, backend only validates this as json
 }
 
 type EditMessageRequest struct {
@@ -562,6 +563,11 @@ func SendMessageForDM(c *fiber.Ctx) error {
 			})
 		}
 		message.MsgType = uint8(msgType)
+
+		// additionally store json data
+		if payload.JsonData != "" {
+			message.JsonData = &payload.JsonData
+		}
 	} else {
 		// When msgType is not present, it's implicitly understood that message.ParentMessageID is nil
 		fmt.Println("Creating new message with content, default msgType is 0...")
@@ -883,7 +889,7 @@ func MarkMessageAsReadForDM(c *fiber.Ctx) error {
 				Type: "updated_last_read_msg_id",
 				Body: bodyMap,
 			},
-			IdempotencyKey: fmt.Sprintf("create_room_%d", roomIDParsed),
+			IdempotencyKey: fmt.Sprintf("updated_last_read_msg_%s_%s", bodyMap["readerId"], bodyMap["lastReadMessageId"]),
 		}
 
 		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(roomIDParsed), broadcastPayload); err != nil {
