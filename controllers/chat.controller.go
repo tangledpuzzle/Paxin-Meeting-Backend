@@ -229,7 +229,23 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 		Offset(int(offset)).
 		Limit(pageSize).
 		// Preload associations as before
-		// Your preload code here
+		Preload("Members", func(db *gorm.DB) *gorm.DB {
+			return db.Joins("User").
+				Preload("User.Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Guilds", func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Translations")
+						}).
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
+		}).
+		Preload("LastMessage").
 		Find(&rooms)
 
 	if result.Error != nil {
