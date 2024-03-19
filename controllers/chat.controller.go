@@ -836,8 +836,10 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 
 	// Return paginated chat messages
 	return c.JSON(fiber.Map{
-		"status":     "success",
-		"data":       messages,
+		"status": "success",
+		"data": fiber.Map{
+			"messages": messages,
+		},
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalPages": totalPages,
