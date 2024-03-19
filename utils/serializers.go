@@ -39,7 +39,7 @@ func SerializeChatRoomMember(member models.ChatRoomMember) map[string]interface{
 	}
 }
 
-func SerializeChatRoom(roomID uint) map[string]interface{} {
+func SerializeChatRoom(roomID uint64) map[string]interface{} {
 	var room models.ChatRoom
 	err := initializers.DB.Preload("Members.User").Preload("LastMessage").First(&room, roomID).Error
 	if err != nil {
