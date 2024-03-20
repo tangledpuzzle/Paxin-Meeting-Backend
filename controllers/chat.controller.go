@@ -783,6 +783,7 @@ func DeleteMessageForDM(c *fiber.Ctx) error {
 }
 
 func GetChatMessagesForDM(c *fiber.Ctx) error {
+	// Extract the user ID from context and room ID from URL params.
 	userID := c.Locals("user").(models.UserResponse).ID
 	roomID := c.Params("roomId")
 	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
@@ -793,7 +794,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Check if the user is a member of the room
+	// Check if the user is a member of the room.
 	var member models.ChatRoomMember
 	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
 	if err != nil {
@@ -803,46 +804,19 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Pagination parameters
-	page := c.QueryInt("page", 1)
+	// Retrieve pagination parameters with defaults if not provided.
+	skip := c.QueryInt("skip", 0)    // Starting from the most recent message.
+	limit := c.QueryInt("limit", 10) // Number of messages to fetch.
 
-	pageSize := c.QueryInt("pageSize", 10)
-
-	// Total number of messages for pagination info
-	var totalCount int64
-	initializers.DB.Model(&models.ChatMessage{}).
-		Where("room_id = ?", roomIDParsed).
-		Count(&totalCount)
-
-		// Handle case when totalCount is less than pageSize
-	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
-	if page > totalPages {
-		page = totalPages
-	}
-
-	if totalCount == 0 { // Handle case with no records
-		return c.JSON(fiber.Map{
-			"status": "success",
-			"data": fiber.Map{
-				"messages": []models.ChatMessage{},
-			},
-			"page":       page,
-			"pageSize":   pageSize,
-			"totalPages": totalPages,
-			"totalCount": totalCount,
-		})
-	}
-
-	// Step 2: Calculate offset for reverse pagination
-	offset := (page - 1) * pageSize
-
-	// Fetch all messages from the room, including those marked as deleted.
+	// Fetch the messages, updated to respect skip and limit with correct ordering.
 	var messages []models.ChatMessage
-	err = initializers.DB.Unscoped().
+	err = initializers.DB.
+		Unscoped().
 		Where("room_id = ?", roomIDParsed).
 		Order("created_at DESC").
-		Offset(int(offset)).
-		Limit(pageSize).
+		Offset(skip).
+		Limit(limit).
+		// Preloading of User and its nested associations. Assuming correct setup in your models.
 		Preload("User", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("Profile", func(db *gorm.DB) *gorm.DB {
 				return db.
@@ -867,22 +841,27 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Iterate through messages to hide content of deleted messages
+	// Total number of messages in the room for pagination info.
+	var totalCount int64
+	initializers.DB.Model(&models.ChatMessage{}).
+		Where("room_id = ?", roomIDParsed).
+		Count(&totalCount)
+
+	// Iterate through messages to hide content of deleted messages.
 	for i, msg := range messages {
 		if msg.IsDeleted {
 			messages[i].Content = "This message has been deleted."
 		}
 	}
 
-	// Return paginated chat messages
+	// Return the paginated chat messages.
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data": fiber.Map{
 			"messages": messages,
 		},
-		"page":       page,
-		"pageSize":   pageSize,
-		"totalPages": totalPages,
+		"skip":       skip,
+		"limit":      limit,
 		"totalCount": totalCount,
 	})
 }
