@@ -224,11 +224,11 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
                 (
                     SELECT last_read_message_id
                     FROM chat_room_members 
-                    WHERE room_id = ? AND user_id = ? 
+                    WHERE room_id = ? AND user_id = ?  AND is_subscribed = ?
                 ), 
                 0
             )
-        `, room.ID, room.ID, user.ID).
+        `, room.ID, room.ID, user.ID, false).
 			Count(&count).Error
 
 		if err != nil {
