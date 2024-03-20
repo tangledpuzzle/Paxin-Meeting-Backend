@@ -228,7 +228,7 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
                 ), 
                 0
             )
-        `, room.ID, room.ID, user.ID, false).
+        `, room.ID, room.ID, user.ID, true).
 			Count(&count).Error
 
 		if err != nil {
