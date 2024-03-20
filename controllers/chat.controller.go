@@ -34,6 +34,11 @@ type UserLatestMsgRequest struct {
 	MessageId string `json:"messageId"`
 }
 
+type ChatRoomResponse struct {
+	models.ChatRoom
+	UnreadMessages string `json:"unreadMessages"` // using a numeric string for the count is more appropriate.
+}
+
 func CreateChatRoomForDM(c *fiber.Ctx) error {
 	requestor := c.Locals("user").(models.UserResponse)
 
@@ -207,6 +212,40 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 		Preload("LastMessage").
 		Find(&rooms)
 
+	var responseRooms []ChatRoomResponse
+	// Now, for each room, calculate the unread message count
+	for _, room := range rooms {
+		var count int64
+		err := initializers.DB.
+			Model(&models.ChatMessage{}).
+			Where(`
+            room_id = ? AND 
+            id > IFNULL(
+                (
+                    SELECT last_read_message_id 
+                    FROM chat_room_members 
+                    WHERE room_id = ? AND user_id = ? 
+                ), 
+                0
+            )
+        `, room.ID, room.ID, user.ID).
+			Count(&count).Error
+
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": fmt.Sprintf("Could not calculate unread Msg Count, room id is %d", room.ID),
+				"error":   err.Error(),
+			})
+		}
+
+		// Append the enriched room data to the response slice
+		responseRooms = append(responseRooms, ChatRoomResponse{
+			ChatRoom:       room,
+			UnreadMessages: strconv.FormatInt(count, 10),
+		})
+	}
+
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -216,9 +255,14 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 	}
 
 	// If no error occurs and rooms were found, return them
+	// return c.JSON(fiber.Map{
+	// 	"status": "success",
+	// 	"data":   rooms,
+	// })
+
 	return c.JSON(fiber.Map{
 		"status": "success",
-		"data":   rooms,
+		"data":   responseRooms,
 	})
 }
 
