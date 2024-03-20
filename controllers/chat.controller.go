@@ -220,9 +220,9 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 			Model(&models.ChatMessage{}).
 			Where(`
             room_id = ? AND 
-            id > IFNULL(
+            id > COALESCE(
                 (
-                    SELECT last_read_message_id 
+                    SELECT last_read_message_id
                     FROM chat_room_members 
                     WHERE room_id = ? AND user_id = ? 
                 ), 
