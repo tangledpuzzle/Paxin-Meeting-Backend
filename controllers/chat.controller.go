@@ -831,12 +831,12 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 
 	// Prepared base query with dynamic conditions
 	query := initializers.DB.Unscoped().Model(&models.ChatMessage{}).
-		Where("room_id = ?", roomID).
+		Where("room_id = ?", roomIDParsed).
 		Order("created_at DESC")
 
 	// Adjust query based on end_msg_id presence
 	if endMsgIDProvided {
-		query = query.Where("id <= ?", endMsgID) // Assuming you want messages before and including endMsgID
+		query = query.Where("id >= ?", endMsgID) // Assuming you want messages before and including endMsgID
 	} else {
 		// Apply pagination if end_msg_id is not provided
 		query = query.Offset(skip).Limit(limit)
