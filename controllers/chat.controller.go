@@ -805,34 +805,57 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 	}
 
 	// Retrieve pagination parameters with defaults if not provided.
+
 	skip := c.QueryInt("skip", 0)    // Starting from the most recent message.
 	limit := c.QueryInt("limit", 10) // Number of messages to fetch.
 
+	// Check if end_msg_id is provided in the query string and handle it.
+	endMsgIDParam := c.Query("end_msg_id")
+	var endMsgID uint64
+	endMsgIDProvided := false
+
+	if endMsgIDParam != "" {
+		var parseErr error
+		endMsgID, parseErr = strconv.ParseUint(endMsgIDParam, 10, 64)
+		if parseErr != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Invalid end_msg_id format, must be a positive number",
+			})
+		}
+		endMsgIDProvided = true
+	}
+
 	// Fetch the messages, updated to respect skip and limit with correct ordering.
 	var messages []models.ChatMessage
-	err = initializers.DB.
-		Unscoped().
-		Where("room_id = ?", roomIDParsed).
-		Order("created_at DESC").
-		Offset(skip).
-		Limit(limit).
-		// Preloading of User and its nested associations. Assuming correct setup in your models.
+
+	// Prepared base query with dynamic conditions
+	query := initializers.DB.Unscoped().Model(&models.ChatMessage{}).
+		Where("room_id = ?", roomID).
+		Order("created_at DESC")
+
+	// Adjust query based on end_msg_id presence
+	if endMsgIDProvided {
+		query = query.Where("id <= ?", endMsgID) // Assuming you want messages before and including endMsgID
+	} else {
+		// Apply pagination if end_msg_id is not provided
+		query = query.Offset(skip).Limit(limit)
+	}
+
+	// Execute the query with complex preloading
+	err = query.
 		Preload("User", func(db *gorm.DB) *gorm.DB {
-			return db.Preload("Profile", func(db *gorm.DB) *gorm.DB {
-				return db.
-					Preload("City", func(db *gorm.DB) *gorm.DB {
-						return db.Preload("Translations")
-					}).
-					Preload("Guilds", func(db *gorm.DB) *gorm.DB {
-						return db.Preload("Translations")
-					}).
-					Preload("Hashtags").
-					Preload("Photos").
-					Preload("Documents").
-					Preload("Service")
-			})
-		}).
-		Find(&messages).Error
+			return db.
+				Preload("Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City.Translations").
+						Preload("Guilds.Translations").
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
+		}).Find(&messages).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -862,6 +885,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		},
 		"skip":       skip,
 		"limit":      limit,
+		"end_msg_id": endMsgIDParam,
 		"totalCount": totalCount,
 	})
 }
