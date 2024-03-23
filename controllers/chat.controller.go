@@ -855,7 +855,9 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 						Preload("Documents").
 						Preload("Service")
 				})
-		}).Find(&messages).Error
+		}).
+		Preload("ParentMessage").
+		Find(&messages).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
