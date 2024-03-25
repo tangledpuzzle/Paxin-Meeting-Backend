@@ -29,6 +29,7 @@ func FetchUserByID(userID uuid.UUID) (models.User, error) {
 }
 
 func FetchChatMessageByID(msgID uint64) (models.ChatMessage, error) {
+
 	var msg models.ChatMessage
 	err := initializers.DB.Where("id = ?", msgID).First(&msg).Error
 
@@ -86,9 +87,15 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 		return nil
 	}
 	serializedUser := SerializeUser(user)
-	parentMessage, err := FetchChatMessageByID(message.ParentMessageID)
-	if err != nil {
-		fmt.Println("Error Fetching parentMessage from DB", err)
+
+	var parentMessage models.ChatMessage
+	if message.ParentMessageID == nil {
+		fmt.Println("====================== ParentMessageID is nil")
+	} else {
+		parentMessage, err = FetchChatMessageByID(*message.ParentMessageID)
+		if err != nil {
+			fmt.Println("Error Fetching parentMessage from DB", err)
+		}
 	}
 
 	return map[string]interface{}{
