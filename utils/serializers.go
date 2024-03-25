@@ -89,6 +89,29 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 		"parent_msg_id": message.ParentMessageID,
 		"jsonData":      message.JsonData,
 		"msgType":       message.MsgType,
+		"parentMsg":     SerializeParentMessage(*message.ParentMessage),
+	}
+}
+
+func SerializeParentMessage(message models.ChatMessage) map[string]interface{} {
+	user, err := FetchUserByID(message.UserID)
+	if err != nil {
+		return nil
+	}
+	serializedUser := SerializeUser(user)
+
+	return map[string]interface{}{
+		"id":            message.ID,
+		"content":       message.Content,
+		"user_id":       message.UserID.String(),
+		"user":          serializedUser,
+		"room_id":       message.RoomID,
+		"is_edited":     message.IsEdited,
+		"created_at":    message.CreatedAt,
+		"is_deleted":    message.IsDeleted,
+		"parent_msg_id": message.ParentMessageID,
+		"jsonData":      message.JsonData,
+		"msgType":       message.MsgType,
 	}
 }
 
