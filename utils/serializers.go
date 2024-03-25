@@ -28,6 +28,17 @@ func FetchUserByID(userID uuid.UUID) (models.User, error) {
 	return user, nil
 }
 
+func FetchChatMessageByID(msgID uint64) (models.ChatMessage, error) {
+
+	var msg models.ChatMessage
+	err := initializers.DB.Where("id = ?", msgID).First(&msg).Error
+
+	if err != nil {
+		return models.ChatMessage{}, err
+	}
+	return msg, nil
+}
+
 func SerializeChatRoomMember(member models.ChatRoomMember) map[string]interface{} {
 	user, _ := FetchUserByID(member.User.ID)
 	userSerialized := SerializeUser(user)
@@ -77,6 +88,16 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 	}
 	serializedUser := SerializeUser(user)
 
+	var parentMessage models.ChatMessage
+	if message.ParentMessageID == nil {
+		fmt.Println("====================== ParentMessageID is nil")
+	} else {
+		parentMessage, err = FetchChatMessageByID(*message.ParentMessageID)
+		if err != nil {
+			fmt.Println("Error Fetching parentMessage from DB", err)
+		}
+	}
+
 	return map[string]interface{}{
 		"id":            message.ID,
 		"content":       message.Content,
@@ -89,7 +110,7 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 		"parent_msg_id": message.ParentMessageID,
 		"jsonData":      message.JsonData,
 		"msgType":       message.MsgType,
-		"parentMsg":     SerializeParentMessage(*message.ParentMessage),
+		"parentMsg":     SerializeParentMessage(parentMessage),
 	}
 }
 
