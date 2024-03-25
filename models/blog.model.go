@@ -44,7 +44,7 @@ type Blog struct {
 type BlogResponse struct {
 	ID               uint64         `json:"id"`
 	Title            string         `json:"title"`
-	Votes            []Vote         `json:"votes"`
+	Votes            []Vote         `json:"votes" gorm:"foreignKey:BlogID"`
 	MultilangTitle   MultilangTitle `json:"multilangtitle"`
 	MultilangDescr   MultilangTitle `json:"multilangdescr"`
 	MultilangContent MultilangTitle `json:"multilangcontent"`

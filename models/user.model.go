@@ -95,8 +95,8 @@ type User struct {
 	LastOnline       time.Time        `json:"last_online"`
 	Online           bool             `json:"online"`
 	Domains          []Domain         `json:"domains"`
-	Followings       []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id;preload:true"`
-	Followers        []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id;preload:true"`
+	Followings       []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id;"`
+	Followers        []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id;"`
 	IsBot            bool             `gorm:"default:false"`
 }
 

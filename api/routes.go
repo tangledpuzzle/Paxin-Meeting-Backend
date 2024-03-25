@@ -23,16 +23,22 @@ func Register(micro *fiber.App) {
 	micro.Route("/presavedfilter", func(router fiber.Router) {
 		router.Get("/get", middleware.DeserializeUser, controllers.GetPresavedfilters)
 		router.Post("/post", middleware.DeserializeUser, controllers.CreatePresavedfilter)
-		router.Patch("/patch", controllers.CreateDevice)
-		router.Delete("/delete", controllers.CreateDevice)
+		router.Patch("/patch/:id", middleware.DeserializeUser, controllers.PatchPresavedFilter)
+		router.Delete("/delete/:id", middleware.DeserializeUser, controllers.DeletePresavedFilter)
 	})
 
 	micro.Route("/devices", func(router fiber.Router) {
 		router.Post("/ios", controllers.CreateDevice)
+		router.Post("/push", controllers.SendNot)
+	})
+
+	micro.Route("/relations", func(router fiber.Router) {
+		router.Get("/following", middleware.DeserializeUser, controllers.GetFollowing)
+		router.Get("/followers", middleware.DeserializeUser, controllers.GetFollowers)
 	})
 
 	micro.Route("/newreq", func(router fiber.Router) {
-		router.Post("/post", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.Userq)
+		router.Post("/post", middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.Userq)
 	})
 
 	micro.Route("/auth", func(router fiber.Router) {

@@ -9,17 +9,17 @@ definitions:
           echo "Checking for changes in specific directories/files..."
           CHANGED_FILES=$(git diff-tree -m --no-commit-id --name-only -r $BITBUCKET_COMMIT)
           echo "Changed files/directories: $CHANGED_FILES"
-          
-          CHECKED_PATHS="api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum"
+
+          CHECKED_PATHS="api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum|Dockerfile.prod"
           SHOULD_BUILD=1
-          
+
           if echo "$CHANGED_FILES" | grep -Eq $CHECKED_PATHS; then
             echo "Relevant changes detected. Proceeding with build..."
           else
             echo "No relevant changes in critical paths. Skipping build and push step."
             SHOULD_BUILD=0
           fi
-          
+
           BUILD_CHECK_ENV=build_check_env
           echo "export SHOULD_BUILD=$SHOULD_BUILD" > $BUILD_CHECK_ENV
       artifacts:
@@ -38,12 +38,28 @@ pipelines:
             - |
               if [ "$SHOULD_BUILD" -eq "1" ]; then
                 echo "Building Golang API..."
+
+                echo "Tidying and verifying module dependencies..."
+                go mod tidy
+                go mod verify
+
+                echo "Downloading dependencies..."
                 go mod download
-                go build -o bin/paxintrade-api cmd/main.go
+
+                echo "Building the application..."
+                GO111MODULE=on go build -v -o bin/paxintrade-api cmd/main.go
+
+                if [ $? -ne 0 ]; then
+                    echo "Build failed."
+                    exit 1
+                else
+                    echo "Build succeeded."
+                fi
               else
                 echo "Skipping build and push step as per previous step's decision."
                 exit 0
               fi
+
     release/prod:
       - step: *check_changes_step
       - step:

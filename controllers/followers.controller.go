@@ -12,9 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-
 func Scribe(c *fiber.Ctx) error {
-
 
 	// Parse request body into a new BlogSearch object
 	IDUSER := c.Locals("user")
@@ -29,12 +27,11 @@ func Scribe(c *fiber.Ctx) error {
 		return errors.New("invalid user type")
 	}
 
-
 	userObj := models.User{
 		ID:   userResp.ID,
 		Role: userResp.Role,
 	}
-	
+
 	// Parse the request body
 	type makelink struct {
 		UserID     uuid.UUID
@@ -55,14 +52,12 @@ func Scribe(c *fiber.Ctx) error {
 		})
 	}
 
-
 	// Check if the UserID is the same as the logged-in user's ID
 	if userObj.ID == requestBody.FollowerID {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "You cannot scribe yourself",
 		})
 	}
-
 
 	var follower, user models.User
 
@@ -79,23 +74,20 @@ func Scribe(c *fiber.Ctx) error {
 		})
 	}
 
-
 	follower.TotalFollowers += 1
 
 	if err := initializers.DB.Save(&follower).Error; err != nil {
 		log.Println("Could not update user follower count:", err)
 	}
 
-
-    // Update the relationship in the database
-    initializers.DB.Model(&user).Association("Followers").Append(&follower)
+	// Update the relationship in the database
+	initializers.DB.Model(&user).Association("Followers").Append(&follower)
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "was add",
-	})	
+	})
 }
-
 
 func Unscribe(c *fiber.Ctx) error {
 
@@ -116,19 +108,17 @@ func Unscribe(c *fiber.Ctx) error {
 		ID:   userResp.ID,
 		Role: userResp.Role,
 	}
-	
 
 	// Parse the request body
 	type makeUnlink struct {
 		UserID     uuid.UUID
 		FollowerID uuid.UUID
 	}
-	
 
 	var requestBody makeUnlink
 
 	fmt.Println(requestBody)
-	
+
 	if err := c.BodyParser(&requestBody); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Error parsing request body",
@@ -148,8 +138,6 @@ func Unscribe(c *fiber.Ctx) error {
 			"message": "You cannot unsubscribe yourself",
 		})
 	}
-
-
 
 	var follower, user models.User
 
@@ -173,17 +161,16 @@ func Unscribe(c *fiber.Ctx) error {
 	if follower.TotalFollowers < 0 {
 		follower.TotalFollowers = 0
 	}
-	
+
 	if err := initializers.DB.Save(&follower).Error; err != nil {
 		log.Println("Could not update user follower count:", err)
 	}
 
-
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "was removed",
-	})	
-	
+	})
+
 }
 
 func GetFollowers(c *fiber.Ctx) error {
@@ -204,14 +191,56 @@ func GetFollowers(c *fiber.Ctx) error {
 		Role: userResp.Role,
 	}
 
+	language := c.Query("language")
+
+	if language == "" {
+		language = "en"
+	}
+
 	var usF models.User
-    if err := initializers.DB.Preload("Followers").First(&user, "id = ?", userObj.ID).Error; err != nil {
-        return nil
-    }
-	
+	if err := initializers.DB.Preload("Followers").Preload("Blogs").Preload("Followers.Profile").Preload("Followers.Profile.Hashtags").Preload("Followers.Domains").Preload("Followers.Profile.Photos").Preload("Followers.Profile.City.Translations", "language = ?", language).Preload("Followers.Followings").Preload("Followers.Followers").Preload("Followers.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
+		// Handle database error
+		return err
+	}
 
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   usF.Followers,
+	})
+}
+
+func GetFollowing(c *fiber.Ctx) error {
+	user := c.Locals("user")
+	if user == nil {
+		// Handle the case when user is nil
+		return errors.New("user not found")
+	}
+
+	userResp, ok := user.(models.UserResponse)
+	if !ok {
+		// Handle the case when user is not of type models.UserResponse
+		return errors.New("invalid user type")
+	}
+
+	userObj := models.User{
+		ID:   userResp.ID,
+		Role: userResp.Role,
+	}
+
+	language := c.Query("language")
+
+	if language == "" {
+		language = "en"
+	}
+
+	var usF models.User
+	if err := initializers.DB.Preload("Followings").Preload("Blogs").Preload("Followings.Profile").Preload("Followings.Profile.Hashtags").Preload("Followings.Domains").Preload("Followings.Profile.Photos").Preload("Followings.Profile.City.Translations", "language = ?", language).Preload("Followings.Followings").Preload("Followings.Followers").Preload("Followings.Profile.Guilds.Translations", "language = ?", language).First(&usF, "id = ?", userObj.ID).Error; err != nil {
+		// Handle database error
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   usF.Followings,
 	})
 }
