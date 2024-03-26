@@ -692,7 +692,7 @@ func main() {
 
 					if tokenClaims == nil {
 						fmt.Println("Token is missing or invalid")
-						return // Return if tokenClaims is nil
+						continue // Return if tokenClaims is nil
 					}
 
 					// extract the TokenUuid field from tokenClaims
@@ -702,10 +702,10 @@ func main() {
 						var user models.User
 						// now := time.Now()
 
-						err := initializers.DB.Where("id = ?", UserID).First(&user)
-						if err != nil {
+						result := initializers.DB.Where("id = ?", UserID).First(&user)
+						if result.Error != nil {
 							log.Printf("Error getting from User DB :%s", err)
-							return
+							continue
 						}
 
 						if len(Message.Data) > 0 {
@@ -715,12 +715,12 @@ func main() {
 								fmt.Println("User is Typing RoomID:", roomID)
 								err := controllers.SendUserTypingToCentrifugo(user, roomID)
 								if err != nil {
-									fmt.Println("error writing message to client", idStr, ":", err)
-									return
+									fmt.Println("error sending msg to centrifugo", idStr, ":", err)
+									continue
 								}
 							} else {
 								log.Printf("RoomID not found")
-								return
+								continue
 							}
 						}
 					}
