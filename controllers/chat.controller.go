@@ -1045,6 +1045,38 @@ func MarkMessageAsUnReadForDM(c *fiber.Ctx) error {
 	})
 }
 
+func SendUserTypingToCentrifugo(user models.User, roomID string) error {
+	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
+	if err != nil {
+		return errors.New("invalid room ID format, must be a positive number")
+	}
+
+	channels, err := GetRoomMemberChannels(roomIDParsed)
+	if err != nil {
+		return fmt.Errorf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		bodyMap := map[string]interface{}{}
+		bodyMap["user"] = user
+		bodyMap["roomID"] = roomIDParsed
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "user_is_typing",
+				Body: bodyMap,
+			},
+			IdempotencyKey: fmt.Sprintf("user_is_typing_%s_%d", user.ID.String(), roomIDParsed),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(roomID, broadcastPayload); err != nil {
+			return fmt.Errorf("Failed to broadcast message deletion notice: %s", err)
+		}
+	}
+	return nil
+}
+
 func maxUint64Ptr(a *uint64, b uint64) *uint64 {
 	if a == nil {
 		return &b // If a is nil, return b
