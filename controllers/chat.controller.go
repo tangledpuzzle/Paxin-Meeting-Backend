@@ -996,6 +996,55 @@ func MarkMessageAsReadForDM(c *fiber.Ctx) error {
 	})
 }
 
+func MarkMessageAsUnReadForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
+	roomID := c.Params("roomId")
+	status := c.Params("status")
+	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid room ID format, must be a positive number",
+		})
+	}
+	// Parsing a bool value
+	statusParsed, err := strconv.ParseBool(status)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid status format, must be a bool",
+		})
+	}
+
+	// Check if the user is a member of the room
+	var member models.ChatRoomMember
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
+	if err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "error",
+			"message": "User is not a member of the room or room does not exist",
+		})
+	}
+
+	member.IsUnread = statusParsed
+
+	if err := initializers.DB.Save(&member).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update unread status",
+			"error":   err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Room is marked as unread",
+		"data": fiber.Map{
+			"marked_as_unread": member.RoomID,
+		},
+	})
+}
+
 func maxUint64Ptr(a *uint64, b uint64) *uint64 {
 	if a == nil {
 		return &b // If a is nil, return b
