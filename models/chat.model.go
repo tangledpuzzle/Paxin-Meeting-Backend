@@ -17,6 +17,7 @@ type ChatRoomMember struct {
 	IsNew             bool      `gorm:"not null;default:false"`
 	JoinedAt          time.Time `gorm:"not null;default:now()"`
 	LastReadMessageID *uint64
+	IsUnread          bool `gorm:"not null;default:false"`
 }
 
 type ChatRoom struct {
