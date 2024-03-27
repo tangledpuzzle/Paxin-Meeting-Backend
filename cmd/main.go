@@ -27,13 +27,12 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 
+	"hyperpage/meta/network"
 	"hyperpage/routes"
 	"hyperpage/utils"
 
 	"github.com/pion/webrtc/v3"
 	uuid "github.com/satori/go.uuid"
-	// "github.com/sideshow/apns2"
-	// "github.com/sideshow/apns2/token"
 )
 
 type TimeEntry struct {
@@ -164,12 +163,18 @@ func main() {
 	// client := apns2.NewTokenClient(tokenSource)
 
 	// // Токен устройства, который вы получили после успешной регистрации на уведомления
-	// deviceToken := "b2a6c3c409d0abdb0e245c5ce7cae00e0171b88372a386898e202dbcaa305e92"
+	// deviceToken := "7e8833323aa94f717278e449a00aa440eb903e0cc8265edc3ea5130c5f5e39b0"
 
 	// notification := &apns2.Notification{}
 	// notification.DeviceToken = deviceToken
+
 	// notification.Topic = bundleID
-	// notification.Payload = []byte(`{"aps":{"alert":"Hello, this is a push notification.", "sound":"default"}}`)
+
+	// payload := payload.NewPayload().Alert("hello").Badge(1).Custom("urlString", "val")
+
+	// notification.Payload = payload
+
+	// // notification.Payload = []byte(`{"aps":{"alert":"Hello, this is a push notification.", "sound":"default", "pageUrl": "https://www.paxintrade.com/ru/flows/d8zERtixqu4/cathy-kings-coaching-corner-empowering-women-edinburgh", "badge": 1}}`)
 
 	// res, err := client.Push(notification)
 
@@ -214,6 +219,8 @@ func main() {
 
 	var languageChan = make(chan string)
 
+	bufferPool := network.NewBufferPool("WebSocketBufferPool", 10, 1024)
+
 	app.Use("/stream", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
 			c.Locals("allowed", true)
@@ -254,6 +261,8 @@ func main() {
 		}
 
 		for {
+			buffer := bufferPool.AcquireBuffer() // Получаем буфер из пула
+
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				fmt.Println("error reading message from client:", err)
@@ -281,6 +290,7 @@ func main() {
 					Error
 				if err != nil {
 					fmt.Println("error fetching random blogs:", err)
+					bufferPool.ReleaseBuffer(buffer)
 					return // Exit or handle the error appropriately
 				}
 
@@ -291,14 +301,18 @@ func main() {
 						continue
 					}
 
+					copy(buffer, blogJSON)
+
 					// Send the JSON data to the client
-					err = c.WriteMessage(websocket.TextMessage, blogJSON)
+					err = c.WriteMessage(websocket.TextMessage, buffer)
 					if err != nil {
 						fmt.Println("error sending blog JSON to client:", err)
 						continue
 					}
 				}
 			}
+
+			bufferPool.ReleaseBuffer(buffer)
 
 		}
 	}))
@@ -359,8 +373,19 @@ func main() {
 		}
 	}()
 
-	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
+	app.Use("/socket.io", func(c *fiber.Ctx) error {
+		// IsWebSocketUpgrade returns true if the client
+		// requested upgrade to the WebSocket protocol.
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
 
+	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
+		log.Println(c.Locals("allowed")) // true
+		log.Println(c.Cookies("session"))
 		type messageSocket struct {
 			MessageType string                   `json:"messageType"`
 			Data        []map[string]interface{} `json:"data"`
@@ -869,221 +894,6 @@ func main() {
 				}
 
 			}
-
-			// strMessage := string(message)
-
-			// if strings.Contains(strMessage, "sdpAnswer") {
-			// 	type Message struct {
-			// 		Command string `json:"command"`
-			// 		UserB   string `json:"userb"`
-			// 		SDP     string `json:"sdp"`
-			// 		UserA   string `json:"usera"`
-			// 	}
-
-			// 	var data map[string]interface{}
-			// 	if err := json.Unmarfshal([]byte(message), &data); err != nil {
-			// 		fmt.Println("Ошибка при разборе JSON:", err)
-			// 		return
-			// 	}
-
-			// 	id, ok := data["sessionID"].(string)
-			// 	if !ok {
-			// 		fmt.Println("Не удалось получить значение id или тип не является строкой")
-			// 		return
-			// 	}
-
-			// 	sdp, ok := data["sdpAnswer"].(string)
-			// 	if !ok {
-			// 		fmt.Println("Не удалось получить значение sdpAnswer или тип не является строкой")
-			// 		return
-			// 	}
-
-			// 	message := Message{
-			// 		Command: "sdpAnswer",
-			// 		UserB:   id,
-			// 		SDP:     sdp,
-			// 		UserA:   idStr,
-			// 	}
-
-			// 	jsonData, err := json.Marshal(message)
-			// 	if err != nil {
-			// 		fmt.Println("Ошибка при преобразовании в JSON:", err)
-			// 		return
-			// 	}
-
-			// 	targetClientConn, ok := findClientByID(id)
-			// 	if !ok {
-			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", id)
-			// 		return
-			// 	}
-
-			// 	err = targetClientConn.WriteMessage(websocket.TextMessage, jsonData)
-			// 	if err != nil {
-			// 		fmt.Printf("Ошибка отправки запроса: %v\n", err)
-			// 		return
-			// 	}
-			// }
-
-			// if string
-
-			// 	id := strings.Split(strMessage, "call")
-
-			// 	targetClientID := id[1]
-			// 	var x = string(targetClientID)
-
-			// 	targetClientConn, ok := findClientByID(x)
-			// 	if !ok {
-			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", x)
-			// 		continue
-			// 	}
-
-			// 	targetClientConn2, ok := findClientByID(idStr)
-			// 	if !ok {
-			// 		fmt.Printf("Клиент с идентификатором %s не найден\n", x)
-			// 		continue
-			// 	}
-
-			// 	var user models.User
-			// 	initializers.DB.Where("session = ?", idStr).First(&user)
-
-			// 	err := targetClientConn.WriteMessage(websocket.TextMessage, []byte("coming_call,"+user.Name+","+idStr))
-			// 	if err != nil {
-			// 		fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
-			// 		continue
-			// 	}
-
-			// 	var user2 models.User
-			// 	initializers.DB.Where("session = ?", x).First(&user2)
-
-			// 	err = targetClientConn2.WriteMessage(websocket.TextMessage, []byte("incoming_call,"+user2.Name+","+x))
-			// 	if err != nil {
-			// 		fmt.Printf("Ошибка отправки запроса на вызов: %v\n", err)
-			// 		continue
-			// 	}
-			// }
-
-			// if string(message) == "kickMe" {
-
-			// 	elapsedTime := time.Since(startTime)
-			// 	durationComponents := GetDurationComponents(elapsedTime)
-
-			// 	log.Printf("Client %s disconnected after %s", idStr, elapsedTime)
-
-			// 	// Remove client from Redis hash if it was added
-			// 	redisKey := "connected_clients"
-			// 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-			// 	defer cancel()
-
-			// 	// Check if key exists
-			// 	exists, err := redisClient.Exists(ctx, redisKey).Result()
-			// 	if err != nil {
-			// 		fmt.Println("error checking if key exists in Redis:", err)
-			// 		return
-			// 	}
-			// 	if exists == 0 {
-			// 		fmt.Println("key does not exist in Redis")
-			// 		return
-			// 	}
-
-			// 	///var clientsMap map[string]*websocket.Conn
-			// 	clients = utils.Clients
-
-			// 	fmt.Println(clients)
-
-			// 	// Remove client from clients map
-			// 	delete(clients, idStr)
-
-			// 	// Delete client from Redis hash
-			// 	result := redisClient.HDel(ctx, redisKey, idStr)
-			// 	if result.Err() != nil {
-			// 		fmt.Println("error deleting client from Redis:", result.Err())
-			// 		return
-			// 	}
-
-			// 	fmt.Println("client deleted from Redis:", idStr)
-
-			// 	// Marshal the updated clients map
-			// 	updatedClientsJson, err := json.Marshal(clients)
-			// 	if err != nil {
-			// 		fmt.Println("error marshaling updated clients to JSON:", err)
-			// 		return
-			// 	}
-
-			// 	// Set the updated clients map in Redis
-			// 	err = redisClient.HSet(ctx, redisKey, idStr, updatedClientsJson).Err()
-			// 	if err != nil {
-			// 		fmt.Println("error setting connected clients in Redis:", err)
-			// 		return
-			// 	}
-
-			// 	// Close WebSocket connection
-			// 	err = c.Close()
-			// 	if err != nil {
-			// 		fmt.Println("error closing WebSocket connection:", err)
-			// 		return
-			// 	}
-
-			// 	var user models.User
-			// 	now := time.Now()
-
-			// 	initializers.DB.Where("session = ?", idStr).First(&user)
-
-			// 	existingHours := user.OnlineHours // Initialize existingHours as a TimeEntryScanner
-
-			// 	hours := int(durationComponents[0].Hour)
-			// 	minutes := int(durationComponents[0].Minutes)
-			// 	seconds := int(durationComponents[0].Seconds)
-
-			// 	if len(existingHours) > 0 {
-			// 		lastEntry := existingHours[len(existingHours)-1]
-			// 		totalSeconds := lastEntry.Seconds + seconds
-			// 		totalMinutes := lastEntry.Minutes + minutes + totalSeconds/60
-			// 		totalHours := lastEntry.Hour + hours + totalMinutes/60
-
-			// 		lastEntry.Seconds = totalSeconds % 60
-			// 		lastEntry.Minutes = totalMinutes % 60
-			// 		lastEntry.Hour = totalHours % 24
-
-			// 		existingHours[len(existingHours)-1] = lastEntry
-			// 	} else {
-			// 		// No existing hours, create a new entry
-			// 		timeEntry := models.TimeEntry{
-			// 			Hour:    hours,
-			// 			Minutes: minutes,
-			// 			Seconds: seconds,
-			// 		}
-			// 		existingHours = append(existingHours, timeEntry)
-			// 	}
-
-			// 	jsonBytes, err := json.Marshal(existingHours)
-			// 	if err != nil {
-			// 		// Handle the error
-			// 	}
-
-			// 	var updatedHours []models.TimeEntry // Define a variable of type []models.TimeEntry
-
-			// 	err = json.Unmarshal(jsonBytes, &updatedHours) // Unmarshal jsonBytes into updatedHours
-			// 	if err != nil {
-			// 		// Handle the error
-			// 	}
-
-			// 	user.OnlineHours = updatedHours // Assign updatedHours to user.OnlineHours
-			// 	formattedTime := string(jsonBytes)
-
-			// 	// Lost connection
-			// 	initializers.DB.Model(&user).Updates(map[string]interface{}{"online": false, "last_online": now, "online_hours": formattedTime})
-
-			// 	// Access the user's ID with `user.ID`
-			// 	userID := user.ID.String()
-
-			// 	//CHECK USER LOGIN OR NOT
-			// 	// authToken := c.Cookies("access_token")
-
-			// 	utils.UserActivity("userOffline", userID)
-
-			// 	fmt.Println("WebSocket client disconnected:", idStr)
-
-			// }
 
 		}
 
