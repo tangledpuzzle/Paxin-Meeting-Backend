@@ -1051,6 +1051,13 @@ func SendUserTypingToCentrifugo(user models.User, roomID string) error {
 		return errors.New("invalid room ID format, must be a positive number")
 	}
 
+	// Check if the user is a member of the room
+	var member models.ChatRoomMember
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", user.ID, roomIDParsed).First(&member).Error
+	if err != nil {
+		return fmt.Errorf("User is not a member of the room or room does not exist: %s", err)
+	}
+
 	channels, err := GetRoomMemberChannels(roomIDParsed)
 	if err != nil {
 		return fmt.Errorf("Failed to get room member channels for broadcasting: %s", err)
