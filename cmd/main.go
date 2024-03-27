@@ -19,6 +19,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 
 	_ "hyperpage/docs"
+	"hyperpage/meta/network"
 
 	"github.com/gofiber/template/html/v2"
 
@@ -59,8 +60,10 @@ func GetDurationComponents(duration time.Duration) TimeArray {
 
 var (
 	// Map to keep track of connected clients
-	clients = make(map[string]*websocket.Conn)
-	w       = sync.WaitGroup{}
+	clients    = make(map[string]*websocket.Conn)
+	w          = sync.WaitGroup{}
+	bufferPool = network.NewBufferPool("TestPool", 10, 1024)
+	byteQueue  = network.NewByteQueue()
 )
 
 // Функция для поиска клиента по его идентификатору
@@ -301,19 +304,39 @@ func main() {
 						continue
 					}
 
-					// copy(buffer, blogJSON)
+					buffer := bufferPool.AcquireBuffer()
+					copy(buffer, blogJSON)
+
+					byteQueue.Enqueue(buffer, 0, len(buffer))
+					bufferPool.ReleaseBuffer(buffer)
 
 					// fmt.Println(buffer)
 					// Send the JSON data to the client
-					err = c.WriteMessage(websocket.TextMessage, blogJSON)
+					err = c.WriteMessage(websocket.BinaryMessage, buffer)
 					if err != nil {
 						fmt.Println("error sending blog JSON to client:", err)
 						continue
 					}
+					bufferPool.ReleaseBuffer(buffer)
+
 				}
 			}
 
-			// bufferPool.ReleaseBuffer(buffer)
+			for byteQueue.Size() > 0 {
+				buffer := make([]byte, 1024)
+
+				n, err := byteQueue.Dequeue(buffer, 0, len(buffer))
+				if err != nil {
+					fmt.Println("error dequeuing bytes:", err)
+					continue
+				}
+
+				err = c.WriteMessage(websocket.BinaryMessage, buffer[:n])
+				if err != nil {
+					fmt.Println("error sending bytes to client:", err)
+					continue
+				}
+			}
 
 		}
 	}))
@@ -515,6 +538,9 @@ func main() {
 			peersLock.Lock()
 			delete(peers, idStr)
 			peersLock.Unlock()
+			bufferPool.Free()
+			byteQueue.Clear()
+
 			// Remove client from clients map
 			// Calculate and log elapsed time for the client
 			elapsedTime := time.Since(startTime)
