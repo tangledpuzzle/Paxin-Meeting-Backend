@@ -344,8 +344,8 @@ func SignInUser(c *fiber.Ctx) error {
 	user.Online = true
 
 	userID := user.ID.String()
-
-	utils.UserActivity("userOnline", userID)
+	var addintinal = ""
+	utils.UserActivity("userOnline", userID, addintinal)
 
 	// Save the updated user data to the database
 	err = initializers.DB.Save(&user).Error

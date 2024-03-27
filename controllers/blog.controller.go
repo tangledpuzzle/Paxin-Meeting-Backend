@@ -498,7 +498,8 @@ func CreateBlog(c *fiber.Ctx) error {
 				Username: user.Name,
 			}
 
-			utils.UserActivity("newblog", forbot.Username)
+			var addintinal = ""
+			utils.UserActivity("newblog", forbot.Username, addintinal)
 
 			// var msgText string
 			// if blog.Total == 0 {
@@ -1103,7 +1104,8 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				// Username: user.Name,
 			}
 
-			utils.UserActivity("newblog", forbot.Username)
+			var addintinal = ""
+			utils.UserActivity("newblog", forbot.Username, addintinal)
 
 			var msgText string
 			if blog.Total == 0 {

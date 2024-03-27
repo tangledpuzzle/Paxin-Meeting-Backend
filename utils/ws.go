@@ -16,16 +16,18 @@ import (
 var Clients = make(map[string]*websocket.Conn)
 
 type UserActivityMessage struct {
-	Command string `json:"command"`
-	UserID  string `json:"userID"`
+	Command    string `json:"command"`
+	UserID     string `json:"userID"`
+	Additional string `json:"additional"`
 }
 
-func UserActivity(command string, userId string) error {
+func UserActivity(command string, userId string, additional string) error {
 	var err error
 	for _, c := range Clients {
 		userActivityMessage := UserActivityMessage{
-			Command: command,
-			UserID:  userId,
+			Command:    command,
+			UserID:     userId,
+			Additional: additional,
 		}
 		jsonData, e := json.Marshal(userActivityMessage)
 		if e != nil {
