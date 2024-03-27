@@ -6,6 +6,8 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 
+	"strconv"
+
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
@@ -24,6 +26,17 @@ func FetchUserByID(userID uuid.UUID) (models.User, error) {
 		return models.User{}, err
 	}
 	return user, nil
+}
+
+func FetchChatMessageByID(msgID uint64) (models.ChatMessage, error) {
+
+	var msg models.ChatMessage
+	err := initializers.DB.Where("id = ?", msgID).First(&msg).Error
+
+	if err != nil {
+		return models.ChatMessage{}, err
+	}
+	return msg, nil
 }
 
 func SerializeChatRoomMember(member models.ChatRoomMember) map[string]interface{} {
@@ -75,15 +88,51 @@ func SerializeChatMessage(message models.ChatMessage) map[string]interface{} {
 	}
 	serializedUser := SerializeUser(user)
 
+	var parentMessage models.ChatMessage
+	if message.ParentMessageID == nil {
+		fmt.Println("====================== ParentMessageID is nil")
+	} else {
+		parentMessage, err = FetchChatMessageByID(*message.ParentMessageID)
+		if err != nil {
+			fmt.Println("Error Fetching parentMessage from DB", err)
+		}
+	}
+
 	return map[string]interface{}{
-		"id":         message.ID,
-		"content":    message.Content,
-		"user_id":    message.UserID.String(),
-		"user":       serializedUser,
-		"room_id":    message.RoomID,
-		"is_edited":  message.IsEdited,
-		"created_at": message.CreatedAt,
-		"is_deleted": message.IsDeleted,
+		"id":            message.ID,
+		"content":       message.Content,
+		"user_id":       message.UserID.String(),
+		"user":          serializedUser,
+		"room_id":       message.RoomID,
+		"is_edited":     message.IsEdited,
+		"created_at":    message.CreatedAt,
+		"is_deleted":    message.IsDeleted,
+		"parent_msg_id": message.ParentMessageID,
+		"jsonData":      message.JsonData,
+		"msgType":       message.MsgType,
+		"parentMsg":     SerializeParentMessage(parentMessage),
+	}
+}
+
+func SerializeParentMessage(message models.ChatMessage) map[string]interface{} {
+	user, err := FetchUserByID(message.UserID)
+	if err != nil {
+		return nil
+	}
+	serializedUser := SerializeUser(user)
+
+	return map[string]interface{}{
+		"id":            message.ID,
+		"content":       message.Content,
+		"user_id":       message.UserID.String(),
+		"user":          serializedUser,
+		"room_id":       message.RoomID,
+		"is_edited":     message.IsEdited,
+		"created_at":    message.CreatedAt,
+		"is_deleted":    message.IsDeleted,
+		"parent_msg_id": message.ParentMessageID,
+		"jsonData":      message.JsonData,
+		"msgType":       message.MsgType,
 	}
 }
 
@@ -212,4 +261,14 @@ func SerializeUser(user models.User) map[string]interface{} {
 		"totalrestblog":  user.TotalRestBlogs,
 		"totalfollowers": user.TotalFollowers,
 	}
+}
+
+func uint64PtrToString(val *uint64) string {
+	if val == nil {
+		// If the input is nil, you might want to return a default value
+		// or indicate somehow that conversion wasn't possible.
+		return ""
+	}
+	// Dereference the pointer, convert the uint64 value to a string.
+	return strconv.FormatUint(*val, 10)
 }

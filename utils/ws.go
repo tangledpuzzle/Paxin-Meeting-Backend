@@ -91,7 +91,7 @@ func SendPersonalMessageToClient(clientID, message string) error {
 
 	// Check if the conn variable is nil
 	if conn == nil {
-		return errors.New("Connection is nil")
+		return errors.New("connection is nil")
 	}
 
 	if message == "Activated" {
@@ -149,13 +149,6 @@ func GetClientConnFromRedis(clientID string) (*websocket.Conn, error) {
 		return nil, err
 	}
 
-	// Retrieve the byte slice representing the connection object from Redis
-	connBytes, err = redisClient.HGet(context.Background(), "connected_clients", clientID).Bytes()
-	if err != nil {
-		fmt.Printf("Error retrieving value from Redis for key %s: %v\n", clientID, err)
-		return nil, err
-	}
-
 	// Deserialize the byte slice back into a *websocket.Conn object
 	var conn *websocket.Conn
 
@@ -171,7 +164,7 @@ func GetClientConnFromRedis(clientID string) (*websocket.Conn, error) {
 
 	// Check if the conn variable is nil
 	if conn == nil {
-		return nil, errors.New("Deserialized websocket conn object is nil")
+		return nil, errors.New("deserialized websocket conn object is nil")
 	}
 
 	//fmt.Println(conn)

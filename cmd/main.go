@@ -700,6 +700,57 @@ func main() {
 				fmt.Println("error unmarshalling JSON:", err)
 				continue
 			}
+			if Message.MessageType == "UserIsTyping" {
+				//CHECK USER IS LOGIN OR NOT
+				authToken := c.Cookies("access_token")
+				// fmt.Println("authToken", authToken)
+
+				if authToken != "" {
+
+					xconfig, _ := initializers.LoadConfig(".")
+
+					tokenClaims, err := utils.ValidateToken(authToken, xconfig.AccessTokenPublicKey)
+					if err != nil {
+						// handle error
+						_ = err
+					}
+
+					if tokenClaims == nil {
+						fmt.Println("Token is missing or invalid")
+						continue // Return if tokenClaims is nil
+					}
+
+					// extract the TokenUuid field from tokenClaims
+					UserID := tokenClaims.UserID
+
+					if UserID != "" {
+						var user models.User
+						// now := time.Now()
+
+						result := initializers.DB.Where("id = ?", UserID).First(&user)
+						if result.Error != nil {
+							log.Printf("Error getting from User DB :%s", err)
+							continue
+						}
+
+						if len(Message.Data) > 0 {
+							// Extract the roomID for the first item
+							// Note: You might want to loop or do checks based on your use case
+							if roomID, exists := Message.Data[0]["roomID"].(string); exists {
+								fmt.Println("User is Typing RoomID:", roomID)
+								err := controllers.SendUserTypingToCentrifugo(user.ID, roomID)
+								if err != nil {
+									fmt.Println("error sending msg to centrifugo", idStr, ":", err)
+									continue
+								}
+							} else {
+								log.Printf("RoomID not found")
+								continue
+							}
+						}
+					}
+				}
+			}
 			if Message.MessageType == "getMySessionId" {
 				fmt.Println("WebSocket client connected with ID:", idStr)
 				w.Add(1)

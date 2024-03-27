@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
 
@@ -32,6 +33,11 @@ type EditMessageRequest struct {
 
 type UserLatestMsgRequest struct {
 	MessageId string `json:"messageId"`
+}
+
+type ChatRoomResponse struct {
+	models.ChatRoom
+	UnreadMessages string `json:"unreadMessages"` // using a numeric string for the count is more appropriate.
 }
 
 func CreateChatRoomForDM(c *fiber.Ctx) error {
@@ -207,6 +213,40 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 		Preload("LastMessage").
 		Find(&rooms)
 
+	var responseRooms []ChatRoomResponse
+	// Now, for each room, calculate the unread message count
+	for _, room := range rooms {
+		var count int64
+		err := initializers.DB.
+			Model(&models.ChatMessage{}).
+			Where(`
+            user_id != ? AND room_id = ? AND 
+            id > COALESCE(
+                (
+                    SELECT last_read_message_id
+                    FROM chat_room_members 
+                    WHERE room_id = ? AND user_id = ?  AND is_subscribed = ?
+                ), 
+                0
+            )
+        `, user.ID, room.ID, room.ID, user.ID, true).
+			Count(&count).Error
+
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": fmt.Sprintf("Could not calculate unread Msg Count, room id is %d", room.ID),
+				"error":   err.Error(),
+			})
+		}
+
+		// Append the enriched room data to the response slice
+		responseRooms = append(responseRooms, ChatRoomResponse{
+			ChatRoom:       room,
+			UnreadMessages: strconv.FormatInt(count, 10),
+		})
+	}
+
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -216,9 +256,14 @@ func GetSubscribedRoomsForDM(c *fiber.Ctx) error {
 	}
 
 	// If no error occurs and rooms were found, return them
+	// return c.JSON(fiber.Map{
+	// 	"status": "success",
+	// 	"data":   rooms,
+	// })
+
 	return c.JSON(fiber.Map{
 		"status": "success",
-		"data":   rooms,
+		"data":   responseRooms,
 	})
 }
 
@@ -739,6 +784,7 @@ func DeleteMessageForDM(c *fiber.Ctx) error {
 }
 
 func GetChatMessagesForDM(c *fiber.Ctx) error {
+	// Extract the user ID from context and room ID from URL params.
 	userID := c.Locals("user").(models.UserResponse).ID
 	roomID := c.Params("roomId")
 	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
@@ -749,7 +795,7 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Check if the user is a member of the room
+	// Check if the user is a member of the room.
 	var member models.ChatRoomMember
 	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
 	if err != nil {
@@ -759,46 +805,91 @@ func GetChatMessagesForDM(c *fiber.Ctx) error {
 		})
 	}
 
-	// Fetch all messages from the room, including those marked as deleted.
-	var messages []models.ChatMessage
-	err = initializers.DB.Unscoped().
-		Where("room_id = ?", roomIDParsed).
-		Order("created_at DESC").
-		Preload("User", func(db *gorm.DB) *gorm.DB {
-			return db.Preload("Profile", func(db *gorm.DB) *gorm.DB {
-				return db.
-					Preload("City", func(db *gorm.DB) *gorm.DB {
-						return db.Preload("Translations")
-					}).
-					Preload("Guilds", func(db *gorm.DB) *gorm.DB {
-						return db.Preload("Translations")
-					}).
-					Preload("Hashtags").
-					Preload("Photos").
-					Preload("Documents").
-					Preload("Service")
+	// Retrieve pagination parameters with defaults if not provided.
+
+	skip := c.QueryInt("skip", 0)    // Starting from the most recent message.
+	limit := c.QueryInt("limit", 10) // Number of messages to fetch.
+
+	// Check if end_msg_id is provided in the query string and handle it.
+	endMsgIDParam := c.Query("end_msg_id")
+	var endMsgID uint64
+	endMsgIDProvided := false
+
+	if endMsgIDParam != "" {
+		var parseErr error
+		endMsgID, parseErr = strconv.ParseUint(endMsgIDParam, 10, 64)
+		if parseErr != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Invalid end_msg_id format, must be a positive number",
 			})
+		}
+		endMsgIDProvided = true
+	}
+
+	// Fetch the messages, updated to respect skip and limit with correct ordering.
+	var messages []models.ChatMessage
+
+	// Prepared base query with dynamic conditions
+	query := initializers.DB.Unscoped().Model(&models.ChatMessage{}).
+		Where("room_id = ?", roomIDParsed).
+		Order("created_at DESC")
+
+	// Adjust query based on end_msg_id presence
+	if endMsgIDProvided {
+		query = query.Offset(skip).Where("id >= ?", endMsgID) // Assuming you want messages before and including endMsgID
+	} else {
+		// Apply pagination if end_msg_id is not provided
+		query = query.Offset(skip).Limit(limit)
+	}
+
+	// Execute the query with complex preloading
+	err = query.
+		Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.
+				Preload("Profile", func(db *gorm.DB) *gorm.DB {
+					return db.
+						Preload("City.Translations").
+						Preload("Guilds.Translations").
+						Preload("Hashtags").
+						Preload("Photos").
+						Preload("Documents").
+						Preload("Service")
+				})
 		}).
+		Preload("ParentMessage").
 		Find(&messages).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to fetch messages",
+			"error":   err.Error(),
 		})
 	}
 
-	// Iterate through messages to hide content of deleted messages
+	// Total number of messages in the room for pagination info.
+	var totalCount int64
+	initializers.DB.Model(&models.ChatMessage{}).
+		Where("room_id = ?", roomIDParsed).
+		Count(&totalCount)
+
+	// Iterate through messages to hide content of deleted messages.
 	for i, msg := range messages {
 		if msg.IsDeleted {
 			messages[i].Content = "This message has been deleted."
 		}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+	// Return the paginated chat messages.
+	return c.JSON(fiber.Map{
 		"status": "success",
 		"data": fiber.Map{
 			"messages": messages,
 		},
+		"skip":       skip,
+		"limit":      limit,
+		"end_msg_id": endMsgIDParam,
+		"totalCount": totalCount,
 	})
 }
 
@@ -904,6 +995,94 @@ func MarkMessageAsReadForDM(c *fiber.Ctx) error {
 			"updated_latest_read": member.LastReadMessageID,
 		},
 	})
+}
+
+func MarkMessageAsUnReadForDM(c *fiber.Ctx) error {
+	userID := c.Locals("user").(models.UserResponse).ID
+	roomID := c.Params("roomId")
+	status := c.Params("status")
+	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid room ID format, must be a positive number",
+		})
+	}
+	// Parsing a bool value
+	statusParsed, err := strconv.ParseBool(status)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid status format, must be a bool",
+		})
+	}
+
+	// Check if the user is a member of the room
+	var member models.ChatRoomMember
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
+	if err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"status":  "error",
+			"message": "User is not a member of the room or room does not exist",
+		})
+	}
+
+	member.IsUnread = statusParsed
+
+	if err := initializers.DB.Save(&member).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update unread status",
+			"error":   err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "Room is marked as unread",
+		"data": fiber.Map{
+			"marked_as_unread": member.RoomID,
+		},
+	})
+}
+
+func SendUserTypingToCentrifugo(userID uuid.UUID, roomID string) error {
+	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
+	if err != nil {
+		return errors.New("invalid room ID format, must be a positive number")
+	}
+
+	// Check if the user is a member of the room
+	var member models.ChatRoomMember
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
+	if err != nil {
+		return fmt.Errorf("User is not a member of the room or room does not exist: %s", err)
+	}
+
+	channels, err := GetRoomMemberChannels(roomIDParsed)
+	if err != nil {
+		return fmt.Errorf("Failed to get room member channels for broadcasting: %s", err)
+	} else {
+		bodyMap := map[string]interface{}{}
+		bodyMap["userID"] = userID.String()
+		bodyMap["roomID"] = roomIDParsed
+		broadcastPayload := CentrifugoBroadcastPayload{
+			Channels: channels,
+			Data: struct {
+				Type string                 `json:"type"`
+				Body map[string]interface{} `json:"body"`
+			}{
+				Type: "user_is_typing",
+				Body: bodyMap,
+			},
+			IdempotencyKey: fmt.Sprintf("user_is_typing_%s_%d", userID.String(), roomIDParsed),
+		}
+
+		if _, err := CentrifugoBroadcastRoom(roomID, broadcastPayload); err != nil {
+			return fmt.Errorf("Failed to broadcast message deletion notice: %s", err)
+		}
+	}
+	return nil
 }
 
 func maxUint64Ptr(a *uint64, b uint64) *uint64 {
