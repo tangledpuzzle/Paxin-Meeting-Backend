@@ -492,10 +492,11 @@ func main() {
 					// You might return an error response or take appropriate action.
 				}
 				userName := user.Name
+				lastTimeStr := user.LastOnline.Format("2006-01-02 15:04:05")
 
 				if UserID != "" {
 					initializers.DB.Model(&user).Where("id = ?", UserID).Updates(map[string]interface{}{"online": true})
-					utils.UserActivity("userOnline", userName)
+					utils.UserActivity("userOnline", userName, lastTimeStr)
 
 				} else {
 					fmt.Println("User is not logged in")
@@ -621,10 +622,11 @@ func main() {
 					// Access the user's ID with `user.ID`
 					// userID := user.ID.String()
 					userName := user.Name
+					lastTimeStr := user.LastOnline.Format("2006-01-02 15:04:05")
 					//CHECK USER LOGIN OR NOT
 					// authToken := c.Cookies("access_token")
 
-					utils.UserActivity("userOffline", userName)
+					utils.UserActivity("userOffline", userName, lastTimeStr)
 					// initializers.DB.Model(&user).Where("ID = ?", UserID).Updates(map[string]interface{}{"online": true})
 				} else {
 					fmt.Println("User is not logged in")
