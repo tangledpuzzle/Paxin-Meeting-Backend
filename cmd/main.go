@@ -27,7 +27,7 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 
-	"hyperpage/meta/network"
+	// "hyperpage/meta/network"
 	"hyperpage/routes"
 	"hyperpage/utils"
 
@@ -219,7 +219,7 @@ func main() {
 
 	var languageChan = make(chan string)
 
-	bufferPool := network.NewBufferPool("WebSocketBufferPool", 10, 1024)
+	// bufferPool := network.NewBufferPool("WebSocketBufferPool", 10, 1024)
 
 	app.Use("/stream", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
@@ -261,7 +261,7 @@ func main() {
 		}
 
 		for {
-			buffer := bufferPool.AcquireBuffer() // Получаем буфер из пула
+			// buffer := bufferPool.AcquireBuffer() // Получаем буфер из пула
 
 			_, message, err := c.ReadMessage()
 			if err != nil {
@@ -290,7 +290,7 @@ func main() {
 					Error
 				if err != nil {
 					fmt.Println("error fetching random blogs:", err)
-					bufferPool.ReleaseBuffer(buffer)
+					// bufferPool.ReleaseBuffer(buffer)
 					return // Exit or handle the error appropriately
 				}
 
@@ -301,10 +301,11 @@ func main() {
 						continue
 					}
 
-					copy(buffer, blogJSON)
+					// copy(buffer, blogJSON)
 
+					// fmt.Println(buffer)
 					// Send the JSON data to the client
-					err = c.WriteMessage(websocket.TextMessage, buffer)
+					err = c.WriteMessage(websocket.TextMessage, blogJSON)
 					if err != nil {
 						fmt.Println("error sending blog JSON to client:", err)
 						continue
@@ -312,7 +313,7 @@ func main() {
 				}
 			}
 
-			bufferPool.ReleaseBuffer(buffer)
+			// bufferPool.ReleaseBuffer(buffer)
 
 		}
 	}))
@@ -384,8 +385,7 @@ func main() {
 	})
 
 	app.Get("/socket.io/", websocket.New(func(c *websocket.Conn) {
-		log.Println(c.Locals("allowed")) // true
-		log.Println(c.Cookies("session"))
+
 		type messageSocket struct {
 			MessageType string                   `json:"messageType"`
 			Data        []map[string]interface{} `json:"data"`
@@ -632,26 +632,6 @@ func main() {
 
 			}
 
-			// if authToken != "" {
-
-			// xconfig, _ := initializers.LoadConfig(".")
-
-			// tokenClaims, err := utils.ValidateToken(authToken, xconfig.AccessTokenPublicKey)
-			// if err != nil {
-			// 	// handle error
-			// }
-
-			// // extract the TokenUuid field from tokenClaims
-			// UserID := tokenClaims.UserID
-
-			// if UserID != "" {
-			// 	utils.UserActivity("userOffline", UserID)
-
-			// } else {
-			// 	 fmt.Println("User is not logged in")
-			// }
-
-			// }
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
@@ -689,6 +669,7 @@ func main() {
 
 		// Wait for messages from the client
 		for {
+
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				fmt.Println("error reading message from client", idStr, ":", err)
