@@ -713,7 +713,7 @@ func main() {
 							// Note: You might want to loop or do checks based on your use case
 							if roomID, exists := Message.Data[0]["roomID"].(string); exists {
 								fmt.Println("User is Typing RoomID:", roomID)
-								err := controllers.SendUserTypingToCentrifugo(user, roomID)
+								err := controllers.SendUserTypingToCentrifugo(user.ID, roomID)
 								if err != nil {
 									fmt.Println("error sending msg to centrifugo", idStr, ":", err)
 									continue

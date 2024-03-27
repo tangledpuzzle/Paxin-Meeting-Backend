@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
 
@@ -1045,7 +1046,7 @@ func MarkMessageAsUnReadForDM(c *fiber.Ctx) error {
 	})
 }
 
-func SendUserTypingToCentrifugo(user models.User, roomID string) error {
+func SendUserTypingToCentrifugo(userID uuid.UUID, roomID string) error {
 	roomIDParsed, err := strconv.ParseUint(roomID, 10, 64)
 	if err != nil {
 		return errors.New("invalid room ID format, must be a positive number")
@@ -1053,7 +1054,7 @@ func SendUserTypingToCentrifugo(user models.User, roomID string) error {
 
 	// Check if the user is a member of the room
 	var member models.ChatRoomMember
-	err = initializers.DB.Where("user_id = ? AND room_id = ?", user.ID, roomIDParsed).First(&member).Error
+	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
 	if err != nil {
 		return fmt.Errorf("User is not a member of the room or room does not exist: %s", err)
 	}
@@ -1063,7 +1064,7 @@ func SendUserTypingToCentrifugo(user models.User, roomID string) error {
 		return fmt.Errorf("Failed to get room member channels for broadcasting: %s", err)
 	} else {
 		bodyMap := map[string]interface{}{}
-		bodyMap["user"] = user
+		bodyMap["userID"] = userID.String()
 		bodyMap["roomID"] = roomIDParsed
 		broadcastPayload := CentrifugoBroadcastPayload{
 			Channels: channels,
@@ -1074,7 +1075,7 @@ func SendUserTypingToCentrifugo(user models.User, roomID string) error {
 				Type: "user_is_typing",
 				Body: bodyMap,
 			},
-			IdempotencyKey: fmt.Sprintf("user_is_typing_%s_%d", user.ID.String(), roomIDParsed),
+			IdempotencyKey: fmt.Sprintf("user_is_typing_%s_%d", userID.String(), roomIDParsed),
 		}
 
 		if _, err := CentrifugoBroadcastRoom(roomID, broadcastPayload); err != nil {
