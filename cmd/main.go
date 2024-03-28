@@ -676,58 +676,60 @@ func main() {
 				continue
 			}
 			if Message.MessageType == "UserIsTyping" {
-				//CHECK USER IS LOGIN OR NOT
-				authToken := c.Cookies("access_token")
-				// fmt.Println("authToken", authToken)
+				if len(Message.Data) > 0 {
+					// Assuming there is at least one item in Data and it contains access_token
+					authTokenInterface, exists := Message.Data[0]["access_token"]
+					if !exists {
+						log.Print("access token not provided")
+						continue
+					}
 
-				if authToken != "" {
+					authToken, ok := authTokenInterface.(string)
+					if !ok {
+						log.Print("access token format invalid")
+						continue
+					}
 
 					xconfig, _ := initializers.LoadConfig(".")
 
 					tokenClaims, err := utils.ValidateToken(authToken, xconfig.AccessTokenPublicKey)
 					if err != nil {
-						// handle error
-						_ = err
+						log.Printf("Error validating token: %s", err)
+						continue
 					}
 
 					if tokenClaims == nil {
 						fmt.Println("Token is missing or invalid")
-						continue // Return if tokenClaims is nil
+						continue // Exit if tokenClaims is nil
 					}
 
-					// extract the TokenUuid field from tokenClaims
 					UserID := tokenClaims.UserID
 
 					if UserID != "" {
 						var user models.User
-						// now := time.Now()
 
 						result := initializers.DB.Where("id = ?", UserID).First(&user)
 						if result.Error != nil {
-							log.Printf("Error getting from User DB :%s", err)
+							log.Printf("Error getting User from DB :%s", err)
 							continue
 						}
 
-						if len(Message.Data) > 0 {
-							// Extract the roomID for the first item
-							// Note: You might want to loop or do checks based on your use case
-							if roomID, exists := Message.Data[0]["roomID"].(string); exists {
-								fmt.Println("User is Typing RoomID:", roomID)
-								err := controllers.SendUserTypingToCentrifugo(user.ID, roomID)
-								if err != nil {
-									fmt.Println("error sending msg to centrifugo", idStr, ":", err)
-									continue
-								}
-							} else {
-								log.Printf("RoomID not found")
+						// Extract the roomID for the first item
+						if roomID, exists := Message.Data[0]["roomID"].(string); exists {
+							fmt.Println("User is Typing in RoomID:", roomID)
+							err := controllers.SendUserTypingToCentrifugo(user.ID, roomID)
+							if err != nil {
+								fmt.Printf("error sending message to centrifugo for user %s: %s\n", user.ID, err)
 								continue
 							}
+						} else {
+							log.Printf("RoomID not found in message data")
+							continue
 						}
 					} else {
 						log.Printf("UserID is empty")
+						continue
 					}
-				} else {
-					log.Printf("auth token not provided")
 				}
 			}
 			if Message.MessageType == "getMySessionId" {
