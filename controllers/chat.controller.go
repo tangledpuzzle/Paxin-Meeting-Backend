@@ -1075,7 +1075,7 @@ func SendUserTypingToCentrifugo(userID uuid.UUID, roomID string) error {
 				Type: "user_is_typing",
 				Body: bodyMap,
 			},
-			IdempotencyKey: fmt.Sprintf("user_is_typing_%s_%d", userID.String(), roomIDParsed),
+			IdempotencyKey: fmt.Sprintf("user_is_typing_%s_%d_%d", userID.String(), roomIDParsed, time.Now().UTC().UnixMilli()),
 		}
 
 		if _, err := CentrifugoBroadcastRoom(roomID, broadcastPayload); err != nil {
