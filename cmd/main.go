@@ -758,6 +758,8 @@ func main() {
 							}
 						}
 					}
+				} else {
+					log.Printf("auth token not provided")
 				}
 			}
 			if Message.MessageType == "getMySessionId" {
