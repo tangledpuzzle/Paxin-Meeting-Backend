@@ -757,6 +757,8 @@ func main() {
 								continue
 							}
 						}
+					} else {
+						log.Printf("UserID is empty")
 					}
 				} else {
 					log.Printf("auth token not provided")
