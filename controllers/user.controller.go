@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -20,6 +21,29 @@ import (
 	"hyperpage/models"
 	"hyperpage/utils"
 )
+
+func ChangeNickName(c *fiber.Ctx) error {
+	newName := c.Query("new_name")
+	user := c.Locals("user").(models.UserResponse)
+	userID := user.ID
+
+	updateFields := map[string]interface{}{
+		"name": newName,
+	}
+
+	// Пытаемся обновить имя пользователя
+	if err := initializers.DB.Model(&models.User{}).Where("id = ?", userID).Updates(updateFields).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "Пользователь не найден"})
+		}
+		if strings.Contains(err.Error(), "duplicate") {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Это имя уже занято"})
+		}
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
+}
 
 func GetMeH(id string, userName string, fileURL string, tId int64) (*models.User, error) {
 	config, _ := initializers.LoadConfig(".")

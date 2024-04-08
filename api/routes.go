@@ -74,6 +74,7 @@ func Register(micro *fiber.App) {
 		router.Get("/myTime", controllers.MyTime)
 		router.Post("/deletme", middleware.DeserializeUser, controllers.DeleteUserWithRelations)
 		router.Post("/setvip", middleware.DeserializeUser, controllers.SetVipUser)
+		router.Patch("/changeName", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.ChangeNickName)
 
 		router.Post("/sendrequestcall", controllers.SendBotCallRequest)
 		// router.Get("/me", middleware.DeserializeUser, controllers.GetMe)
@@ -139,7 +140,6 @@ func Register(micro *fiber.App) {
 		router.Get("/get", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetProfile)
 		router.Patch("/save", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UpdateProfile)
 		router.Patch("/saveAdditional", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UpdateProfileAdditional)
-
 		router.Patch("/photos", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UpdateProfilePhotos)
 		router.Post("/documents", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.NewProfileDocuments)
 		router.Patch("/documents", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UpdateProfileDocuments)
