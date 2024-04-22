@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgtype"
@@ -271,6 +272,9 @@ func CreateBlog(c *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
+
+	// replace special characters in blog.Slug
+	blog.Slug = replaceSpecialChars(blog.Slug)
 
 	// Fetch languages from the database
 	var langs []models.Langs
@@ -2319,4 +2323,24 @@ func deleteFileFromServer(path string) {
 	absolutePath := filepath.Join(config.IMGStorePath, path)
 
 	_ = os.Remove(absolutePath)
+}
+
+// replaceSpecialChars replaces each special character in the input string
+// with its ASCII code representation enclosed within double underscores.
+func replaceSpecialChars(input string) string {
+	var sb strings.Builder
+
+	for _, char := range input {
+		// Check if the character is alphanumeric (letters and numbers)
+		if unicode.IsLetter(char) || unicode.IsNumber(char) {
+			// If yes, just append it to the string builder
+			sb.WriteRune(char)
+		} else {
+			// If not, append the ASCII code of the character, wrapped in underscores
+			sb.WriteString(fmt.Sprintf("__%d__", char))
+		}
+	}
+
+	// Convert the string builder's content into a string and return
+	return sb.String()
 }
