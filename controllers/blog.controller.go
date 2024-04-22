@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgtype"
@@ -2328,19 +2328,21 @@ func deleteFileFromServer(path string) {
 // replaceSpecialChars replaces each special character in the input string
 // with its ASCII code representation enclosed within double underscores.
 func replaceSpecialChars(input string) string {
-	var sb strings.Builder
+	// Lowercase the input
+	input = strings.ToLower(input)
 
-	for _, char := range input {
-		// Check if the character is alphanumeric (letters and numbers)
-		if unicode.IsLetter(char) || unicode.IsNumber(char) {
-			// If yes, just append it to the string builder
-			sb.WriteRune(char)
-		} else {
-			// If not, append the ASCII code of the character, wrapped in underscores
-			sb.WriteString(fmt.Sprintf("__%d__", char))
-		}
-	}
+	// Replace spaces with hyphens
+	input = strings.ReplaceAll(input, " ", "-")
 
-	// Convert the string builder's content into a string and return
-	return sb.String()
+	// Remove disallowed characters
+	reg, _ := regexp.Compile("[^a-z0-9-_]+") // Adjusted to remove any character NOT matched by the pattern
+	input = reg.ReplaceAllString(input, "")
+
+	// Replace multiple consecutive hyphens with a single hyphen
+	input = regexp.MustCompile("-+").ReplaceAllString(input, "-")
+
+	// Trim leading and trailing hyphens
+	input = strings.Trim(input, "-")
+
+	return input
 }
