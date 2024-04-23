@@ -2326,23 +2326,16 @@ func deleteFileFromServer(path string) {
 }
 
 // replaceSpecialChars replaces each special character in the input string
-// with its ASCII code representation enclosed within double underscores.
-func replaceSpecialChars(input string) string {
-	// Lowercase the input
-	input = strings.ToLower(input)
-
-	// Replace spaces with hyphens
-	input = strings.ReplaceAll(input, " ", "-")
-
-	// Remove disallowed characters
-	reg, _ := regexp.Compile("[^a-z0-9-_]+") // Adjusted to remove any character NOT matched by the pattern
-	input = reg.ReplaceAllString(input, "")
-
-	// Replace multiple consecutive hyphens with a single hyphen
-	input = regexp.MustCompile("-+").ReplaceAllString(input, "-")
-
-	// Trim leading and trailing hyphens
-	input = strings.Trim(input, "-")
-
-	return input
+func replaceSpecialChars(title string) string {
+    // Convert to lowercase
+    lowerCaseTitle := strings.ToLower(title)
+    // Regex to match non-alphanumeric characters and replace them with a hyphen
+    reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+    withHyphens := reg.ReplaceAllString(lowerCaseTitle, "-")
+    // Regex to replace multiple hyphens with a single hyphen
+    multipleHyphens, _ := regexp.Compile("-+")
+    singleHyphen := multipleHyphens.ReplaceAllString(withHyphens, "-")
+    // Remove leading and trailing hyphens if present
+    trimmedHyphen := strings.Trim(singleHyphen, "-")
+    return trimmedHyphen
 }
