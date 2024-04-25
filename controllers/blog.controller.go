@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -271,6 +272,9 @@ func CreateBlog(c *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
+
+	// replace special characters in blog.Slug
+	blog.Slug = replaceSpecialChars(blog.Slug)
 
 	// Fetch languages from the database
 	var langs []models.Langs
@@ -2319,4 +2323,19 @@ func deleteFileFromServer(path string) {
 	absolutePath := filepath.Join(config.IMGStorePath, path)
 
 	_ = os.Remove(absolutePath)
+}
+
+// replaceSpecialChars replaces each special character in the input string
+func replaceSpecialChars(title string) string {
+    // Convert to lowercase
+    lowerCaseTitle := strings.ToLower(title)
+    // Regex to match non-alphanumeric characters and replace them with a hyphen
+    reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+    withHyphens := reg.ReplaceAllString(lowerCaseTitle, "-")
+    // Regex to replace multiple hyphens with a single hyphen
+    multipleHyphens, _ := regexp.Compile("-+")
+    singleHyphen := multipleHyphens.ReplaceAllString(withHyphens, "-")
+    // Remove leading and trailing hyphens if present
+    trimmedHyphen := strings.Trim(singleHyphen, "-")
+    return trimmedHyphen
 }
