@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	uuid "github.com/satori/go.uuid"
 
 	"hyperpage/initializers"
 	"hyperpage/models"
@@ -718,6 +719,14 @@ func LogoutUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
 }
 
+type userDetailsResponse struct {
+	ID           uuid.UUID `json:"userID"`
+	Photo        string    `json:"photo"`
+	Name         string    `json:"name"`
+	Role         string    `json:"role"`
+	TelegramName string    `json:"telegramname"`
+}
+
 func GetUserDetails(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	if user == nil {
@@ -731,8 +740,18 @@ func GetUserDetails(c *fiber.Ctx) error {
 		return errors.New("invalid user type")
 	}
 
+	var res *userDetailsResponse
+
+	res = &userDetailsResponse{
+		ID:           userResp.ID,
+		Photo:        userResp.Photo,
+		Name:         userResp.Name,
+		Role:         userResp.Role,
+		TelegramName: userResp.TelegramName,
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status": "success",
-		"data":   userResp,
+		"data":   res,
 	})
 }
