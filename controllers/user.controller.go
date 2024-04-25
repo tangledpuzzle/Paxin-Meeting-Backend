@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +24,10 @@ import (
 )
 
 func ChangeNickName(c *fiber.Ctx) error {
-	newName := c.Query("new_name")
+	newName := strings.ReplaceAll(c.Query("new_name"), " ", "")
+	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
+	newName = reg.ReplaceAllString(newName, "")
+
 	user := c.Locals("user").(models.UserResponse)
 	userID := user.ID
 

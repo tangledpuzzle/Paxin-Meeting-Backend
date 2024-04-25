@@ -3,6 +3,7 @@ package controllers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -715,4 +716,23 @@ func LogoutUser(c *fiber.Ctx) error {
 	// 	Expires: expired,
 	// })
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
+}
+
+func GetUserDetails(c *fiber.Ctx) error {
+	user := c.Locals("user")
+	if user == nil {
+		// Handle the case when user is nil
+		return errors.New("user not found")
+	}
+
+	userResp, ok := user.(models.UserResponse)
+	if !ok {
+		// Handle the case when user is not of type models.UserResponse
+		return errors.New("invalid user type")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "success",
+		"data":   userResp,
+	})
 }
