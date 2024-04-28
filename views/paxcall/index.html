@@ -1,0 +1,679 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>websocket</title>
+</head>
+
+<body>
+    <div>
+        <audio id="pickup">
+            <source src="/pickup.ogg" type="audio/ogg">
+            Your browser does not support the audio element.
+        </audio>
+        <audio id="comingAudioCall" loop>
+            <source src="/coming.ogg" type="audio/ogg">
+            Your browser does not support the audio element.
+        </audio>
+        <audio id="callAudio" loop>
+            <source src="/call.ogg" type="audio/ogg">
+            Your browser does not support the audio element.
+        </audio>
+        <audio id="endcall">
+            <source src="/end.ogg" type="audio/ogg">
+            Your browser does not support the audio element.
+        </audio>
+        <audio id="audioElement" autoplay></audio>
+        <video style="display: none" id="remoteVideo" width="320" height="240" autoplay muted playsinline></video>
+
+
+        <div id="session"></div>
+        <input id="sessionAInput" placeholder="session A">
+        <input id="sessionBInput" placeholder="session B">
+        <button onclick="callWebSocket()">call</button>
+        <button onclick="enableVideo()" disabled>Enable video</button>
+        <button onclick="muteMicro()" disabled>Disable mic</button>
+
+        <div id="myModal" class="modal">
+            <div class="modal-content">
+                <video id="videoElement" autoplay playsinline></video>
+                <div class="flex">
+                    <!-- <button>micro on/off</button>
+                <button>video on/off</button> -->
+                    <button onclick="endCall()">end call.</button>
+                </div>
+            </div>
+        </div>
+        <div id="myModal2" class="modal">
+            <div class="modal-content">
+                <video id="videoElement2" autoplay playsinline></video>
+                <div class="flex">
+                    <!-- <button>micro on/off</button>
+                <button>video on/off</button> -->
+                    <button onclick="makeAnswer()">accept call.</button>
+                    <!-- <button onclick="endCall()">reject call.</button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const socket = new WebSocket("wss://localhost/ws");
+
+        var modal = document.getElementById("myModal");
+        var modal2 = document.getElementById("myModal2");
+
+        const audioElement = document.getElementById("audioElement");
+        const remoteVideoElement = document.getElementById('remoteVideo');
+
+        let isVideoEnabled = false;
+
+
+        let sessionA;
+        let sessionB;
+
+        let ice_candidate = [];
+
+        let mediaStream;
+
+        let remoteStream;
+        let stream;
+
+        let isMicrophoneMuted = false;
+
+
+        const configuration = {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+            sdpSemantics: 'unified-plan',
+            codecs: [
+                { name: 'opus', mimeType: 'audio/opus' },
+                { name: 'vp8', mimeType: 'video/vp8' },
+
+            ]
+        };
+
+        const peerConnection = new RTCPeerConnection(configuration);
+
+        // Добавьте обработчик события после создания RTCPeerConnection
+        peerConnection.addEventListener('iceconnectionstatechange', () => {
+            console.log('ICE Connection State:', peerConnection.iceConnectionState);
+
+            if (peerConnection.iceConnectionState === 'connected') {
+
+                audioElement.srcObject = remoteStream
+
+                audioElement.play();
+
+                const enableVideoButton = document.querySelector('button[onclick="enableVideo()"]');
+                enableVideoButton.removeAttribute('disabled');
+
+                const disableAudito = document.querySelector('button[onclick="muteMicro()"]');
+                disableAudito.removeAttribute('disabled');
+
+                const pickup = document.getElementById('pickup');
+                pickup.play()
+
+                console.log('RTCPeerConnection connected to the STUN server.');
+            }
+        });
+
+
+        peerConnection.addEventListener('track', (event) => {
+            remoteStream = event.streams[0];
+        })
+
+
+        function enableVideo() {
+            if (!isVideoEnabled) {
+                startVideoTransmission();
+            } else {
+                stopVideoTransmission();
+            }
+        }
+
+
+        // function handleIncomingVideo(event) {
+        //     // Assuming you have a video element on your HTML with the id 'remoteVideo'
+        //     const remoteVideoElement = document.getElementById('remoteVideo');
+        //     console.log('try video on')
+        //     console.log('Received video track event:', event);
+
+        //     // Add an event listener for the 'track' event, which occurs when a new track is added to the connection
+        //     peerConnection.addEventListener('track', (event) => {
+        //         console.log(event)
+        //         if (event.streams && event.streams[0]) {
+        //             // Set the stream as the source of the video element
+        //             remoteVideoElement.srcObject = event.streams[0];
+
+        //             // Optionally, you can play the video
+        //             remoteVideoElement.play();
+        //         }
+        //     });
+        // }
+
+
+        function addVideoTrackToPeerConnection(videoTrack) {
+            const existingVideoSender = peerConnection.getSenders().find(sender => sender.track && sender.track.kind === 'video');
+            if (existingVideoSender) {
+                // Если видео было остановлено, возобновляем его
+                if (videoTrack.readyState === 'ended') {
+                    console.log('Video track was ended. Resuming...');
+                    videoTrack.enabled = true;
+                }
+
+                // Заменяем поток в существующем RTCPeerConnection
+                existingVideoSender.replaceTrack(videoTrack);
+            } else {
+                // Добавляем новый видеотрек
+                peerConnection.addTrack(videoTrack);
+            }
+        }
+
+        peerConnection.ontrack = function (event) {
+            console.log('Новый видеотрек обнаружен:', event);
+            const remoteVideo = document.getElementById('remoteVideo');
+            // Добавляем видеопоток к элементу video на странице
+            remoteVideoElement.srcObject = remoteStream;
+
+        }
+
+        // function addOrReplaceVideoTrack(videoTrack) {
+        //         // Create a new MediaStream with the existing audio track and the new video track
+        //         const updatedStream = new MediaStream([mediaStream.getAudioTracks()[0], videoTrack]);
+
+        //         // Get the video sender from the RTCPeerConnection
+        //         const videoSender = peerConnection.getSenders().find(sender => sender.track && sender.track.kind === 'video');
+
+        //         // Replace the video track in the sender or add a new track if no video track exists
+        //         if (videoSender) {
+        //             videoSender.replaceTrack(updatedStream.getVideoTracks()[0]);
+        //         } else {
+        //             peerConnection.addTrack(videoTrack, updatedStream);
+        //         }
+        // }
+
+
+
+        async function startVideoTransmission() {
+            try {
+                // Получаем медиа-устройства с видео
+                const videoStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+
+                const sessionAValue = document.getElementById("sessionAInput").value;
+                const sessionBValue = document.getElementById("sessionBInput").value;
+
+
+                // Получаем все локальные медиа-потоки
+                // const senders = peerConnection.getSenders();
+
+                // Заменяем старый медиа-поток на новый с видео
+                videoStream.getTracks().forEach(newTrack => {
+                    // const matchingSender = senders.find(sender => sender.track && sender.track.kind === newTrack.kind);
+
+                    // if (matchingSender) {
+                    //     matchingSender.replaceTrack(newTrack);
+                    // } else {
+                    //     peerConnection.addTrack(newTrack, videoStream);
+                    // }
+                    peerConnection.addTrack(newTrack, videoStream);
+
+                });
+
+
+                // Создаем предложение для обновленных параметров медиа-потока
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Check if the sessionB input is not empty before sending
+                if (sessionAValue.trim() !== "" && sessionBValue.trim() !== "") {
+                    const message = {
+                        command: "video_started",
+                        sessionA: sessionAValue,
+                        sessionB: sessionBValue,
+                        sdpOffer: offer.sdp  // sdp SDP Offer
+
+                    };
+                    // Convert the message to JSON and send it over the WebSocket
+                    socket.send(JSON.stringify(message));
+
+                    isVideoEnabled = true;
+                    document.querySelector('button[onclick="enableVideo()"]').innerText = 'disable Video';
+
+                } else {
+                    console.error("Session A or Session B value is empty. Please enter values.");
+                }
+
+            } catch (error) {
+                console.error("Error enabling video:", error.message);
+            }
+        }
+
+
+
+        function updatePeerConnectionWithStream(peerConnection, newStream) {
+
+            // Получаем sender для аудиотрека
+            const audioSender = peerConnection.getSenders().find(sender => sender.track && sender.track.kind === 'audio');
+            const videoSender = peerConnection.getSenders().find(sender => sender.track && sender.track.kind === 'video');
+
+            // Заменяем аудиотрек в sender'е
+            if (audioSender) {
+                audioSender.replaceTrack(newStream.getAudioTracks()[0]);
+            }
+
+            // Если есть видеотрек, заменяем его в sender'е
+            if (videoSender) {
+                if (newStream.getVideoTracks().length > 0) {
+                    videoSender.replaceTrack(newStream.getVideoTracks()[0]);
+                } else {
+                    // Если видео выключено, удаляем видеотрек из sender'а
+                    peerConnection.removeTrack(videoSender);
+                }
+            }
+        }
+
+        function stopVideoTransmission() {
+
+            // Stop the video tracks
+            peerConnection.getSenders().forEach(sender => {
+                if (sender.track && sender.track.kind === 'video') {
+                    sender.track.stop();
+                }
+            });
+
+            // Update the flag and button text
+            isVideoEnabled = false;
+            document.querySelector('button[onclick="enableVideo()"]').innerText = 'Enable Video';
+
+            const sessionAValue = document.getElementById("sessionAInput").value;
+            const sessionBValue = document.getElementById("sessionBInput").value;
+
+
+
+
+            const message = {
+                command: "video_stoped",
+                sessionA: sessionAValue,
+                sessionB: sessionBValue,
+            };
+
+            // Отправляем ответ через WebSocket
+            socket.send(JSON.stringify(message));
+
+        }
+
+        function muteMicro() {
+
+            const buttonText = document.querySelector('button[onclick="muteMicro()"]');
+
+            if (stream) {
+                if (isMicrophoneMuted === false) {
+                    buttonText.innerText = 'Disabled Mic';
+                    stream.getAudioTracks().forEach(track => {
+                        track.enabled = false;
+                    });
+                    isMicrophoneMuted = true;
+                } else {
+                    buttonText.innerText = 'Enabled Mic';
+                    stream.getAudioTracks().forEach(track => {
+                        track.enabled = true;
+                    });
+                    isMicrophoneMuted = false;
+
+                }
+            } else {
+                console.error("Stream not available.");
+            }
+        }
+
+
+        socket.addEventListener("open", (event) => {
+            console.log("WebSocket opened:", event);
+        });
+
+        socket.addEventListener("message", async (event) => {
+            if (event.data.length < 25) {
+                console.log("WebSocket message received:", event.data);
+                const divElement = document.getElementById("session");
+                if (divElement) {
+                    divElement.textContent = event.data;
+                }
+            }
+
+            let data = JSON.parse(event.data)
+
+            if (data.command === 'stoped_video') {
+                document.getElementById('remoteVideo').style.display = 'none';
+            }
+
+            if (data.command === 'start_video') {
+                sdpOffer = data.sdpOffer;
+                await peerConnection.setRemoteDescription(new RTCSessionDescription({ sdp: sdpOffer, type: "offer" }));
+
+                // Создаем SDP Answer
+                const sdpAnswer = await peerConnection.createAnswer();
+
+                // Устанавливаем локальное описание
+                await peerConnection.setLocalDescription(sdpAnswer);
+
+                // Отправляем SDP Answer обратно отправителю
+                const message = {
+                    command: "video_answer",
+                    sessionA: sessionA,
+                    sessionB: sessionB,
+                    sdpAnswer: sdpAnswer.sdp
+                };
+
+                // Отправляем ответ через WebSocket
+                socket.send(JSON.stringify(message));
+                document.getElementById('remoteVideo').style.display = 'block';
+
+            }
+
+
+
+
+            if (event.data.length > 30) {
+
+                let data = JSON.parse(event.data)
+                let sdpOffer = null;
+
+                if (data.candidate) {
+                    ice_candidate.push(data)
+                }
+
+
+                if (data.command === 'coming_call') {
+
+                    const coming_call = document.getElementById('comingAudioCall');
+                    coming_call.play()
+
+                    sdpOffer = data.sdpOffer
+                    sessionA = data.sessionA
+
+                    document.getElementById("sessionBInput").value = data.sessionA;
+                    document.getElementById("sessionAInput").value = data.sessionB;
+
+                    openModal2();
+
+                    peerConnection.setRemoteDescription(new RTCSessionDescription({ sdp: sdpOffer, type: "offer" }));
+
+                }
+
+                if (data.command === 'sdp_answer') {
+
+                    const callAudio = document.getElementById('callAudio');
+                    callAudio.pause()
+
+                    let sdpAnswer = data.sdpAnswer;
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription({ sdp: sdpAnswer, type: "answer" }));
+
+                    if (data.iceCandidates) {
+                        let candidates = data.iceCandidates;
+
+                        candidates.forEach(async (candidate, index) => {
+                            const iceCandidate = new RTCIceCandidate(candidate);
+                            await peerConnection.addIceCandidate(iceCandidate);
+                        });
+
+                        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaStream.getTracks().forEach(track => {
+                            peerConnection.addTrack(track, mediaStream);
+                        });
+
+
+                        closeModals()
+                    }
+
+
+                }
+
+
+
+                if (data.command === 'finish') {
+                    const audioElement = document.getElementById("audioElement");
+                    if (audioElement) {
+                        audioElement.pause();
+                        audioElement.srcObject = null;
+                    }
+
+                    const audio = document.getElementById('callAudio');
+                    audio.pause()
+
+                    const coming_call = document.getElementById('comingAudioCall');
+                    coming_call.pause()
+
+                    const endcall = document.getElementById('endcall');
+                    endcall.play()
+
+
+                    peerConnection.close();
+
+                    stopStream();
+                    // Uncomment after button video ON
+                    // videoElement.srcObject = stream;
+
+                    // Open a modal window 
+                    closeModals();
+                }
+            }
+
+        });
+
+        socket.addEventListener("close", (event) => {
+            console.log("WebSocket closed:", event);
+        });
+
+        socket.addEventListener("error", (event) => {
+            console.error("WebSocket error:", event);
+        });
+
+        async function callWebSocket() {
+
+
+            const audio = document.getElementById('callAudio');
+            audio.play()
+
+
+
+            const sessionAValue = document.getElementById("sessionAInput").value;
+            const sessionBValue = document.getElementById("sessionBInput").value;
+
+
+
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, stream);
+            });
+            openModal();
+
+
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            // Check if the sessionB input is not empty before sending
+            if (sessionAValue.trim() !== "" && sessionBValue.trim() !== "") {
+                const message = {
+                    command: "call",
+                    sessionA: sessionAValue,
+                    sessionB: sessionBValue,
+                    sdpOffer: offer.sdp  // sdp SDP Offer
+
+                };
+                sessionB = sessionBValue;
+                // Convert the message to JSON and send it over the WebSocket
+                socket.send(JSON.stringify(message));
+            } else {
+                console.error("Session A or Session B value is empty. Please enter values.");
+            }
+
+            peerConnection.addEventListener('icecandidate', (event) => {
+                if (event.candidate) {
+                    // console.log('ICE Candidate:', event.candidate);
+
+                    const iceCandidateMessage = {
+                        command: 'ice_candidate',
+                        sessionA: sessionA,
+                        sessionB: sessionB,
+                        iceCandidate: event.candidate
+                    };
+
+                    socket.send(JSON.stringify(iceCandidateMessage));
+                }
+            });
+
+        }
+
+        // Function to open a modal window
+        function openModal() {
+            modal.style.display = "block";
+        }
+        function openModal2() {
+            modal2.style.display = "block";
+        }
+
+
+        async function makeAnswer() {
+            ice_candidate.forEach(async (candidate, index) => {
+                const iceCandidate = new RTCIceCandidate(candidate);
+                await peerConnection.addIceCandidate(iceCandidate);
+            });
+
+
+            const coming_call = document.getElementById('comingAudioCall');
+            coming_call.pause()
+
+            try {
+
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, stream);
+                });
+                // make SDP Answer
+                const sdpAnswer = await peerConnection.createAnswer();
+
+                // local set
+                await peerConnection.setLocalDescription(sdpAnswer);
+
+
+
+                let iceCandidates = [];
+
+                peerConnection.addEventListener('icecandidate', (event) => {
+                    if (event.candidate) {
+                        iceCandidates.push(event.candidate);
+                    } else {
+                        let answerMessage = {
+                            command: 'sdpAnswer',
+                            sessionA: sessionA,
+                            sdpAnswer: sdpAnswer.sdp,
+                            iceCandidates: iceCandidates
+                        };
+
+                        socket.send(JSON.stringify(answerMessage));
+
+
+                    }
+                })
+
+
+            } catch (error) {
+                console.error("Error creating and sending SDP Answer:", error);
+            }
+            closeModals()
+
+        }
+
+        function endCall() {
+
+            const sessionAValue = document.getElementById("sessionAInput").value;
+            const sessionBValue = document.getElementById("sessionBInput").value;
+
+            modal2.style.display = "none";
+            const message = {
+                command: "finish",
+                sessionA: sessionAValue,
+                sessionB: sessionBValue
+            };
+            socket.send(JSON.stringify(message));
+
+        }
+
+        peerConnection.addEventListener('icecandidate', (event) => {
+            if (event.candidate) {
+                const iceCandidateMessage = {
+                    command: 'ice_candidate',
+                    sessionA: sessionA,
+                    sessionB: sessionB,
+                    iceCandidate: event.candidate
+                };
+
+                console.log(event.candidate)
+
+                socket.send(JSON.stringify(iceCandidateMessage));
+            }
+        });
+
+
+        // Function to stop the stream
+        function stopStream() {
+            if (mediaStream) {
+                const tracks = mediaStream.getTracks();
+                tracks.forEach(track => track.stop());
+                mediaStream = null;
+            }
+        }
+
+        function closeModals() {
+            modal.style.display = "none";
+            modal2.style.display = "none";
+        }
+    </script>
+    <style>
+        button {
+            margin: 5px
+        }
+
+        .flex {
+            display: flex;
+            justify-content: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</body>
+
+</html>
