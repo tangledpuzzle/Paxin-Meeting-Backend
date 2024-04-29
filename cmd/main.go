@@ -199,15 +199,15 @@ func main() {
 		BodyLimit:    20 * 1024 * 1024, // 20 MB
 	})
 
-	app_paxcall := fiber.New(fiber.Config{
+	micro_paxcall := fiber.New(fiber.Config{
 		ServerHeader: "paxintrade",
 		Views:        engine_paxcall,
 		BodyLimit:    20 * 1024 * 1024, // 20 MB
 	})
 
-	app_paxcall.Static("/", "./public")
+	micro_paxcall.Static("/", "./public")
 
-	routes_paxcall.Register(app_paxcall)
+	routes_paxcall.Register(micro_paxcall)
 
 	micro := fiber.New()
 
@@ -220,6 +220,7 @@ func main() {
 
 	//REGISTER NEW ROUTES
 	app.Mount("/api", micro)
+	app.Mount("/paxcall", micro_paxcall)
 
 	app.Use(logger.New())
 
