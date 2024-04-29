@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgtype"
@@ -2326,21 +2326,16 @@ func deleteFileFromServer(path string) {
 }
 
 // replaceSpecialChars replaces each special character in the input string
-// with its ASCII code representation enclosed within double underscores.
-func replaceSpecialChars(input string) string {
-	var sb strings.Builder
-
-	for _, char := range input {
-		// Check if the character is alphanumeric (letters and numbers)
-		if unicode.IsLetter(char) || unicode.IsNumber(char) {
-			// If yes, just append it to the string builder
-			sb.WriteRune(char)
-		} else {
-			// If not, append the ASCII code of the character, wrapped in underscores
-			sb.WriteString(fmt.Sprintf("__%d__", char))
-		}
-	}
-
-	// Convert the string builder's content into a string and return
-	return sb.String()
+func replaceSpecialChars(title string) string {
+    // Convert to lowercase
+    lowerCaseTitle := strings.ToLower(title)
+    // Regex to match non-alphanumeric characters and replace them with a hyphen
+    reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+    withHyphens := reg.ReplaceAllString(lowerCaseTitle, "-")
+    // Regex to replace multiple hyphens with a single hyphen
+    multipleHyphens, _ := regexp.Compile("-+")
+    singleHyphen := multipleHyphens.ReplaceAllString(withHyphens, "-")
+    // Remove leading and trailing hyphens if present
+    trimmedHyphen := strings.Trim(singleHyphen, "-")
+    return trimmedHyphen
 }
