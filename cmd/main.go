@@ -25,7 +25,7 @@ import (
 
 	"hyperpage/routes/api"
 	routes_paxcall "hyperpage/routes/paxcall"
-	
+
 	"hyperpage/controllers"
 	"hyperpage/initializers"
 	"hyperpage/models"
