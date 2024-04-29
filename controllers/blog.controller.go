@@ -132,6 +132,59 @@ type blogResponse struct {
 	UserProfile      UserProfileJSON       `json:"userProfile"`
 }
 
+func FilterBlogsWithIds(c *fiber.Ctx) error {
+	// Define the struct to hold the request data
+	type requestData struct {
+		Ids       []string `json:"ids"`
+		Publisher string   `json:"publisher"`
+	}
+
+	// Parse the POST request body into the struct
+	var data requestData
+	if err := c.BodyParser(&data); err != nil {
+		// Handle parsing error
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
+	}
+
+	// Query to check if publisher (user) exists
+	user := new(models.User)
+	if err := initializers.DB.Where("id = ?", data.Publisher).First(user).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid Publisher ID",
+		})
+	}
+
+	// Query blogs with ids and publisher ID
+	var blogs []models.Blog
+	if err := initializers.DB.Where("user_id = ? AND id IN ? AND status = ?", user.ID, data.Ids, "ACTIVE").Find(&blogs).Error; err != nil {
+		// Handle database query error
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to query blogs",
+			"error":   err.Error(),
+		})
+	}
+
+	// Check if blogs were found
+	if len(blogs) == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "No blogs found matching the criteria",
+		})
+	}
+
+	// Successful response with the found blogs
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "success",
+		"blogs":  blogs,
+	})
+}
+
 func GetAllBlogs(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 	isArchive := c.Query("isArchive")
@@ -2327,15 +2380,15 @@ func deleteFileFromServer(path string) {
 
 // replaceSpecialChars replaces each special character in the input string
 func replaceSpecialChars(title string) string {
-    // Convert to lowercase
-    lowerCaseTitle := strings.ToLower(title)
-    // Regex to match non-alphanumeric characters and replace them with a hyphen
-    reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
-    withHyphens := reg.ReplaceAllString(lowerCaseTitle, "-")
-    // Regex to replace multiple hyphens with a single hyphen
-    multipleHyphens, _ := regexp.Compile("-+")
-    singleHyphen := multipleHyphens.ReplaceAllString(withHyphens, "-")
-    // Remove leading and trailing hyphens if present
-    trimmedHyphen := strings.Trim(singleHyphen, "-")
-    return trimmedHyphen
+	// Convert to lowercase
+	lowerCaseTitle := strings.ToLower(title)
+	// Regex to match non-alphanumeric characters and replace them with a hyphen
+	reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+	withHyphens := reg.ReplaceAllString(lowerCaseTitle, "-")
+	// Regex to replace multiple hyphens with a single hyphen
+	multipleHyphens, _ := regexp.Compile("-+")
+	singleHyphen := multipleHyphens.ReplaceAllString(withHyphens, "-")
+	// Remove leading and trailing hyphens if present
+	trimmedHyphen := strings.Trim(singleHyphen, "-")
+	return trimmedHyphen
 }
