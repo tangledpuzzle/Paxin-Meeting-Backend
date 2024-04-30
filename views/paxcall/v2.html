@@ -1,0 +1,199 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>websocket</title>
+</head>
+
+<body>
+    <div>
+        <audio id="audioElement" autoplay></audio>
+
+        <input id="sessionAInput" placeholder="session A">
+        <input id="sessionBInput" placeholder="session B">
+        <button id="startCallButton" onclick="startCall()">Start Call</button>
+        <div id="myModal" class="modal">
+            <div class="modal-content">
+                <div class="flex">
+                    <button>micro on/off</button>
+                    <button>video on/off</button>
+                    <button id="endCallButton" onclick="endCall()">End Call</button>
+                </div>
+            </div>
+        </div>
+        <div id="myModal2" class="modal">
+            <div class="modal-content">
+                <div class="flex">
+                    <button>micro on/off</button>
+                    <button>video on/off</button>
+                    <button onclick="makeAnswer()">accept call.</button>
+                    <button id="endCallButton" onclick="endCall()">End Call</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    const socket = new WebSocket("wss://localhost/ws");
+
+    var modal = document.getElementById("myModal");
+    var modal2 = document.getElementById("myModal2");
+
+    const audioElement = document.getElementById("audioElement");
+    const audioStream = new MediaStream();
+
+
+    let sessionA;
+    let sessionB;
+
+    let ice_candidates = [];
+    let peerConnection;
+
+    let mediaStream;
+
+
+    const configuration = {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        sdpSemantics: 'unified-plan',
+        codecs: [
+            { name: 'opus', mimeType: 'audio/opus' },
+            { name: 'vp8', mimeType: 'video/vp8' },
+        ]
+    };
+
+    async function createOffer() {
+        try {
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.send(JSON.stringify({ offer: offer }));
+        } catch (error) {
+            console.error('Error creating offer:', error);
+        }
+    }
+
+    async function handleOffer(offer) {
+        try {
+            // Установка удаленного описания (SDP)
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+            // Создание и отправка ответа (Answer)
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            // Отправка ответа на сервер или другому пиру
+            socket.send(JSON.stringify({ answer: answer }));
+        } catch (error) {
+            console.error('Error handling offer:', error);
+        }
+    }
+
+
+
+    async function startCall() {
+
+        // ... (оставим остальной код без изменений)
+        peerConnection = new RTCPeerConnection(configuration);
+
+        peerConnection.onicecandidate = function (event) {
+            if (event.candidate) {
+                ice_candidate.push(event.candidate);
+                // Отправка ICE-кандидата на сервер
+                socket.send(JSON.stringify({ ice_candidate: event.candidate }));
+            }
+        };
+
+        peerConnection.ontrack = function (event) {
+            // Обработка удаленного видео- или аудиопотока
+            if (event.streams && event.streams[0]) {
+                // event.streams[0] содержит удаленный поток
+                videoElement.srcObject = event.streams[0];
+            }
+        };
+
+        peerConnection.addEventListener('iceconnectionstatechange', () => {
+            console.log('ICE Connection State:', peerConnection.iceConnectionState);
+
+            if (peerConnection.iceConnectionState === 'connected') {
+                console.log('RTCPeerConnection connected to the STUN server.');
+                // Можно добавить дополнительные действия при успешном установлении соединения
+            } else if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
+                console.log('RTCPeerConnection disconnected or failed.');
+                // Обработка случаев разрыва соединения
+            }
+        });
+
+        // Добавим логику для кнопок начала и завершения звонка
+        document.getElementById("startCallButton").disabled = true;
+        document.getElementById("endCallButton").disabled = false;
+        modal.style.display = "block";
+
+        try {
+            // Создание Offer при начале звонка
+            await createOffer();
+        } catch (error) {
+            console.error('Error starting call:', error);
+        }
+    }
+
+    function endCall() {
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+            ice_candidates = [];
+
+            document.getElementById("startCallButton").disabled = false;
+            document.getElementById("endCallButton").disabled = true;
+            modal.style.display = "none";
+
+        }
+    }
+
+
+</script>
+<style>
+    button {
+        margin: 5px
+    }
+
+    .flex {
+        display: flex;
+        justify-content: center;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+</style>
+
+</html>
