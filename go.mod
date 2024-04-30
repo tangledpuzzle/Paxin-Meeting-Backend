@@ -20,6 +20,7 @@ require (
 	github.com/pion/webrtc/v3 v3.2.23
 	github.com/redis/go-redis/v9 v9.0.4
 	github.com/satori/go.uuid v1.2.0
+	github.com/sideshow/apns2 v0.23.0
 	github.com/spf13/viper v1.15.0
 	github.com/streadway/amqp v1.0.0
 	github.com/swaggo/swag v1.16.2
@@ -31,7 +32,6 @@ require (
 
 require (
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
-	github.com/sideshow/apns2 v0.23.0 // indirect
 	gorm.io/driver/mysql v1.4.7 // indirect
 )
 

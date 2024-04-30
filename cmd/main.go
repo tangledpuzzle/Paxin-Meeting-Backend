@@ -23,7 +23,9 @@ import (
 
 	"github.com/gofiber/template/html/v2"
 
-	"hyperpage/api"
+	"hyperpage/routes/api"
+	routes_paxcall "hyperpage/routes/paxcall"
+
 	"hyperpage/controllers"
 	"hyperpage/initializers"
 	"hyperpage/models"
@@ -188,13 +190,24 @@ func main() {
 
 	// fmt.Println("Уведомление успешно отправлено:", res)
 
-	engine := html.New("./views", ".html")
+	engine := html.New("./views/main", ".html")
+	engine_paxcall := html.New("./views/paxcall", ".html")
 
 	app := fiber.New(fiber.Config{
 		ServerHeader: "paxintrade",
 		Views:        engine,
 		BodyLimit:    20 * 1024 * 1024, // 20 MB
 	})
+
+	micro_paxcall := fiber.New(fiber.Config{
+		ServerHeader: "paxintrade",
+		Views:        engine_paxcall,
+		BodyLimit:    20 * 1024 * 1024, // 20 MB
+	})
+
+	micro_paxcall.Static("/", "./public")
+
+	routes_paxcall.Register(micro_paxcall)
 
 	micro := fiber.New()
 
@@ -207,6 +220,7 @@ func main() {
 
 	//REGISTER NEW ROUTES
 	app.Mount("/api", micro)
+	app.Mount("/paxcall", micro_paxcall)
 
 	app.Use(logger.New())
 
