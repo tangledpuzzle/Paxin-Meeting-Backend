@@ -1786,7 +1786,7 @@ func GetAll(c *fiber.Ctx) error {
 		for i, city := range b.City {
 			cityJSON := CityJSON{
 				ID:   city.ID,
-				Name: city.Translations[i].Name,
+				Name: city.Translations[0].Name,
 			}
 			cities[i] = cityJSON
 		}
@@ -1795,7 +1795,7 @@ func GetAll(c *fiber.Ctx) error {
 		for i, category := range b.Catygory {
 			categoryJSON := CategoryJSON{
 				ID:   category.ID,
-				Name: category.Translations[i].Name,
+				Name: category.Translations[0].Name,
 			}
 			categories[i] = categoryJSON
 		}
