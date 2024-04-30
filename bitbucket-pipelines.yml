@@ -9,7 +9,7 @@ definitions:
           CHANGED_FILES=$(git diff-tree -m --no-commit-id --name-only -r $BITBUCKET_COMMIT)
           echo "Changed files/directories: $CHANGED_FILES"
 
-          CHECKED_PATHS="api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum|Dockerfile.prod"
+          CHECKED_PATHS="should_build|api|cmd|controllers|docs|initializers|middleware|migrate|models|routes|templates|utils|views|.air.toml|go.mod|go.sum|Dockerfile.prod"
           SHOULD_BUILD=1
 
           if echo "$CHANGED_FILES" | grep -Eq $CHECKED_PATHS; then
@@ -76,9 +76,6 @@ pipelines:
               if [ "$SHOULD_BUILD" -eq "1" ]; then
                 echo "Building and pushing Docker image to ECR..."
                 # Define environment values
-                export AWS_ACCESS_KEY_ID=AKIAQ3EGUQQP5JDZ6K5X
-                export REGION=us-west-2
-                export REPOSITORY_URI=058264421407.dkr.ecr.us-west-2.amazonaws.com
                 export IMAGE_NAME=paxintrade-api
                 export IMAGE_TAG=$(echo $BITBUCKET_COMMIT | cut -c 1-7)
                 export IMAGE_LATEST_TAG=latest
@@ -105,11 +102,6 @@ pipelines:
           image: alpine/git
           script:
             - echo "Deploying to production environment"
-            # Define environment values
-            - export AWS_ACCESS_KEY_ID=AKIAQ3EGUQQP5JDZ6K5X
-            - export REGION=us-west-2
-            - export REPOSITORY_URI=058264421407.dkr.ecr.us-west-2.amazonaws.com
-
             # Install AWS-CLI
             - apk add --no-cache aws-cli
             # Login to AWS ECR
