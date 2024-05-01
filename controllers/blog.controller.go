@@ -163,7 +163,6 @@ func FilterBlogsWithIds(c *fiber.Ctx) error {
 	var blogs []models.Blog
 	if err := initializers.DB.
 		Preload("Photos").
-		Preload("User").
 		Where("user_id = ? AND id IN ? AND status = ?", user.ID, data.Ids, "ACTIVE").
 		Find(&blogs).
 		Error; err != nil {
