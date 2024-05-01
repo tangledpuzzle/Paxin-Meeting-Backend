@@ -161,7 +161,12 @@ func FilterBlogsWithIds(c *fiber.Ctx) error {
 
 	// Query blogs with ids and publisher ID
 	var blogs []models.Blog
-	if err := initializers.DB.Where("user_id = ? AND id IN ? AND status = ?", user.ID, data.Ids, "ACTIVE").Find(&blogs).Error; err != nil {
+	if err := initializers.DB.
+		Preload("Photos").
+		Preload("User").
+		Where("user_id = ? AND id IN ? AND status = ?", user.ID, data.Ids, "ACTIVE").
+		Find(&blogs).
+		Error; err != nil {
 		// Handle database query error
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
