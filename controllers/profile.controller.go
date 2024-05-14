@@ -8,6 +8,7 @@ import (
 	"hyperpage/utils"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgtype"
 
@@ -1270,5 +1271,129 @@ func Get10RandomTags(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   hashtags,
+	})
+}
+
+func UpdateProfileStreaming(c *fiber.Ctx) error {
+
+	var streaming models.Streaming
+	var profile models.Profile
+
+	if err := c.BodyParser(&streaming); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not parse request body",
+		})
+	}
+
+	if err := initializers.DB.First(&profile, streaming.UserID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to find the profile document",
+		})
+	}
+
+	// Update the document fields with the new values
+
+	profile.Streaming = append(profile.Streaming, streaming)
+	// existingDocument.Additional = requestBody.Additional
+
+	// Save the updated document to the database
+	if err := initializers.DB.Save(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update profile document",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   "ok",
+	})
+}
+
+func DeleteProfileStreaming(c *fiber.Ctx) error {
+	roomID := c.Params("id")
+	type RequestData struct {
+		UserID    string    `json:"userID"`
+		DeletedAt time.Time `json:"time"`
+	}
+	requestData := new(RequestData)
+	if err := c.BodyParser(requestData); err != nil {
+		// Handle parsing error
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
+		})
+	}
+	var profile models.Profile
+	if err := initializers.DB.First(&profile, "UserID = ?", requestData.UserID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
+		})
+	}
+
+	var onlineStreamingHours time.Duration = 0
+	var updatedStreamings []models.Streaming
+	for _, stream := range profile.Streaming {
+		if stream.RoomID != roomID {
+			updatedStreamings = append(updatedStreamings, stream)
+		} else {
+			onlineStreamingHours = requestData.DeletedAt.Sub(stream.CreatedAt)
+		}
+	}
+
+	var user models.User
+	if err := initializers.DB.First(&user, "ID = ?", requestData.UserID).Error; err != nil {
+		return err
+	}
+
+	var totalStreamingHours models.TimeEntryScanner
+	dataBytes, err := json.Marshal(user.TotalOnlineStreamingHours)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
+		})
+	}
+
+	if err := json.Unmarshal(dataBytes, &totalStreamingHours); err != nil {
+		return err
+	}
+
+	additionalHours := int(onlineStreamingHours.Hours())
+	additionalMinutes := int(onlineStreamingHours.Minutes()) % 60
+	additionalSeconds := int(onlineStreamingHours.Seconds()) % 60
+
+	if len(totalStreamingHours) > 0 {
+		totalStreamingHours[0].Hour += additionalHours
+		totalStreamingHours[0].Minutes += additionalMinutes
+		totalStreamingHours[0].Seconds += additionalSeconds
+	} else {
+		// In case there is no entry, create the first one
+		totalStreamingHours = append(totalStreamingHours, models.TimeEntry{
+			Hour:    additionalHours,
+			Minutes: additionalMinutes,
+			Seconds: additionalSeconds,
+		})
+	}
+
+	user.TotalOnlineStreamingHours = totalStreamingHours
+	if err := initializers.DB.Save(&user).Error; err != nil {
+		return err
+	}
+
+	profile.Streaming = updatedStreamings
+	if err := initializers.DB.Save(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   "data",
 	})
 }
