@@ -48,7 +48,7 @@ type Profile struct {
 	DeletedAt *time.Time `gorm:"index"`
 	User      User       `gorm:"foreignKey:UserID"`
 
-	Streaming []Streaming `json:"Streaming"`
+	Streaming []Streaming `gorm:"foreignKey:UserID;references:UserID"` // Указание внешнего ключа и связи
 }
 
 type ProfileResponse struct {
