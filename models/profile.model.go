@@ -20,7 +20,7 @@ func (j JSONB) Value() (interface{}, error) {
 type Streaming struct {
 	RoomID    string    `gorn:"primaryKey"`
 	Title     string    `gorm:"not null"`
-	UserID    string    `gorm:"not null"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null"`
 	CreatedAt time.Time `gorm:"not null"`
 }
 
@@ -48,7 +48,7 @@ type Profile struct {
 	DeletedAt *time.Time `gorm:"index"`
 	User      User       `gorm:"foreignKey:UserID"`
 
-	Streaming []Streaming `json:"Streaming"`
+	Streaming []Streaming `gorm:"foreignKey:UserID;references:UserID"`
 }
 
 type ProfileResponse struct {
