@@ -145,7 +145,8 @@ func Register(micro *fiber.App) {
 		router.Post("/documents", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.NewProfileDocuments)
 		router.Patch("/documents", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.UpdateProfileDocuments)
 		router.Delete("/documents/:id", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.DeleteProfileDocuments)
-
+		router.Post("/streaming/", controllers.UpdateProfileStreaming)
+		router.Delete("/streaming/:id", controllers.DeleteProfileStreaming)
 		router.Get("/getdocuments", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.GetDocuments)
 	})
 

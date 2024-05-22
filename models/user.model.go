@@ -75,29 +75,30 @@ type User struct {
 	TelegramToken      string
 	TelegramName       *string `gorm:"type:varchar(100);uniqueIndex;null"`
 
-	PasswordResetAt  time.Time
-	Billing          []Billing        `gorm:"foreignkey:UserID"`
-	Profile          []Profile        `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Filled           bool             `json:"filled"`
-	Session          string           `gorm:"nut null;default:0"`
-	Storage          string           `gorm:"nut null"`
-	Tid              int64            `gorm:"nut null;default:0"`
-	Blogs            []Blog           `gorm:"foreignkey:UserID"`
-	CreatedAt        time.Time        `gorm:"not null;default:now()"`
-	UpdatedAt        time.Time        `gorm:"not null;default:now()"`
-	OnlineHours      TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
-	TotalOnlineHours TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
-	OfflineHours     int              `gorm:"not null;default:0"`
-	TotalRestBlogs   int              `gorm:"not null;default:0"`
-	TotalBlogs       int              `gorm:"not null;default:0"`
-	Rating           int              `gorm:"not null;default:0"`
-	LimitStorage     int              `gorm:"not null;default:20"`
-	LastOnline       time.Time        `json:"last_online"`
-	Online           bool             `json:"online"`
-	Domains          []Domain         `json:"domains"`
-	Followings       []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id;"`
-	Followers        []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id;"`
-	IsBot            bool             `gorm:"default:false"`
+	PasswordResetAt           time.Time
+	Billing                   []Billing        `gorm:"foreignkey:UserID"`
+	Profile                   []Profile        `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Filled                    bool             `json:"filled"`
+	Session                   string           `gorm:"nut null;default:0"`
+	Storage                   string           `gorm:"nut null"`
+	Tid                       int64            `gorm:"nut null;default:0"`
+	Blogs                     []Blog           `gorm:"foreignkey:UserID"`
+	CreatedAt                 time.Time        `gorm:"not null;default:now()"`
+	UpdatedAt                 time.Time        `gorm:"not null;default:now()"`
+	OnlineHours               TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
+	TotalOnlineHours          TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
+	TotalOnlineStreamingHours TimeEntryScanner `gorm:"type:json;default:'[{\"hour\":0,\"minutes\":0,\"seconds\":0}]'"`
+	OfflineHours              int              `gorm:"not null;default:0"`
+	TotalRestBlogs            int              `gorm:"not null;default:0"`
+	TotalBlogs                int              `gorm:"not null;default:0"`
+	Rating                    int              `gorm:"not null;default:0"`
+	LimitStorage              int              `gorm:"not null;default:20"`
+	LastOnline                time.Time        `json:"last_online"`
+	Online                    bool             `json:"online"`
+	Domains                   []Domain         `json:"domains"`
+	Followings                []*User          `gorm:"many2many:user_relation;joinForeignKey:user_Id;JoinReferences:following_id;"`
+	Followers                 []*User          `gorm:"many2many:user_relation;joinForeignKey:following_id;JoinReferences:user_Id;"`
+	IsBot                     bool             `gorm:"default:false"`
 }
 
 type Role string

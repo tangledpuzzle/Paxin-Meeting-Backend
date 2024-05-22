@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 func Pending(c *fiber.Ctx) error {
 
 	var requestBody map[string]interface{}
@@ -26,25 +25,18 @@ func Pending(c *fiber.Ctx) error {
 
 	var response = requestBody
 
-
 	// Access the value of the PaymentId field
 	paymentIDFloat := response["PaymentId"].(float64)
-
-
-
 
 	// Convert the PaymentId to an integer
 	paymentID := int64(paymentIDFloat)
 
-
-
-
-    if response["Status"] == "CONFIRMED" { // Use == for comparison
+	if response["Status"] == "CONFIRMED" { // Use == for comparison
 		var payment models.Payments
-		if err := initializers.DB.Where("payment_id = ?  AND status = ?",  fmt.Sprintf("%d", paymentID), "NEW").First(&payment).Error; err != nil {
-            // Handle error if the record is not found or other issues
-            return err
-        }
+		if err := initializers.DB.Where("payment_id = ?  AND status = ?", fmt.Sprintf("%d", paymentID), "NEW").First(&payment).Error; err != nil {
+			// Handle error if the record is not found or other issues
+			return err
+		}
 		// Update the status to "applied"
 		payment.Status = "applied"
 		if err := initializers.DB.Save(&payment).Error; err != nil {
@@ -52,44 +44,40 @@ func Pending(c *fiber.Ctx) error {
 			return err
 		}
 
-
 		decimalAmount := float64(payment.Amount) / 100.0
-
 
 		// Update the amount field in the balance table
 		updateBalanceErr := initializers.DB.Model(&models.Billing{}).
-		Where("user_id = ?", payment.UserID).
-		Updates(map[string]interface{}{
-			"amount": gorm.Expr("amount + ?", decimalAmount),
-		}).Error
+			Where("user_id = ?", payment.UserID).
+			Updates(map[string]interface{}{
+				"amount": gorm.Expr("amount + ?", decimalAmount),
+			}).Error
 		if updateBalanceErr != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Failed to update balance",
-		})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to update balance",
+			})
 		}
 
 		transaction := models.Transaction{
-		UserID:      payment.UserID,
-		Total:       `0`,
-		Amount:      decimalAmount,
-		Description: `Пополнение баланса c карты банка`,
-		Module:      `Payment`,
-		Type:        `profit`,
-		Status:      `CLOSED_1`,
+			UserID:      payment.UserID,
+			Total:       `0`,
+			Amount:      decimalAmount,
+			Description: `Пополнение баланса c карты банка`,
+			Module:      `Payment`,
+			Type:        `profit`,
+			Status:      `CLOSED_1`,
 		}
 
 		createTransactionErr := initializers.DB.Create(&transaction).Error
 		if createTransactionErr != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Failed to create transaction",
-		})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to create transaction",
+			})
 		}
 
-			
-    }
-
+	}
 
 	// return the city names as a JSON response
 	return c.JSON(fiber.Map{
@@ -110,16 +98,30 @@ func CreateInvoice(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	sum := c.Get("amount")
 
+	type Receipt struct {
+		Name     string `json:"name"`
+		Price    int    `json:"price"`
+		Quantity int    `json:"quantity"`
+	}
+
+	receipt := new(Receipt)
+	if err := c.BodyParser(&receipt); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
+		})
+	}
+
 	amount, err := strconv.ParseUint(sum, 10, 64)
-    if err != nil {
-        // Handle the error if the conversion fails
-        return err
-    }
+	if err != nil {
+		// Handle the error if the conversion fails
+		return err
+	}
 
 	userResp := user.(models.UserResponse)
 
-	initReq := &tinkoff.InitRequest{ 
-		Amount:          amount,
+	initReq := &tinkoff.InitRequest{
+		Amount:          uint64(receipt.Price) * uint64(receipt.Quantity),
 		OrderID:         orderID,
 		CustomerKey:     userResp.Name,
 		Description:     "Пополнение баланса в личном кабинете",
@@ -129,10 +131,10 @@ func CreateInvoice(c *fiber.Ctx) error {
 			Email: userResp.Email,
 			Items: []*tinkoff.ReceiptItem{
 				{
-					Price:         amount,
-					Quantity:      "1",
-					Amount:        amount,
-					Name:   	   "Баланс на сумму " + strconv.FormatUint(amount, 10),
+					Price:         uint64(receipt.Price),
+					Quantity:      string(rune(receipt.Quantity)),
+					Amount:        uint64(receipt.Price) * uint64(receipt.Quantity),
+					Name:          "Баланс на сумму " + strconv.FormatUint(amount, 10),
 					Tax:           tinkoff.VATNone,
 					PaymentMethod: tinkoff.PaymentMethodFullPayment,
 					PaymentObject: tinkoff.PaymentObjectIntellectualActivity,
@@ -165,16 +167,13 @@ func CreateInvoice(c *fiber.Ctx) error {
 			UpdatedAt: time.Now(),
 		}
 
-		
-    // Create the database record
-    if err := initializers.DB.Create(&payments).Error; err != nil {
-        log.Println("Could not create payment:", err)
-    } else {
-        fmt.Println("Payment record created successfully")
-    }
+		// Create the database record
+		if err := initializers.DB.Create(&payments).Error; err != nil {
+			log.Println("Could not create payment:", err)
+		} else {
+			fmt.Println("Payment record created successfully")
+		}
 	}
-
-
 
 	// return the city names as a JSON response
 	return c.JSON(fiber.Map{

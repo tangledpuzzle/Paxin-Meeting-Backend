@@ -17,6 +17,13 @@ func (j JSONB) Value() (interface{}, error) {
 	return (pgtype.JSONB)(j).Value()
 }
 
+type Streaming struct {
+	RoomID    string    `gorn:"primaryKey"`
+	Title     string    `gorm:"not null"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null"`
+	CreatedAt time.Time `gorm:"not null"`
+}
+
 type Profile struct {
 	ID             uint64         `gorm:"primaryKey"`
 	UserID         uuid.UUID      `gorm:"type:uuid;not null"`
@@ -40,6 +47,8 @@ type Profile struct {
 	UpdatedAt time.Time  `gorm:"not null"`
 	DeletedAt *time.Time `gorm:"index"`
 	User      User       `gorm:"foreignKey:UserID"`
+
+	Streaming []Streaming `gorm:"foreignKey:UserID;references:UserID"`
 }
 
 type ProfileResponse struct {
