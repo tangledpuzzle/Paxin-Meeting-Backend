@@ -42,6 +42,8 @@ func Register(app *fiber.App) {
 			Expires:  time.Now().Add(24 * time.Hour),
 			HTTPOnly: false,
 			SameSite: "lax",
+			Secure:   false, // Ensure this is false for HTTP; true for HTTPS
+
 		})
 
 		return c.Render("index", fiber.Map{
@@ -62,8 +64,7 @@ func Register(app *fiber.App) {
 
 	// Set up WebSocket route
 	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
-		var session = c.Cookies("session")
-
+		var session = c.Cookies("paxcall_session")
 		ClientsLock.Lock()
 		Clients[session] = c
 		ClientsLock.Unlock()
