@@ -30,6 +30,7 @@ ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
   echo $ECR_PASSWORD | docker login --username AWS --password-stdin $REPOSITORY_URI
   git restore .
   git pull
+  sed -i.bak "s|image: paxintrade-api:latest-prod|image: $REPOSITORY_URI/paxintrade-api:latest-prod|g" docker-compose.yml
   docker compose stop $SERVICE_NAME || { echo "Failed to stop $SERVICE_NAME"; exit 1; }
   docker compose pull $SERVICE_NAME || { echo "Failed to pull $SERVICE_NAME"; exit 1; }
   docker compose up -d || { echo "Failed to start services with Docker Compose."; exit 1; }
