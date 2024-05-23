@@ -31,7 +31,7 @@ ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" "$HOST_ADDRESS" << ENDSSH
   git restore .
   git pull
   docker compose stop $SERVICE_NAME || { echo "Failed to stop $SERVICE_NAME"; exit 1; }
-  docker compose build $SERVICE_NAME || { echo "Failed to pull $SERVICE_NAME"; exit 1; }
+  docker compose pull $SERVICE_NAME || { echo "Failed to pull $SERVICE_NAME"; exit 1; }
   docker compose up -d || { echo "Failed to start services with Docker Compose."; exit 1; }
 
   echo "Docker Compose started successfully. Checking if the $SERVICE_NAME service is running..."
