@@ -90,7 +90,7 @@ pipelines:
                 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
 
                 # Build and tag the Docker image
-                docker build -f Dockerfile.prod -t $IMAGE_NAME .
+                docker build -f Dockerfile.dev -t $IMAGE_NAME .
                 docker tag $IMAGE_NAME $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_TAG
                 docker tag $IMAGE_NAME $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_LATEST_TAG
                 # Push the Docker image to AWS ECR
