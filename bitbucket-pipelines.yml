@@ -78,7 +78,7 @@ pipelines:
                 # Define environment values
                 export IMAGE_NAME=paxintrade-api
                 export IMAGE_TAG=$(echo $BITBUCKET_COMMIT | cut -c 1-7)
-                export IMAGE_LATEST_TAG=latest
+                export IMAGE_LATEST_TAG=latest-prod
 
                 # Install AWS-CLI
                 #apk add --no-cache aws-cli
