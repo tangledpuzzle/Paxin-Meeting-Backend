@@ -52,11 +52,10 @@ type Profile struct {
 }
 
 type ProfileResponse struct {
-	ID             uint64         `gorm:"not null"`
-	Firstname      string         `gorm:"not null"`
-	Descr          string         `gorm:"not null"`
-	MultilangDescr MultilangTitle `json:"multilangtitle"`
-
+	ID                  uint64             `gorm:"not null"`
+	Firstname           string             `gorm:"not null"`
+	Descr               string             `gorm:"not null"`
+	MultilangDescr      MultilangTitle     `json:"multilangtitle"`
 	Tcid                int64              `gorm:"null"`
 	City                []string           `gorm:"city"`
 	Guilds              []string           `json:"guilds"`
@@ -66,4 +65,5 @@ type ProfileResponse struct {
 	Service             []ProfileService   `json:"service"`
 	Additional          string             `json:"additional"`
 	MultilangAdditional MultilangTitle     `json:"multilangadditional"`
+	Streaming           []Streaming        `gorm:"foreignKey:UserID;references:UserID"`
 }
