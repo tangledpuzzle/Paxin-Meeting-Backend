@@ -55,6 +55,8 @@ func (t *TimeEntryScanner) Scan(value interface{}) error {
 type User struct {
 	ID                 uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
 	Name               string     `gorm:"type:varchar(100);uniqueIndex;not null;check:length(name) >= 2"`
+	Seller             bool       `gorm:"type:boolean;default:false;not null"`
+	Trial              bool       `gorm:"type:boolean;default:false;not null"`
 	Email              string     `gorm:"type:varchar(100);uniqueIndex:idx_email;not null"`
 	Password           string     `gorm:"type:varchar(100);not null"`
 	Role               string     `gorm:"type:varchar(50);default:'user';not null"`
