@@ -153,11 +153,12 @@ func Register(micro *fiber.App) {
 	micro.Route("/profiles", func(router fiber.Router) {
 		router.Get("/get", controllers.GetAllProfile)
 		router.Get("/get/:name", controllers.GetProfileGuest)
+		router.Get("/streaming", controllers.GetProfiles)
 	})
 
 	micro.Route("/payment", func(router fiber.Router) {
 		router.Post("/invoice", middleware.DeserializeUser, controllers.CreateInvoice)
-		router.Post("/pending", controllers.Pending)
+		router.Post("/pending", middleware.DeserializeUser, controllers.Pending)
 	})
 
 	micro.Route("/profilehashtags", func(router fiber.Router) {

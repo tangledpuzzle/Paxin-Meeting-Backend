@@ -115,6 +115,10 @@ func main() {
 		panic(err)
 	}
 
+	if err := initializers.DB.AutoMigrate(&models.Streaming{}); err != nil {
+		panic(err)
+	}
+
 	// Check if there are any users in the database
 	var userCount int64
 	initializers.DB.Model(&models.User{}).Count(&userCount)

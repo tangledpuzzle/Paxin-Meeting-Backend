@@ -1731,7 +1731,7 @@ func GetAll(c *fiber.Ctx) error {
 		}
 
 		if skipInt >= int(count) {
-			skipInt = int(count) - 1
+			skipInt = 0
 		}
 
 		query = query.Offset(skipInt)
