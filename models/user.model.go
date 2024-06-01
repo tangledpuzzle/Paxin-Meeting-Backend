@@ -54,9 +54,9 @@ func (t *TimeEntryScanner) Scan(value interface{}) error {
 
 type User struct {
 	ID                 uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
-	Name               string     `gorm:"type:varchar(100);uniqueIndex;not null;check:length(name) >= 2"`
 	Seller             bool       `gorm:"type:boolean;default:false;not null"`
 	Trial              bool       `gorm:"type:boolean;default:false;not null"`
+	Name               string     `gorm:"type:varchar(100);uniqueIndex;not null;check:length(name) >= 2"`
 	Email              string     `gorm:"type:varchar(100);uniqueIndex:idx_email;not null"`
 	Password           string     `gorm:"type:varchar(100);not null"`
 	Role               string     `gorm:"type:varchar(50);default:'user';not null"`
@@ -144,6 +144,8 @@ type UserResponse struct {
 	TelegramName      string            `json:"telegramname,omitempty"`
 	TelegramToken     string            `json:"telegram_token,omitempty"`
 	TelegramActivated bool              `bool:"telegram_activated"`
+	Seller            bool              `bool:"seller"`
+	Trial             bool              `bool:"seller"`
 	Photo             string            `json:"photo,omitempty"`
 	Session           string            `json:"session"`
 	Storage           string            `json:"storage"`
@@ -227,6 +229,8 @@ func FilterUserRecord(user *User, language string) UserResponse {
 		Role:              string(user.Role),
 		Photo:             user.Photo,
 		Session:           user.Session,
+		Seller:            user.Seller,
+		Trial:             user.Trial,
 		Storage:           user.Storage,
 		TelegramToken:     user.TelegramToken,
 		TelegramActivated: user.TelegramActivated,
