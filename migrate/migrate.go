@@ -30,6 +30,9 @@ func main() {
 	if err := initializers.DB.AutoMigrate(&models.User{}); err != nil {
 		panic(err)
 	}
+	if err := initializers.DB.AutoMigrate(&models.Profile{}); err != nil {
+		panic(err)
+	}
 	if err := initializers.DB.AutoMigrate(&models.Domain{}); err != nil {
 		panic(err)
 	}
@@ -58,9 +61,6 @@ func main() {
 		panic(err)
 	}
 	if err := initializers.DB.AutoMigrate(&models.GuildTranslation{}); err != nil {
-		panic(err)
-	}
-	if err := initializers.DB.AutoMigrate(&models.Profile{}); err != nil {
 		panic(err)
 	}
 	if err := initializers.DB.AutoMigrate(&models.OnlineStorage{}); err != nil {
@@ -109,6 +109,9 @@ func main() {
 		panic(err)
 	}
 	if err := initializers.DB.AutoMigrate(&models.Presavedfilters{}); err != nil {
+		panic(err)
+	}
+	if err := initializers.DB.AutoMigrate(&models.Streaming{}); err != nil {
 		panic(err)
 	}
 
@@ -224,5 +227,6 @@ func main() {
 
 		fmt.Println("✅ Admin user created")
 	}
+
 	fmt.Println("✅ Migration complete")
 }
