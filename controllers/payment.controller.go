@@ -18,7 +18,10 @@ func Pending(c *fiber.Ctx) error {
 	var requestBody map[string]interface{}
 
 	if err := c.BodyParser(&requestBody); err != nil {
-		return err
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
+		})
 	}
 
 	fmt.Println(requestBody)
@@ -35,13 +38,19 @@ func Pending(c *fiber.Ctx) error {
 		var payment models.Payments
 		if err := initializers.DB.Where("payment_id = ?  AND status = ?", fmt.Sprintf("%d", paymentID), "NEW").First(&payment).Error; err != nil {
 			// Handle error if the record is not found or other issues
-			return err
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Payment not found or status is not 'NEW'",
+			})
 		}
 		// Update the status to "applied"
 		payment.Status = "applied"
 		if err := initializers.DB.Save(&payment).Error; err != nil {
 			// Handle error if the update fails
-			return err
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to update payment status",
+			})
 		}
 
 		decimalAmount := float64(payment.Amount) / 100.0
@@ -118,10 +127,16 @@ func CreateInvoice(c *fiber.Ctx) error {
 		return err
 	}
 
-	userResp := user.(models.UserResponse)
+	userResp, ok := user.(models.UserResponse)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Unauthorized user",
+		})
+	}
 
 	initReq := &tinkoff.InitRequest{
-		Amount:          uint64(receipt.Price) * uint64(receipt.Quantity),
+		Amount:          uint64(receipt.Price),
 		OrderID:         orderID,
 		CustomerKey:     userResp.Name,
 		Description:     "Пополнение баланса в личном кабинете",
@@ -133,7 +148,7 @@ func CreateInvoice(c *fiber.Ctx) error {
 				{
 					Price:         uint64(receipt.Price),
 					Quantity:      string(rune(receipt.Quantity)),
-					Amount:        uint64(receipt.Price) * uint64(receipt.Quantity),
+					Amount:        uint64(receipt.Price),
 					Name:          "Баланс на сумму " + strconv.FormatUint(amount, 10),
 					Tax:           tinkoff.VATNone,
 					PaymentMethod: tinkoff.PaymentMethodFullPayment,

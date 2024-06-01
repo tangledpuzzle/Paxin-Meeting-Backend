@@ -740,9 +740,7 @@ func GetUserDetails(c *fiber.Ctx) error {
 		return errors.New("invalid user type")
 	}
 
-	var res *userDetailsResponse
-
-	res = &userDetailsResponse{
+	res := &userDetailsResponse{
 		ID:           userResp.ID,
 		Photo:        userResp.Photo,
 		Name:         userResp.Name,
