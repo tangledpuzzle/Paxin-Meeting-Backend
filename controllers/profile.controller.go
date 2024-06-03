@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgtype"
+	uuid "github.com/satori/go.uuid"
 
 	"reflect"
 
@@ -40,6 +41,146 @@ import (
 //     return nil
 
 // }
+
+func GetProfiles(c *fiber.Ctx) error {
+
+	language := c.Query("language")
+
+	var profiles []models.Profile
+	query := initializers.DB.
+		Preload("Guilds.Translations", "language = ?", language).
+		Preload("Hashtags").
+		Preload("City.Translations", "language = ?", language).
+		Preload("Photos").
+		Preload("User").
+		Joins("JOIN users ON profiles.user_id = users.id").
+		Order("Users.name ASC").
+		Where("Users.filled = ?", true)
+	// Get the query parameters
+	city := c.Query("city")
+	hashtags := c.Query("hashtag")
+	category := c.Query("category")
+	// title := ""
+	money := c.Query("money")
+
+	if money != "" && money != "all" {
+		if strings.Contains(money, "-") {
+			alphabeticRange := strings.Split(money, "-")
+			if len(alphabeticRange) != 2 {
+				return fmt.Errorf("invalid alphabetic range format")
+			}
+
+			lowerAlpha := strings.TrimSpace(alphabeticRange[0])
+			upperAlpha := strings.TrimSpace(alphabeticRange[1])
+			query = query.Where("(LOWER(SUBSTR(Firstname, 1, 1)) >= ? AND LOWER(SUBSTR(Firstname, 1, 1)) <= ?) AND (LOWER(SUBSTR(Lastname, 1, 1)) >= ? AND LOWER(SUBSTR(Lastname, 1, 1)) <= ?)", lowerAlpha, upperAlpha, lowerAlpha, upperAlpha)
+
+		} else {
+			alphabeticRange := strings.Split(money, "-")
+
+			lowerAlpha := strings.TrimSpace(alphabeticRange[0])
+
+			query = query.Where("LOWER(SUBSTR(Firstname, 1, 1)) = ?", lowerAlpha)
+		}
+	}
+
+	if city != "" && city != "all" {
+		// Сначала найдем city_id для указанного города и языка
+		var cityTranslation models.CityTranslation
+		initializers.DB.Where("name = ? AND language = ?", city, language).First(&cityTranslation)
+		fmt.Println(cityTranslation)
+		if cityTranslation.ID != 0 {
+			subQuery := initializers.DB.Table("profiles_city").
+				Select("profile_id").
+				Where("city_id = ?", cityTranslation.CityID)
+
+			// Добавим условие, чтобы ваш основной запрос включал только записи с blog_id из подзапроса
+			query = query.Where("profiles.id IN (?)", subQuery) // Specify the table alias for "blogs.id"
+		}
+	}
+
+	// if title != "" && title != "all" {
+	// 	query = query.Where("LOWER(Descr) LIKE ?", "%"+title+"%")
+	// }
+
+	if category != "" && category != "all" {
+		var guildTranslation models.GuildTranslation
+		initializers.DB.Where("name = ? AND language = ?", category, language).First(&guildTranslation)
+		if guildTranslation.ID != 0 {
+			// Создадим подзапрос для поиска всех blog_id, связанных с указанным guild_id
+			subQuery := initializers.DB.Table("profiles_guilds").
+				Select("profile_id").
+				Where("guilds_id = ?", guildTranslation.GuildID)
+
+			// Добавим условие, чтобы ваш основной запрос включил только записи с blog_id из подзапроса
+			query = query.Where("profiles.id IN (?)", subQuery)
+		}
+	}
+
+	if hashtags != "" && hashtags != "all" {
+		// Split the hashtags into separate values
+		hashtagValues := strings.Split(hashtags, ",")
+
+		// Join the hashtag values with the '#' character
+		hashtagValuesWithPrefix := make([]string, len(hashtagValues))
+		for i, tag := range hashtagValues {
+			hashtagValuesWithPrefix[i] = strings.TrimSpace(tag)
+		}
+
+		// Add the hashtags filter to the query
+		query = query.Joins("JOIN profiles_hashtags ON profiles.id = profiles_hashtags.profile_id").
+			Joins("JOIN hashtags_for_profiles ON profiles_hashtags.hashtags_for_profile_id = hashtags_for_profiles.id").
+			Where("hashtags_for_profiles.hashtag IN (?)", hashtagValuesWithPrefix)
+
+	}
+
+	var count int64
+	if err := query.Model(&models.Profile{}).Count(&count).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not retrieve data",
+		})
+	}
+
+	limit := c.Query("limit", "10")
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid limit parameter",
+		})
+	}
+
+	err = utils.Paginate(c, query.Limit(limitInt).Find(&profiles), &profiles)
+	if err != nil {
+		return err
+	}
+
+	var userIds []uuid.UUID
+	for _, profile := range profiles {
+		userIds = append(userIds, profile.UserID)
+	}
+
+	// Retrieve streaming data for these user IDs
+	var streamings []models.Streaming
+	// if err := initializers.DB.Where("user_id IN (?)", userIds).Find(&profiles).Error; err != nil {
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 		"status":  "error",
+	// 		"message": "Could not retrieve streaming data",
+	// 	})
+	// }
+	fmt.Println("users------------------")
+	fmt.Println(count, city, userIds)
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   streamings,
+		"meta": fiber.Map{
+			"total": len(profiles),
+			"limit": limitInt,
+		},
+	})
+
+}
 
 func GetAllProfile(c *fiber.Ctx) error {
 
@@ -1286,26 +1427,35 @@ func UpdateProfileStreaming(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := initializers.DB.First(&profile, streaming.UserID).Error; err != nil {
+	if err := initializers.DB.First(&profile, "user_id = ?", streaming.UserID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Failed to find the profile document",
 		})
 	}
 
-	// Update the document fields with the new values
-
 	profile.Streaming = append(profile.Streaming, streaming)
-	// existingDocument.Additional = requestBody.Additional
 
 	// Save the updated document to the database
+
+	// if err := initializers.DB.Clauses(clause.OnConflict{
+	// 	Columns: []clause.Column{{Name: "user_id"}, {Name: "room_id"}}, // specify the columns that make up the unique constraint
+	// 	// if the above yields issues, use Constraint directly by naming it like - (commenting the above line)
+	// 	// Constraint: "unique_user_room",
+	// 	DoUpdates: clause.AssignmentColumns([]string{"title", "created_at"}), // specify the columns to be updated on conflict
+	// }).Create(&streaming).Error; err != nil {
+	// 	log.Printf("Error saving user data: %v", err)
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 		"status":  "error",
+	// 		"message": fmt.Sprintf("Failed to save user data: %v", err),
+	// 	})
+	// }
 	if err := initializers.DB.Save(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Failed to update profile document",
+			"message": fmt.Sprintf("Failed to save user data: %v", err),
 		})
 	}
-
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   "ok",
@@ -1326,13 +1476,17 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
+	fmt.Println("---------------------------------------------")
+	fmt.Println(requestData)
 	var profile models.Profile
-	if err := initializers.DB.First(&profile, "UserID = ?", requestData.UserID).Error; err != nil {
+	if err := initializers.DB.First(&profile, "user_id = ?", requestData.UserID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
+	fmt.Println("--------------------Profile---------------")
+	fmt.Println(profile.Streaming, requestData.UserID, roomID)
 
 	var onlineStreamingHours time.Duration = 0
 	var updatedStreamings []models.Streaming
@@ -1343,24 +1497,13 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 			onlineStreamingHours = requestData.DeletedAt.Sub(stream.CreatedAt)
 		}
 	}
-
 	var user models.User
 	if err := initializers.DB.First(&user, "ID = ?", requestData.UserID).Error; err != nil {
 		return err
 	}
 
 	var totalStreamingHours models.TimeEntryScanner
-	dataBytes, err := json.Marshal(user.TotalOnlineStreamingHours)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": fmt.Sprintf("Failed to parse request body: %v", err),
-		})
-	}
-
-	if err := json.Unmarshal(dataBytes, &totalStreamingHours); err != nil {
-		return err
-	}
+	totalStreamingHours = user.TotalOnlineStreamingHours
 
 	additionalHours := int(onlineStreamingHours.Hours())
 	additionalMinutes := int(onlineStreamingHours.Minutes()) % 60
@@ -1380,8 +1523,12 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 	}
 
 	user.TotalOnlineStreamingHours = totalStreamingHours
+
 	if err := initializers.DB.Save(&user).Error; err != nil {
-		return err
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to save user data: %v", err),
+		})
 	}
 
 	profile.Streaming = updatedStreamings
@@ -1391,9 +1538,15 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
+	// if err := initializers.DB.Delete(&models.Streaming{}, "room_id = ? AND user_id = ?", roomID, requestData.UserID).Error; err != nil {
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 		"status":  "error",
+	// 		"message": fmt.Sprintf("Failed to delete streaming entry: %v", err),
+	// 	})
+	// }
 
 	return c.JSON(fiber.Map{
 		"status": "success",
-		"data":   "data",
+		"data":   profile.Streaming,
 	})
 }

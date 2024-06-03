@@ -1056,12 +1056,12 @@ func SendUserTypingToCentrifugo(userID uuid.UUID, roomID string) error {
 	var member models.ChatRoomMember
 	err = initializers.DB.Where("user_id = ? AND room_id = ?", userID, roomIDParsed).First(&member).Error
 	if err != nil {
-		return fmt.Errorf("User is not a member of the room or room does not exist: %s", err)
+		return fmt.Errorf("user is not a member of the room or room does not exist: %s", err)
 	}
 
 	channels, err := GetRoomMemberChannels(roomIDParsed)
 	if err != nil {
-		return fmt.Errorf("Failed to get room member channels for broadcasting: %s", err)
+		return fmt.Errorf("failed to get room member channels for broadcasting: %s", err)
 	} else {
 		bodyMap := map[string]interface{}{}
 		bodyMap["userID"] = userID.String()
@@ -1079,7 +1079,7 @@ func SendUserTypingToCentrifugo(userID uuid.UUID, roomID string) error {
 		}
 
 		if _, err := CentrifugoBroadcastRoom(roomID, broadcastPayload); err != nil {
-			return fmt.Errorf("Failed to broadcast message deletion notice: %s", err)
+			return fmt.Errorf("failed to broadcast message deletion notice: %s", err)
 		}
 	}
 	return nil

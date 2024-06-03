@@ -1,6 +1,9 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgtype"
@@ -18,15 +21,31 @@ func (j JSONB) Value() (interface{}, error) {
 }
 
 type Streaming struct {
-	RoomID    string    `gorn:"primaryKey"`
+	RoomID    string    `gorm:"primaryKey"`
 	Title     string    `gorm:"not null"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;"`
 	CreatedAt time.Time `gorm:"not null"`
+}
+
+type Streamings []Streaming
+
+func (s *Streamings) Scan(value interface{}) error {
+	// value will be of type []uint8 if it's coming from the database as a byte slice.
+	b, ok := value.([]uint8)
+	if !ok {
+		return fmt.Errorf("expected []uint8, got %T", value)
+	}
+	return json.Unmarshal(b, s)
+}
+
+func (s Streamings) Value() (driver.Value, error) {
+	// This method is required if you want to insert this type back into the database
+	return json.Marshal(s)
 }
 
 type Profile struct {
 	ID             uint64         `gorm:"primaryKey"`
-	UserID         uuid.UUID      `gorm:"type:uuid;not null"`
+	UserID         uuid.UUID      `gorm:"type:uuid;not null;unique"`
 	Firstname      string         `gorm:"not null"`
 	Tcid           int64          `gorm:"null;"`
 	Descr          string         `gorm:"not null"`
@@ -48,7 +67,7 @@ type Profile struct {
 	DeletedAt *time.Time `gorm:"index"`
 	User      User       `gorm:"foreignKey:UserID"`
 
-	Streaming []Streaming `gorm:"foreignKey:UserID;references:UserID"`
+	Streaming Streamings `gorm:"type:json;default:null" json:"streaming"`
 }
 
 type ProfileResponse struct {
@@ -65,5 +84,5 @@ type ProfileResponse struct {
 	Service             []ProfileService   `json:"service"`
 	Additional          string             `json:"additional"`
 	MultilangAdditional MultilangTitle     `json:"multilangadditional"`
-	Streaming           []Streaming        `gorm:"foreignKey:UserID;references:UserID"`
+	Streaming           Streamings         `gorm:"type:json;default:null" json:"streaming"`
 }
