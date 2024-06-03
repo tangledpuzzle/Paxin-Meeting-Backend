@@ -6,7 +6,6 @@ import (
 	"hyperpage/initializers"
 	"hyperpage/models"
 	"hyperpage/utils"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +18,6 @@ import (
 	gt "github.com/bas24/googletranslatefree"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // func GetAllProfile(c *fiber.Ctx) error {
@@ -164,12 +162,12 @@ func GetProfiles(c *fiber.Ctx) error {
 
 	// Retrieve streaming data for these user IDs
 	var streamings []models.Streaming
-	if err := initializers.DB.Where("user_id IN (?)", userIds).Find(&streamings).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Could not retrieve streaming data",
-		})
-	}
+	// if err := initializers.DB.Where("user_id IN (?)", userIds).Find(&profiles).Error; err != nil {
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 		"status":  "error",
+	// 		"message": "Could not retrieve streaming data",
+	// 	})
+	// }
 	fmt.Println("users------------------")
 	fmt.Println(count, city, userIds)
 
@@ -1440,24 +1438,24 @@ func UpdateProfileStreaming(c *fiber.Ctx) error {
 
 	// Save the updated document to the database
 
-	if err := initializers.DB.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "user_id"}, {Name: "room_id"}}, // specify the columns that make up the unique constraint
-		// if the above yields issues, use Constraint directly by naming it like - (commenting the above line)
-		// Constraint: "unique_user_room",
-		DoUpdates: clause.AssignmentColumns([]string{"title", "created_at"}), // specify the columns to be updated on conflict
-	}).Create(&streaming).Error; err != nil {
-		log.Printf("Error saving user data: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": fmt.Sprintf("Failed to save user data: %v", err),
-		})
-	}
-	// if err := initializers.DB.Save(&profile).Error; err != nil {
+	// if err := initializers.DB.Clauses(clause.OnConflict{
+	// 	Columns: []clause.Column{{Name: "user_id"}, {Name: "room_id"}}, // specify the columns that make up the unique constraint
+	// 	// if the above yields issues, use Constraint directly by naming it like - (commenting the above line)
+	// 	// Constraint: "unique_user_room",
+	// 	DoUpdates: clause.AssignmentColumns([]string{"title", "created_at"}), // specify the columns to be updated on conflict
+	// }).Create(&streaming).Error; err != nil {
+	// 	log.Printf("Error saving user data: %v", err)
 	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 	// 		"status":  "error",
 	// 		"message": fmt.Sprintf("Failed to save user data: %v", err),
 	// 	})
 	// }
+	if err := initializers.DB.Save(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to save user data: %v", err),
+		})
+	}
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   "ok",
@@ -1478,6 +1476,8 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
+	fmt.Println("---------------------------------------------")
+	fmt.Println(requestData)
 	var profile models.Profile
 	if err := initializers.DB.First(&profile, "user_id = ?", requestData.UserID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -1485,17 +1485,10 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
-
-	var stream models.Streaming
-	if err := initializers.DB.First(&stream, "room_id = ?", roomID).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": fmt.Sprintf("Failed to parse request body: %v", err),
-		})
-	}
+	fmt.Println("--------------------Profile---------------")
+	fmt.Println(profile.Streaming, requestData.UserID, roomID)
 
 	var onlineStreamingHours time.Duration = 0
-	onlineStreamingHours = requestData.DeletedAt.Sub(stream.CreatedAt)
 	var updatedStreamings []models.Streaming
 	for _, stream := range profile.Streaming {
 		if stream.RoomID != roomID {
@@ -1539,18 +1532,18 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 	}
 
 	profile.Streaming = updatedStreamings
-	// if err := initializers.DB.Save(&profile).Error; err != nil {
-	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-	// 		"status":  "error",
-	// 		"message": fmt.Sprintf("Failed to parse request body: %v", err),
-	// 	})
-	// }
-	if err := initializers.DB.Delete(&models.Streaming{}, "room_id = ? AND user_id = ?", roomID, requestData.UserID).Error; err != nil {
+	if err := initializers.DB.Save(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
-			"message": fmt.Sprintf("Failed to delete streaming entry: %v", err),
+			"message": fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
+	// if err := initializers.DB.Delete(&models.Streaming{}, "room_id = ? AND user_id = ?", roomID, requestData.UserID).Error; err != nil {
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 		"status":  "error",
+	// 		"message": fmt.Sprintf("Failed to delete streaming entry: %v", err),
+	// 	})
+	// }
 
 	return c.JSON(fiber.Map{
 		"status": "success",
