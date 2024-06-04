@@ -1510,9 +1510,11 @@ func DeleteProfileStreaming(c *fiber.Ctx) error {
 	additionalSeconds := int(onlineStreamingHours.Seconds()) % 60
 
 	if len(totalStreamingHours) > 0 {
-		totalStreamingHours[0].Hour += additionalHours
-		totalStreamingHours[0].Minutes += additionalMinutes
 		totalStreamingHours[0].Seconds += additionalSeconds
+		totalStreamingHours[0].Minutes += additionalMinutes + totalStreamingHours[0].Seconds/60
+		totalStreamingHours[0].Seconds = totalStreamingHours[0].Seconds % 60
+		totalStreamingHours[0].Hour += additionalHours + totalStreamingHours[0].Minutes/60
+		totalStreamingHours[0].Minutes = totalStreamingHours[0].Minutes % 60
 	} else {
 		// In case there is no entry, create the first one
 		totalStreamingHours = append(totalStreamingHours, models.TimeEntry{
