@@ -1,7 +1,7 @@
 #!/bin/sh
 
-SERVICE_PATH="~/workspace/paxintrade/mainsite/backend"
-SERVICE_NAME="paxintrade-api"
+SERVICE_PATH="~/workspace/myru/mainsite/backend"
+SERVICE_NAME="myru-api"
 
 # Abort on errors
 set -e

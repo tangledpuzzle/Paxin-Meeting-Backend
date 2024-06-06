@@ -15,9 +15,9 @@ services:
     image: postgres:16-alpine
     restart: on-failure:5
     environment:
-      POSTGRES_USER: paxintrade
+      POSTGRES_USER: myru
       POSTGRES_PASSWORD: <password>
-      POSTGRES_DB: paxintrade
+      POSTGRES_DB: myru
     # ports:
     #   - "5432:5432/tcp"
     volumes:
@@ -25,7 +25,7 @@ services:
     command:
       ["postgres", "-c", "wal_level=logical", "-c", "wal_writer_delay=10ms"]
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "paxintrade", "-d", "paxintrade"]
+      test: ["CMD", "pg_isready", "-U", "myru", "-d", "myru"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -132,12 +132,12 @@ services:
   #       echo 'Configuration posted';
   #     "
 
-  paxintrade-api:
+  myru-api:
     build:
       context: .
       dockerfile: Dockerfile.prod # Dockerfile.dev when development mode, Dockerfile.prod when production mode
     restart: on-failure:5
-    image: paxintrade-api:latest-prod # paxintrade-api:latest-dev when development mode, paxintrade-api:latest-prod when production mode
+    image: myru-api:latest-prod # myru-api:latest-dev when development mode, myru-api:latest-prod when production mode
     # ports:
     #   - "8888:8888/tcp"
     volumes:
@@ -164,5 +164,5 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      - paxintrade-api
+      - myru-api
       - centrifugo

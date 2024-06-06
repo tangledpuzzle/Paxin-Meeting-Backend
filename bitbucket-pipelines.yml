@@ -46,7 +46,7 @@ pipelines:
                 go mod download
 
                 echo "Building the application..."
-                GO111MODULE=on go build -v -o bin/paxintrade-api cmd/main.go
+                GO111MODULE=on go build -v -o bin/myru-api cmd/main.go
 
                 if [ $? -ne 0 ]; then
                     echo "Build failed."
@@ -76,7 +76,7 @@ pipelines:
               if [ "$SHOULD_BUILD" -eq "1" ]; then
                 echo "Building and pushing Docker image to ECR..."
                 # Define environment values
-                export IMAGE_NAME=paxintrade-api
+                export IMAGE_NAME=myru-api
                 export IMAGE_TAG=$(echo $BITBUCKET_COMMIT | cut -c 1-7)
                 export IMAGE_LATEST_TAG=latest
 

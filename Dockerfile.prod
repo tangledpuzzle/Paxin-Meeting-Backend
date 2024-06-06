@@ -5,18 +5,18 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 RUN go mod tidy
-RUN go build -o bin/paxintrade-api cmd/main.go
+RUN go build -o bin/myru-api cmd/main.go
 
 
 FROM keymetrics/pm2:18-alpine
 
 WORKDIR /app
 
-COPY --from=builder  /app/bin/paxintrade-api .
+COPY --from=builder  /app/bin/myru-api .
 COPY templates ./templates
 COPY views ./views
 # Copy Keys Folder
 COPY keys ./keys
-RUN chmod ++x /app/paxintrade-api
+RUN chmod ++x /app/myru-api
 
-CMD ["pm2-runtime", "paxintrade-api"]
+CMD ["pm2-runtime", "myru-api"]
