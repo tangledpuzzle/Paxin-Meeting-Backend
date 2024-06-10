@@ -112,15 +112,15 @@ func SignUpUser(c *fiber.Ctx) error {
 
 	switch language {
 	case "en":
-		emailData.Subject = "Paxintrade account activation"
+		emailData.Subject = "MYRUONLINE account activation"
 	case "ru":
-		emailData.Subject = "Paxintrade активация аккаунта"
+		emailData.Subject = "MYRUONLINE активация аккаунта"
 	case "es":
-		emailData.Subject = "Paxintrade activación de cuenta"
+		emailData.Subject = "MYRUONLINE activación de cuenta"
 	case "ke":
-		emailData.Subject = "Paxintrade ანგარიშის გააქტიურება"
+		emailData.Subject = "MYRUONLINE ანგარიშის გააქტიურება"
 	default:
-		emailData.Subject = "Paxintrade account activation"
+		emailData.Subject = "MYRUONLINE account activation"
 	}
 
 	billing := models.Billing{
