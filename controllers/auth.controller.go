@@ -106,7 +106,7 @@ func SignUpUser(c *fiber.Ctx) error {
 
 	// ? Send Email
 	emailData := utils.EmailData{
-		URL:       "https://www." + config.ClientOrigin + "/auth/verify/" + verification_code,
+		URL:       "https://" + config.ClientOrigin + "/auth/verify/" + verification_code,
 		FirstName: firstName,
 	}
 
@@ -559,7 +559,7 @@ func ForgotPassword(c *fiber.Ctx) error {
 	}
 
 	emailData := utils.EmailData{
-		URL:       "https://www." + config.ClientOrigin + "/auth/reset-password/" + user.PasswordResetToken,
+		URL:       "https://" + config.ClientOrigin + "/auth/reset-password/" + user.PasswordResetToken,
 		FirstName: firstName,
 	}
 
