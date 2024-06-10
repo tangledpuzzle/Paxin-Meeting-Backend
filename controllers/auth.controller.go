@@ -106,7 +106,7 @@ func SignUpUser(c *fiber.Ctx) error {
 
 	// ? Send Email
 	emailData := utils.EmailData{
-		URL:       "https://" + config.ClientOrigin + "/auth/verify/" + verification_code,
+		URL:       "https://www." + config.ClientOrigin + "/auth/verify/" + verification_code,
 		FirstName: firstName,
 	}
 
