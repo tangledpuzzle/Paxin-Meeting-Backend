@@ -109,7 +109,7 @@ func Userq(c *fiber.Ctx) error {
 		})
 	}
 
-	utils.SendEmail(&models.User{Email: "qa@paxintrade.com"}, emailData, mode, "en")
+	utils.SendEmail(&models.User{Email: "qa@myru.online"}, emailData, mode, "en")
 
 	return c.SendStatus(fiber.StatusOK)
 }

@@ -47,10 +47,10 @@ definitions:
       name:
         type: string
     type: object
-host: go.paxintrade.com/api
+host: go.myru.online/api
 info:
   contact:
-    email: help@paxintrade.com
+    email: help@myru.online
     name: API Support
   description: services paxintrade
   title: Paxintrade core api

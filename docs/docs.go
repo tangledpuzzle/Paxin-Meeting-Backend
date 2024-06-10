@@ -11,7 +11,7 @@ const docTemplate = `{
         "title": "{{.Title}}",
         "contact": {
             "name": "API Support",
-            "email": "help@paxintrade.com"
+            "email": "help@myru.online"
         },
         "version": "{{.Version}}"
     },
@@ -135,7 +135,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "go.paxintrade.com/api",
+	Host:             "go.myru.online/api",
 	BasePath:         "/",
 	Schemes:          []string{"https"},
 	Title:            "Paxintrade core api",
