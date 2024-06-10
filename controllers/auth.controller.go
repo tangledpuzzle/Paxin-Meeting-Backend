@@ -559,7 +559,7 @@ func ForgotPassword(c *fiber.Ctx) error {
 	}
 
 	emailData := utils.EmailData{
-		URL:       "https://" + config.ClientOrigin + "/auth/reset-password/" + user.PasswordResetToken,
+		URL:       "https://www." + config.ClientOrigin + "/auth/reset-password/" + user.PasswordResetToken,
 		FirstName: firstName,
 	}
 
