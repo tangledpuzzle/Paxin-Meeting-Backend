@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SERVICE_PATH="~/workspace/code/myru-backend"
+# SERVICE_PATH="~/workspace/code/myru-backend"
 SERVICE_NAME="myru-api"
 
 # Abort on errors
