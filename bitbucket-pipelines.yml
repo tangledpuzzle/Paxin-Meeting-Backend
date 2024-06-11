@@ -78,15 +78,19 @@ pipelines:
                 # Define environment values
                 export IMAGE_NAME=myru-api
                 export IMAGE_TAG=$(echo $BITBUCKET_COMMIT | cut -c 1-7)
-                export IMAGE_LATEST_TAG=latest
+                export IMAGE_LATEST_TAG=latest-prod
 
                 # Install AWS-CLI
-                apk add --no-cache aws-cli
+                #apk add --no-cache aws-cli
+                apk add --no-cache python3 py3-pip
+                python3 -m venv /tmp/venv
+                source /tmp/venv/bin/activate
+                pip3 install awscli
                 # Login to AWS ECR
                 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
 
                 # Build and tag the Docker image
-                docker build -f Dockerfile.prod -t $IMAGE_NAME .
+                docker build -f Dockerfile.dev -t $IMAGE_NAME .
                 docker tag $IMAGE_NAME $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_TAG
                 docker tag $IMAGE_NAME $REPOSITORY_URI/$IMAGE_NAME:$IMAGE_LATEST_TAG
                 # Push the Docker image to AWS ECR
@@ -103,7 +107,11 @@ pipelines:
           script:
             - echo "Deploying to production environment"
             # Install AWS-CLI
-            - apk add --no-cache aws-cli
+            #- apk add --no-cache aws-cli            
+            - apk add --no-cache python3 py3-pip
+            - python3 -m venv /tmp/venv
+            - source /tmp/venv/bin/activate
+            - pip3 install awscli
             # Login to AWS ECR
             - export ECR_PASSWORD=$(aws ecr get-login-password --region $REGION)
 
