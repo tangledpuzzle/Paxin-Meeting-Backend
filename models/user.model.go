@@ -123,6 +123,7 @@ type SignUpInput struct {
 type SignInInput struct {
 	Email    string `json:"email"  validate:"required"`
 	Password string `json:"password"  validate:"required"`
+	Session  string `json:"session"  validate:"required"`
 }
 
 type DomainResponse struct {

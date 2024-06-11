@@ -291,9 +291,10 @@ func VerifyEmail(c *fiber.Ctx) error {
 }
 
 func SignInUser(c *fiber.Ctx) error {
-	Authorization := c.Get("session")
 
 	var payload *models.SignInInput
+
+	Authorization := payload.Session
 
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": err.Error()})
