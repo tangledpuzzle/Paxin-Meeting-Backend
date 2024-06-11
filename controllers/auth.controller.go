@@ -294,11 +294,11 @@ func SignInUser(c *fiber.Ctx) error {
 
 	var payload *models.SignInInput
 
-	Authorization := payload.Session
-
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	}
+
+	Authorization := payload.Session
 
 	errors := models.ValidateStruct(payload)
 	if errors != nil {
