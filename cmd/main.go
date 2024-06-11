@@ -532,7 +532,7 @@ func main() {
 				lastTimeStr := user.LastOnline.Format("2006-01-02 15:04:05")
 
 				if UserID != "" {
-					initializers.DB.Model(&user).Where("id = ?", UserID).Updates(map[string]interface{}{"online": true})
+					initializers.DB.Model(&user).Where("id = ?", UserID).Updates(map[string]interface{}{"online": true, "session": idStr})
 					utils.UserActivity("userOnline", userName, lastTimeStr)
 
 				} else {
@@ -657,7 +657,7 @@ func main() {
 					formattedTime := string(jsonBytes)
 
 					// Lost connection
-					initializers.DB.Model(&user).Updates(map[string]interface{}{"online": false, "last_online": now, "online_hours": formattedTime})
+					initializers.DB.Model(&user).Updates(map[string]interface{}{"online": false, "last_online": now, "online_hours": formattedTime, "session": nil})
 
 					// Access the user's ID with `user.ID`
 					// userID := user.ID.String()
