@@ -196,7 +196,7 @@ func CheckSite(bot *tgbotapi.BotAPI) {
 			// Handle the error if needed
 			continue // Skip to the next blog in case of an error
 		}
-		msgText := "Здравствуйте, " + user.Name + "! Ваш веб-сайт " + "https://" + blog.Username + ".paxintrade.com" + " приостановлен, вы можете продлить работу в личном кабинете."
+		msgText := "Здравствуйте, " + user.Name + "! Ваш веб-сайт " + "https://" + blog.Username + ".myru.online" + " приостановлен, вы можете продлить работу в личном кабинете."
 
 		// Declare a queue
 		queueName := "site_disabled"                      // Replace with your desired queue name
@@ -266,7 +266,7 @@ func CheckSiteTime(bot *tgbotapi.BotAPI) {
 			// Handle the error if needed
 			continue // Skip to the next blog in case of an error
 		}
-		msgText := "Здравствуйте, " + user.Name + "! Ваш веб-сайт " + "https://" + blog.Username + ".paxintrade.com" + " будет приостановлен в работе менее чем через 5 дней, вы можете продлить работу веб-сайта в личном кабинете."
+		msgText := "Здравствуйте, " + user.Name + "! Ваш веб-сайт " + "https://" + blog.Username + ".myru.online" + " будет приостановлен в работе менее чем через 5 дней, вы можете продлить работу веб-сайта в личном кабинете."
 
 		// Declare a queue
 		queueName := "site_disabled"                      // Replace with your desired queue name

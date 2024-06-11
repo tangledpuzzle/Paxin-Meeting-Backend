@@ -9,7 +9,7 @@ const authenticateAndCreateRoom = async (email, acceptorId) => {
 
   try {
     const res = await requestHelper({
-      url: "https://go.paxintrade.com/api/chat/createRoom",
+      url: "https://go.myru.online/api/chat/createRoom",
       method: "POST",
       data: {
         acceptorId: acceptorId,
@@ -35,7 +35,7 @@ const authenticateAndGetSubscribedRooms = async (email) => {
 
   try {
     const res = await requestHelper({
-      url: "https://go.paxintrade.com/api/chat/rooms",
+      url: "https://go.myru.online/api/chat/rooms",
       method: "GET",
       token: token,
       session: session,
@@ -57,7 +57,7 @@ const authenticateAndGetUnsubscribedNewRooms = async (email) => {
 
   try {
     const res = await requestHelper({
-      url: "https://go.paxintrade.com/api/chat/newRooms",
+      url: "https://go.myru.online/api/chat/newRooms",
       method: "GET",
       token: token,
       session: session,
@@ -79,7 +79,7 @@ const authenticateAndSubscribe = async (email, roomId) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/subscribe/${roomId}`,
+      url: `https://go.myru.online/api/chat/subscribe/${roomId}`,
       method: "PATCH",
       token: token,
       session: session,
@@ -101,7 +101,7 @@ const authenticateAndUnSubscribe = async (email, roomId) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/unsubscribe/${roomId}`,
+      url: `https://go.myru.online/api/chat/unsubscribe/${roomId}`,
       method: "PATCH",
       token: token,
       session: session,
@@ -123,7 +123,7 @@ const authenticateAndGetRoomDetails = async (email, roomId) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/room/${roomId}`,
+      url: `https://go.myru.online/api/chat/room/${roomId}`,
       method: "GET",
       token: token,
       session: session,
@@ -145,7 +145,7 @@ const sendMessage = async (email, roomId, messageContent) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/message/${roomId}`,
+      url: `https://go.myru.online/api/chat/message/${roomId}`,
       method: "POST",
       data: {
         content: messageContent,
@@ -170,7 +170,7 @@ const editMessage = async (email, messageId, newContent) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/message/${messageId}`,
+      url: `https://go.myru.online/api/chat/message/${messageId}`,
       method: "PATCH",
       data: {
         content: newContent,
@@ -195,7 +195,7 @@ const deleteMessage = async (email, messageId) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/message/${messageId}`,
+      url: `https://go.myru.online/api/chat/message/${messageId}`,
       method: "DELETE",
       token: token,
       session: session,
@@ -217,7 +217,7 @@ const getAllMessages = async (email, roomId) => {
 
   try {
     const res = await requestHelper({
-      url: `https://go.paxintrade.com/api/chat/message/${roomId}`,
+      url: `https://go.myru.online/api/chat/message/${roomId}`,
       method: "GET",
       token: token,
       session: session,

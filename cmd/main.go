@@ -98,8 +98,8 @@ func init() {
 // @version 1.0
 // @description services paxintrade
 // @contact.name API Support
-// @contact.email help@paxintrade.com
-// @host go.paxintrade.com/api
+// @contact.email help@myru.online
+// @host go.myru.online/api
 // @schemes https
 // @BasePath /
 func main() {
@@ -179,7 +179,7 @@ func main() {
 
 	// notification.Payload = payload
 
-	// // notification.Payload = []byte(`{"aps":{"alert":"Hello, this is a push notification.", "sound":"default", "pageUrl": "https://www.paxintrade.com/ru/flows/d8zERtixqu4/cathy-kings-coaching-corner-empowering-women-edinburgh", "badge": 1}}`)
+	// // notification.Payload = []byte(`{"aps":{"alert":"Hello, this is a push notification.", "sound":"default", "pageUrl": "https://www.myru.online/ru/flows/d8zERtixqu4/cathy-kings-coaching-corner-empowering-women-edinburgh", "badge": 1}}`)
 
 	// res, err := client.Push(notification)
 
@@ -1285,9 +1285,9 @@ func main() {
 				switch update.Message.Command() {
 				case "shop":
 					msg.Text = "Добро пожаловать в paxintrade:\n\n" +
-						"[Карта с балансом на 5.000](https://paxintrade.com/cth5kWSupR4/moy-tovar-v-telegram) - 5.000 ₽  /buy1\n" +
-						"[Карта с балансом на 10.000](https://paxintrade.com/cth5kWSupR4/moy-tovar-v-telegram) - 10.000 ₽ /buy2\n" +
-						"[Карта с балансом на 50.000](https://paxintrade.com/cth5kWSupR4/moy-tovar-v-telegram) - 50.000 ₽ /buy3\n"
+						"[Карта с балансом на 5.000](https://myru.online/cth5kWSupR4/moy-tovar-v-telegram) - 5.000 ₽  /buy1\n" +
+						"[Карта с балансом на 10.000](https://myru.online/cth5kWSupR4/moy-tovar-v-telegram) - 10.000 ₽ /buy2\n" +
+						"[Карта с балансом на 50.000](https://myru.online/cth5kWSupR4/moy-tovar-v-telegram) - 50.000 ₽ /buy3\n"
 					msg.ParseMode = tgbotapi.ModeMarkdown
 				case "buy1":
 					// Обработка покупки товара 1 через ЮKassa

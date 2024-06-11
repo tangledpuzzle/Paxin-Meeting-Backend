@@ -75,7 +75,7 @@ func TryActivated(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, afterSpace string
 		return
 	}
 
-	fileURL := "https://images.paxintrade.com/default.jpg" // Set a default profile photo URL
+	fileURL := "https://images.myru.online/default.jpg" // Set a default profile photo URL
 	config := tgbotapi.UserProfilePhotosConfig{
 		UserID: msg.From.ID,
 		Limit:  1,

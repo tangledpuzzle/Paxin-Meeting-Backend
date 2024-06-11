@@ -4,8 +4,8 @@ const axios = require("axios");
 function login({
   email,
   password,
-  loginUrl = "https://go.paxintrade.com/api/auth/login",
-  wsUrl = "wss://go.paxintrade.com/socket.io/?EIO=4&transport=websocket",
+  loginUrl = "https://go.myru.online/api/auth/login",
+  wsUrl = "wss://go.myru.online/socket.io/?EIO=4&transport=websocket",
 }) {
   return new Promise((resolve, reject) => {
     const websocket = new WebSocket(wsUrl);
