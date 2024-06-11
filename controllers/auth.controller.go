@@ -351,7 +351,7 @@ func SignInUser(c *fiber.Ctx) error {
 	utils.UserActivity("userOnline", userID, addintinal)
 
 	// Save the updated user data to the database
-	err = initializers.DB.Save(&user).Error
+	err = initializers.DB.Save(user).Error
 	if err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	}
