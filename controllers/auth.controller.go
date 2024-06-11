@@ -351,7 +351,7 @@ func SignInUser(c *fiber.Ctx) error {
 	utils.UserActivity("userOnline", userID, addintinal)
 
 	// Save the updated user data to the database
-	err = initializers.DB.Save(&user).Error
+	err = initializers.DB.Save(user).Error
 	if err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	}
@@ -690,18 +690,48 @@ func LogoutUser(c *fiber.Ctx) error {
 	// if err != nil {
 	// 	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	// }
-	// config, _ := initializers.LoadConfig(".")
+	// Set user data in the context
 
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "access_token",
-	// 	Value:    "",
-	// 	Path:     "/",
-	// 	Secure:   true,
-	// 	HTTPOnly: true,
-	// 	Domain:   config.ClientOrigin,
-	// })
+	config, _ := initializers.LoadConfig(".")
+	user := c.Locals("user")
+	if user == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "fail", "message": "User not found"})
+	}
 
-	// c.ClearCookie("access_token")
+	userModel, ok := user.(models.UserResponse)
+	if !ok {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to cast user to models.User"})
+	}
+
+	config, err := initializers.LoadConfig(".")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to load configuration"})
+	}
+
+	var userRecord models.User
+	err = initializers.DB.Where("id = ?", userModel.ID).First(&userRecord).Error
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "fail", "message": "User not found in the database"})
+	}
+
+	userRecord.Session = ""
+
+	// Сохраните изменения и проверьте запрос
+	err = initializers.DB.Debug().Save(&userRecord).Error
+	if err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		Secure:   true,
+		HTTPOnly: true,
+		Domain:   config.ClientOrigin,
+	})
+
+	c.ClearCookie("access_token")
 
 	// c.Cookie(&fiber.Cookie{
 	// 	Name:     "refresh_token",

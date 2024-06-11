@@ -50,7 +50,7 @@ func Register(micro *fiber.App) {
 		router.Patch("/resetpassword/:resetToken", controllers.ResetPassword)
 
 		router.Get("/verifyemail/:verificationCode", controllers.VerifyEmail)
-		router.Get("/logout", controllers.LogoutUser)
+		router.Get("/logout", middleware.DeserializeUser, controllers.LogoutUser)
 		router.Get("/refresh/:refreshToken", controllers.RefreshAccessToken)
 		router.Post("/checkTokenExp", controllers.CheckTokenExp)
 		router.Get("/check", middleware.DeserializeUser, controllers.GetUserDetails)
