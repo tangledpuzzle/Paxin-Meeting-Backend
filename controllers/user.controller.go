@@ -742,7 +742,7 @@ func SetVipUser(c *fiber.Ctx) error {
 		domain := models.Domain{
 			UserID:    user.ID,
 			Username:  user.Name,
-			Name:      strings.ToLower(user.Name) + ".paxintrade.com",
+			Name:      strings.ToLower(user.Name) + ".myru.online",
 			Settings:  settings,
 			ExpiredAt: &newExpiredAt, // Assign a pointer to the newExpiredAt value
 			Status:    "activated",
@@ -764,7 +764,7 @@ func SetVipUser(c *fiber.Ctx) error {
 		domain := models.Domain{
 			UserID:    user.ID,
 			Username:  user.Name,
-			Name:      strings.ToLower(user.Name) + ".paxintrade.com",
+			Name:      strings.ToLower(user.Name) + ".myru.online",
 			Settings:  settings,
 			ExpiredAt: &newExpiredAt, // Assign a pointer to the newExpiredAt value
 			Status:    "activated",

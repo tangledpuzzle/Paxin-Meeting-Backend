@@ -8,11 +8,11 @@
         "title": "Paxintrade core api",
         "contact": {
             "name": "API Support",
-            "email": "help@paxintrade.com"
+            "email": "help@myru.online"
         },
         "version": "1.0"
     },
-    "host": "go.paxintrade.com/api",
+    "host": "go.myru.online/api",
     "basePath": "/",
     "paths": {
         "/cities/all": {

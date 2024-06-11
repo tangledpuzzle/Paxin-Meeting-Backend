@@ -555,7 +555,7 @@ func CreateBlog(c *fiber.Ctx) error {
 				// Cat:      Data.Catygory,
 				Name:     Data.Title,
 				Total:    Data.Total,
-				Url:      "https://paxintrade.com/" + Data.UniqId + "/" + Data.Slug,
+				Url:      "https://myru.online/" + Data.UniqId + "/" + Data.Slug,
 				Username: user.Name,
 			}
 
@@ -1161,7 +1161,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				Name:     blog.Title,
 				Total:    blog.Total,
 				Hashtags: hashtags,
-				Url:      "https://" + user.Name + ".paxintrade.com/" + blog.UniqId + "/" + blog.Slug,
+				Url:      "https://" + user.Name + ".myru.online/" + blog.UniqId + "/" + blog.Slug,
 				// Username: user.Name,
 			}
 
