@@ -359,8 +359,6 @@ func GetMe(c *fiber.Ctx) error {
 
 	// update session ID in the user table
 
-	sessionID := c.Get("session")
-
 	Time := models.User{}
 
 	userTime := initializers.DB.Where("id = ?", user.ID).First(&Time)
@@ -369,10 +367,6 @@ func GetMe(c *fiber.Ctx) error {
 		// Handle the error
 		fmt.Println("Error occurred:", userTime.Error)
 		// Return an appropriate response or error message
-	}
-
-	if err := initializers.DB.Model(&models.User{}).Where("id = ?", user.ID).Update("session", sessionID).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "failed to update session ID"})
 	}
 
 	roundedSize := math.Round(dirSize*10) / 10
