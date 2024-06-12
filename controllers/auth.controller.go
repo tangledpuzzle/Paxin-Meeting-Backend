@@ -291,15 +291,14 @@ func VerifyEmail(c *fiber.Ctx) error {
 }
 
 func SignInUser(c *fiber.Ctx) error {
+	var payload models.SignInInput
 
-	var payload *models.SignInInput
-
+	// Parse the incoming request payload
 	if err := c.BodyParser(&payload); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid request body"})
 	}
 
-	Authorization := payload.Session
-
+	// Validate the payload
 	errors := models.ValidateStruct(payload)
 	if errors != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "errors": errors})
@@ -307,125 +306,76 @@ func SignInUser(c *fiber.Ctx) error {
 
 	message := "Invalid email or password"
 
+	// Find the user by email
 	var user models.User
-	if err := c.BodyParser(&user); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "errors": errors})
-	}
-
-	err := initializers.DB.First(&user, "email = ?", strings.ToLower(payload.Email)).Error
+	err := initializers.DB.Where("email = ?", strings.ToLower(payload.Email)).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "fail", "message": message})
-		} else {
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
-
 		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Internal server error"})
 	}
 
+	// Check if the user is verified
 	if !user.Verified {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "errors": "Account was not verified"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Account was not verified"})
 	}
 
+	// Compare passwords
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password))
 	if err != nil {
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": message})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "fail", "message": message})
 	}
 
+	// Load configuration
 	config, _ := initializers.LoadConfig(".")
 
+	// Create access and refresh tokens
 	accessTokenDetails, err := utils.CreateToken(user.ID.String(), config.AccessTokenExpiresIn, config.AccessTokenPrivateKey)
 	if err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": "Failed to create access token"})
 	}
 
 	refreshTokenDetails, err := utils.CreateToken(user.ID.String(), config.RefreshTokenExpiresIn, config.RefreshTokenPrivateKey)
 	if err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": "Failed to create refresh token"})
 	}
 
-	user.Session = Authorization
+	// Update user session and status
+	user.Session = payload.Session
 	user.Online = true
 
-	userID := user.ID.String()
-	var addintinal = ""
-	utils.UserActivity("userOnline", userID, addintinal)
-
-	// Save the updated user data to the database
-	err = initializers.DB.Save(user).Error
-	if err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
+	// Save updated user information to the database
+	if err := initializers.DB.Save(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to update user session"})
 	}
 
 	// Set user data in the context
 	c.Locals("user", &user)
 
-	err = utils.SendPersonalMessageToClient(Authorization, "Hello Client")
-	if err != nil {
-		return err
+	// Send a personal message to the client
+	if err := utils.SendPersonalMessageToClient(payload.Session, "Hello Client"); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to send message to client"})
 	}
 
-	// jsonBytes, err := json.Marshal(user)
-	// if err != nil {
-	// 	// Handle the error if necessary
-	// 	return err
-	// }
-
-	// jsonString := string(jsonBytes)
-
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "datas",
-	// 	Value:    jsonString,
-	// 	Path:     "/",
-	// 	MaxAge:   config.AccessTokenMaxAge * 60,
-	// 	Secure:   true,
-	// 	HTTPOnly: true,
-	// 	Domain:   config.ClientOrigin,
-	// })
-
+	// Set access token cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    *accessTokenDetails.Token,
 		Path:     "/",
 		SameSite: "Lax",
 		MaxAge:   config.AccessTokenMaxAge * 60,
-		Secure:   false,
-		HTTPOnly: false,
+		Secure:   false, // Consider setting this to true in production
+		HTTPOnly: true,  // Consider making this true for better security
 		Domain:   config.ClientOrigin,
 	})
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "user_id",
-		Value:    userID,
-		Path:     "/",
-		SameSite: "Lax",
-		MaxAge:   config.AccessTokenMaxAge * 60,
-		Secure:   false,
-		HTTPOnly: false,
-		Domain:   config.ClientOrigin,
+	// Respond with success and tokens
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":        "success",
+		"access_token":  accessTokenDetails.Token,
+		"refresh_token": refreshTokenDetails.Token,
 	})
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "authenticated",
-		Value:    "true",
-		Path:     "/",
-		SameSite: "Lax",
-		MaxAge:   config.AccessTokenMaxAge * 60,
-		Secure:   false,
-		HTTPOnly: false,
-		Domain:   config.ClientOrigin,
-	})
-
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "refresh_token",
-	// 	Value:    *refreshTokenDetails.Token,
-	// 	Path:     "/",
-	// 	MaxAge:   config.RefreshTokenMaxAge * 60,
-	// 	Secure:   true,
-	// 	HTTPOnly: true,
-	// 	Domain:   config.ClientOrigin,
-	// })
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "access_token": accessTokenDetails.Token, "refresh_token": refreshTokenDetails})
 }
 
 func CheckTokenExp(c *fiber.Ctx) error {
@@ -717,7 +667,7 @@ func LogoutUser(c *fiber.Ctx) error {
 	userRecord.Session = ""
 
 	// Сохраните изменения и проверьте запрос
-	err = initializers.DB.Debug().Save(&userRecord).Error
+	err = initializers.DB.Save(&userRecord).Error
 	if err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	}
