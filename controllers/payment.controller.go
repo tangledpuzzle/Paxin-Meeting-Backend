@@ -96,9 +96,9 @@ func Pending(c *fiber.Ctx) error {
 }
 
 func CreateInvoice(c *fiber.Ctx) error {
-	// get all city names from the database
-	var terminalKey = "1692629881262DEMO"
-	var terminalPassword = "38cfo5j546t0ln2h"
+
+	var terminalKey = "1718186727633DEMO"
+	var terminalPassword = "lkSI$mq4FqxMBrwf"
 
 	client := tinkoff.NewClient(terminalKey, terminalPassword)
 
@@ -107,48 +107,28 @@ func CreateInvoice(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	sum := c.Get("amount")
 
-	type Receipt struct {
-		Name     string `json:"name"`
-		Price    int    `json:"price"`
-		Quantity int    `json:"quantity"`
-	}
-
-	receipt := new(Receipt)
-	if err := c.BodyParser(&receipt); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": fmt.Sprintf("Failed to parse request body: %v", err),
-		})
-	}
-
 	amount, err := strconv.ParseUint(sum, 10, 64)
 	if err != nil {
 		// Handle the error if the conversion fails
 		return err
 	}
 
-	userResp, ok := user.(models.UserResponse)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Unauthorized user",
-		})
-	}
+	userResp := user.(models.UserResponse)
 
 	initReq := &tinkoff.InitRequest{
-		Amount:          uint64(receipt.Price),
-		OrderID:         orderID,
-		CustomerKey:     userResp.Name,
-		Description:     "Пополнение баланса в личном кабинете",
-		PayType:         tinkoff.PayTypeOneStep,
+		Amount:      amount,
+		OrderID:     orderID,
+		CustomerKey: userResp.Name,
+		Description: "Пополнение баланса в профиле " + userResp.Name + " на платформе моя Россия онлайн",
+		// PayType:         tinkoff.PayTypeOneStep,
 		RedirectDueDate: tinkoff.Time(time.Now().Add(4 * time.Hour * 24)), // ссылка истечет через 4 дня
 		Receipt: &tinkoff.Receipt{
 			Email: userResp.Email,
 			Items: []*tinkoff.ReceiptItem{
 				{
-					Price:         uint64(receipt.Price),
-					Quantity:      string(rune(receipt.Quantity)),
-					Amount:        uint64(receipt.Price),
+					Price:         amount,
+					Quantity:      "1",
+					Amount:        amount,
 					Name:          "Баланс на сумму " + strconv.FormatUint(amount, 10),
 					Tax:           tinkoff.VATNone,
 					PaymentMethod: tinkoff.PaymentMethodFullPayment,
@@ -162,16 +142,14 @@ func CreateInvoice(c *fiber.Ctx) error {
 		},
 
 		//custom fields for tinkoff
-		Data: map[string]string{
-			"": "",
-		},
+		Data: map[string]string{},
 	}
+
 	initRes, err := client.Init(initReq)
 	if err != nil {
 		// Handle the error here, if needed
 		fmt.Println("Error:", err)
 	} else {
-		fmt.Println(initRes)
 
 		payments := models.Payments{
 			UserID:    userResp.ID,
