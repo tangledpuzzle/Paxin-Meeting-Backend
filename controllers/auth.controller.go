@@ -353,6 +353,10 @@ func SignInUser(c *fiber.Ctx) error {
 	// Set user data in the context
 	c.Locals("user", &user)
 
+	userID := user.ID.String()
+	var addintinal = ""
+	utils.UserActivity("userOnline", userID, addintinal)
+
 	// Send a personal message to the client
 	if err := utils.SendPersonalMessageToClient(payload.Session, "Hello Client"); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to send message to client"})
@@ -367,6 +371,17 @@ func SignInUser(c *fiber.Ctx) error {
 		MaxAge:   config.AccessTokenMaxAge * 60,
 		Secure:   false, // Consider setting this to true in production
 		HTTPOnly: true,  // Consider making this true for better security
+		Domain:   config.ClientOrigin,
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "user_id",
+		Value:    userID,
+		Path:     "/",
+		SameSite: "Lax",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HTTPOnly: false,
 		Domain:   config.ClientOrigin,
 	})
 
