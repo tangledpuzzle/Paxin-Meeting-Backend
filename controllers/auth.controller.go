@@ -3,6 +3,7 @@ package controllers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -361,6 +362,23 @@ func SignInUser(c *fiber.Ctx) error {
 	if err := utils.SendPersonalMessageToClient(payload.Session, "Hello Client"); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to send message to client"})
 	}
+
+	jsonBytes, err := json.Marshal(user)
+	if err != nil {
+		// Handle the error if necessary
+		return err
+	}
+
+	jsonString := string(jsonBytes)
+	c.Cookie(&fiber.Cookie{
+		Name:     "datas",
+		Value:    jsonString,
+		Path:     "/",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   true,
+		HTTPOnly: true,
+		Domain:   config.ClientOrigin,
+	})
 
 	// Set access token cookie
 	c.Cookie(&fiber.Cookie{
