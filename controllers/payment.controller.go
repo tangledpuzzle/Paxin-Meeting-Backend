@@ -66,6 +66,8 @@ func Pending(c *fiber.Ctx) error {
 		})
 	}
 
+	fmt.Println(paymentID)
+
 	if response["Status"] == "CONFIRMED" { // Use == for comparison
 		var payment models.Payments
 		if err := initializers.DB.Where("payment_id = ?  AND status = ?", fmt.Sprintf("%d", paymentID), "NEW").First(&payment).Error; err != nil {

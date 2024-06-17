@@ -158,7 +158,7 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/payment", func(router fiber.Router) {
 		router.Post("/invoice", middleware.DeserializeUser, controllers.CreateInvoice)
-		router.Post("/pending", middleware.DeserializeUser, controllers.Pending)
+		router.Post("/pending", controllers.Pending)
 	})
 
 	micro.Route("/profilehashtags", func(router fiber.Router) {
