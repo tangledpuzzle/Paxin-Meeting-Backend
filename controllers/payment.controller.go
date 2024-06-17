@@ -41,10 +41,30 @@ func Pending(c *fiber.Ctx) error {
 	fmt.Println("BANK ANSWER")
 	fmt.Println(response)
 	// Access the value of the PaymentId field
-	paymentIDFloat := response["PaymentId"].(float64)
+	// paymentIDFloat := response["PaymentId"].(float64)
 
 	// Convert the PaymentId to an integer
-	paymentID := int64(paymentIDFloat)
+	var paymentID int64
+
+	switch v := requestBody["PaymentId"].(type) {
+	case float64:
+		paymentID = int64(v)
+	case string:
+		// Преобразование строки в int64
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Invalid PaymentId format",
+			})
+		}
+		paymentID = id
+	default:
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "PaymentId is of an unexpected type",
+		})
+	}
 
 	if response["Status"] == "CONFIRMED" { // Use == for comparison
 		var payment models.Payments
