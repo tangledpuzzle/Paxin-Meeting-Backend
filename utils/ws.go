@@ -104,7 +104,7 @@ func SendPersonalMessageToClient(clientID, message string) error {
 
 	}
 
-	if message == "Activated" {
+	if message == "BalanceAdded" {
 		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
 			return err
 		}
