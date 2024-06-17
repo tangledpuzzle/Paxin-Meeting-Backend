@@ -24,10 +24,10 @@ func Pending(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Println(requestBody)
-
 	var response = requestBody
 
+	fmt.Println("BANK ANSWER")
+	fmt.Println(response)
 	// Access the value of the PaymentId field
 	paymentIDFloat := response["PaymentId"].(float64)
 
