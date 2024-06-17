@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"hyperpage/utils"
 	"log"
 	"strconv"
 	"time"
@@ -38,8 +39,6 @@ func Pending(c *fiber.Ctx) error {
 
 	var response = requestBody
 
-	fmt.Println("BANK ANSWER")
-	fmt.Println(response)
 	// Access the value of the PaymentId field
 	// paymentIDFloat := response["PaymentId"].(float64)
 
@@ -65,8 +64,6 @@ func Pending(c *fiber.Ctx) error {
 			"message": "PaymentId is of an unexpected type",
 		})
 	}
-
-	fmt.Println(paymentID)
 
 	if response["Status"] == "CONFIRMED" { // Use == for comparison
 		var payment models.Payments
@@ -102,6 +99,16 @@ func Pending(c *fiber.Ctx) error {
 			})
 		}
 
+		var user models.User
+		if err := initializers.DB.Model(&models.User{}).Where("id = ?", payment.UserID).First(&user).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to find user",
+			})
+		}
+
+		userSession := user.Session
+
 		transaction := models.Transaction{
 			UserID:      payment.UserID,
 			Total:       `0`,
@@ -118,6 +125,12 @@ func Pending(c *fiber.Ctx) error {
 				"status":  "error",
 				"message": "Failed to create transaction",
 			})
+		}
+
+		var err = utils.SendPersonalMessageToClient(userSession, "BalanceAdded")
+		if err != nil {
+			// handle error
+			_ = err
 		}
 
 	}
