@@ -97,8 +97,11 @@ func Pending(c *fiber.Ctx) error {
 
 func CreateInvoice(c *fiber.Ctx) error {
 
-	var terminalKey = "1718186727633DEMO"
-	var terminalPassword = "lkSI$mq4FqxMBrwf"
+	// var terminalKey = "1718186727633DEMO"
+	// var terminalPassword = "lkSI$mq4FqxMBrwf"
+
+	var terminalKey = "1669511559870DEMO"
+	var terminalPassword = "3mctl616b7ll8cnh"
 
 	client := tinkoff.NewClient(terminalKey, terminalPassword)
 
