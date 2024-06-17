@@ -13,7 +13,19 @@ import (
 	"gorm.io/gorm"
 )
 
+func handlePanic(c *fiber.Ctx) {
+	if r := recover(); r != nil {
+		fmt.Println("Recovered from panic:", r)
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "An unexpected error occurred",
+		})
+	}
+}
+
 func Pending(c *fiber.Ctx) error {
+
+	defer handlePanic(c)
 
 	var requestBody map[string]interface{}
 
