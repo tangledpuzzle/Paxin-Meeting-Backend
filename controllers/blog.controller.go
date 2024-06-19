@@ -101,7 +101,7 @@ type CityJSON struct {
 
 type UserProfileJSON struct {
 	MultilangDescr models.MultilangTitle `json:"multilangtitle"`
-
+	Streaming      models.Streamings     `json:"streaming"`
 	// Add other fields from the user profile as needed
 }
 
@@ -1352,6 +1352,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 }
 
 func GetBlogById(c *fiber.Ctx) error {
+
 	blogID := c.Params("id")
 	uniqId := c.Get("name")
 	language := c.Query("language")
@@ -1368,10 +1369,8 @@ func GetBlogById(c *fiber.Ctx) error {
 			"message": "Element not found",
 		})
 	}
-
 	var res []*blogResponse
 	for _, b := range blog {
-
 		userID := b.User.ID
 		var userProfile models.Profile
 		err := initializers.DB.Where("user_id = ?", userID).First(&userProfile).Error
@@ -1455,6 +1454,7 @@ func GetBlogById(c *fiber.Ctx) error {
 			Sticker:    b.Sticker,
 			UserProfile: UserProfileJSON{
 				MultilangDescr: userProfile.MultilangDescr,
+				Streaming:      userProfile.Streaming,
 			},
 			User: userResponse{
 				ID:                b.User.ID,
