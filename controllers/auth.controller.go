@@ -369,8 +369,8 @@ func SignInUser(c *fiber.Ctx) error {
 		Path:     "/",
 		SameSite: "Lax",
 		MaxAge:   config.AccessTokenMaxAge * 60,
-		Secure:   false, // Consider setting this to true in production
-		HTTPOnly: true,  // Consider making this true for better security
+		Secure:   true,  // Consider setting this to true in production
+		HTTPOnly: false, // Consider making this true for better security
 		Domain:   config.ClientOrigin,
 	})
 
