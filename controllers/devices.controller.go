@@ -32,9 +32,9 @@ func SendNot(c *fiber.Ctx) error {
 	}
 
 	privateKeyPath := "keys/AuthKey_485K6P55G9.p8"
-	keyID := "485K6P55G9"        // Идентификатор ключа (Key ID) из Apple Developer Console
-	teamID := "DBJ8D3U6HY"       // Идентификатор команды (Team ID) из Apple Developer Console
-	bundleID := "dev.paxintrade" // Bundle ID вашего приложения
+	keyID := "485K6P55G9"   // Идентификатор ключа (Key ID) из Apple Developer Console
+	teamID := "DBJ8D3U6HY"  // Идентификатор команды (Team ID) из Apple Developer Console
+	bundleID := "ddrw.myru" // Bundle ID вашего приложения
 
 	authKey, err := token.AuthKeyFromFile(privateKeyPath)
 	if err != nil {
