@@ -449,7 +449,7 @@ func RefreshAccessToken(c *fiber.Ctx) error {
 		Path:     "/",
 		SameSite: "Lax",
 		MaxAge:   config.AccessTokenMaxAge * 60,
-		Secure:   false,
+		Secure:   true,
 		HTTPOnly: false,
 		Domain:   config.ClientOrigin,
 	})
