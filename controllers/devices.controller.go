@@ -58,7 +58,7 @@ func SendNot(c *fiber.Ctx) error {
 
 	notification.Topic = bundleID
 
-	payload := payload.NewPayload().Alert(reqBody.Title).AlertBody(reqBody.Text).Badge(1).Custom("urlString", reqBody.PageURL)
+	payload := payload.NewPayload().AlertTitle(reqBody.Title).AlertBody(reqBody.Text).Badge(1).Custom("urlString", reqBody.PageURL)
 
 	notification.Payload = payload
 
