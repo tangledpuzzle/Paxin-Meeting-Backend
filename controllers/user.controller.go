@@ -53,7 +53,7 @@ func SetTokenIOSdevice(c *fiber.Ctx) error {
 	// Define a struct to parse the JSON body
 	type requestBody struct {
 		TokenDevice string `json:"tokenDevice"`
-		VoIP        string `json:"voipToken"`
+		// VoIP        string `json:"voipToken"`
 	}
 
 	var body requestBody
@@ -70,17 +70,17 @@ func SetTokenIOSdevice(c *fiber.Ctx) error {
 	}
 
 	// Validate the tokenDevice
-	voIPtoken := strings.TrimSpace(body.VoIP)
-	if voIPtoken == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "TokenDevice VOIP cannot be empty"})
-	}
+	// voIPtoken := strings.TrimSpace(body.VoIP)
+	// if voIPtoken == "" {
+	// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "TokenDevice VOIP cannot be empty"})
+	// }
 
 	user := c.Locals("user").(models.UserResponse)
 	userID := user.ID
 
 	updateFields := map[string]interface{}{
-		"device_ios":      tokenDevice,
-		"device_iosvo_ip": voIPtoken,
+		"device_ios": tokenDevice,
+		// "device_iosvo_ip": voIPtoken,
 	}
 
 	// Try to update the user's token device
