@@ -49,6 +49,43 @@ func ChangeNickName(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
 }
 
+func SetTokenIOSdevice(c *fiber.Ctx) error {
+	// Define a struct to parse the JSON body
+	type requestBody struct {
+		TokenDevice string `json:"tokenDevice"`
+	}
+
+	var body requestBody
+
+	// Parse the JSON body
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Invalid request body"})
+	}
+
+	// Validate the tokenDevice
+	tokenDevice := strings.TrimSpace(body.TokenDevice)
+	if tokenDevice == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "TokenDevice cannot be empty"})
+	}
+
+	user := c.Locals("user").(models.UserResponse)
+	userID := user.ID
+
+	updateFields := map[string]interface{}{
+		"device_ios": tokenDevice,
+	}
+
+	// Try to update the user's token device
+	if err := initializers.DB.Model(&models.User{}).Where("id = ?", userID).Updates(updateFields).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "User not found"})
+		}
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
+}
+
 func GetMeH(id string, userName string, fileURL string, tId int64) (*models.User, error) {
 	config, _ := initializers.LoadConfig(".")
 

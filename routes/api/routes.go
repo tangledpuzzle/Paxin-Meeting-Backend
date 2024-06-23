@@ -43,12 +43,9 @@ func Register(micro *fiber.App) {
 
 	micro.Route("/auth", func(router fiber.Router) {
 		router.Post("/register", controllers.SignUpUser)
-
 		router.Post("/login", controllers.SignInUser)
 		router.Post("/forgotpassword", controllers.ForgotPassword)
-
 		router.Patch("/resetpassword/:resetToken", controllers.ResetPassword)
-
 		router.Get("/verifyemail/:verificationCode", controllers.VerifyEmail)
 		router.Get("/logout", middleware.DeserializeUser, controllers.LogoutUser)
 		router.Get("/refresh/:refreshToken", controllers.RefreshAccessToken)
@@ -76,6 +73,7 @@ func Register(micro *fiber.App) {
 		router.Post("/deletme", middleware.DeserializeUser, controllers.DeleteUserWithRelations)
 		router.Post("/setvip", middleware.DeserializeUser, controllers.SetVipUser)
 		router.Patch("/changeName", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.ChangeNickName)
+		router.Patch("/setTokenDeivce", middleware.DeserializeUser, middleware.CheckRole([]string{"admin", "user", "vip"}), controllers.SetTokenIOSdevice)
 
 		router.Post("/sendrequestcall", controllers.SendBotCallRequest)
 		// router.Get("/me", middleware.DeserializeUser, controllers.GetMe)
