@@ -166,7 +166,7 @@ func GetFavorites(c *fiber.Ctx) error {
 
 	var favorites []models.Favorite
 
-	if err := initializers.DB.Where("user_id = ?", user.ID).Find(&favorites).Error; err != nil {
+	if err := initializers.DB.Preload("User").Preload("Blog").Where("user_id = ?", user.ID).Find(&favorites).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not retrieve favorites",
 		})
