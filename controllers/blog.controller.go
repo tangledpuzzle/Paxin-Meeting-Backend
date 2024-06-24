@@ -132,6 +132,18 @@ type blogResponse struct {
 	UserProfile      UserProfileJSON       `json:"userProfile"`
 }
 
+func AddFav(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "success",
+	})
+}
+
+func DelFav(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		"status": "error",
+	})
+}
+
 func FilterBlogsWithIds(c *fiber.Ctx) error {
 	// Define the struct to hold the request data
 	type requestData struct {

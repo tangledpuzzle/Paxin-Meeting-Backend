@@ -45,6 +45,9 @@ func main() {
 	if err := initializers.DB.AutoMigrate(&models.Blog{}); err != nil {
 		panic(err)
 	}
+	if err := initializers.DB.AutoMigrate(&models.Favorite{}); err != nil {
+		panic(err)
+	}
 	if err := initializers.DB.AutoMigrate(&models.BlogPhoto{}); err != nil {
 		panic(err)
 	}
