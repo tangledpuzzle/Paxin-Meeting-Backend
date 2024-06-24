@@ -133,14 +133,84 @@ type blogResponse struct {
 }
 
 func AddFav(c *fiber.Ctx) error {
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status": "success",
-	})
+	favorite := new(models.Favorite)
+
+	if err := c.BodyParser(favorite); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Cannot parse JSON",
+		})
+	}
+
+	user := c.Locals("user").(models.UserResponse)
+
+	var blog models.Blog
+	if err := initializers.DB.First(&blog, "id = ?", favorite.BlogID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Blog not found",
+		})
+	}
+
+	favorite.UserID = user.ID
+
+	if result := initializers.DB.Create(&favorite); result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not create favorite",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(favorite)
+}
+
+func GetFavorites(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+
+	var favorites []models.Favorite
+
+	if err := initializers.DB.Where("user_id = ?", user.ID).Find(&favorites).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not retrieve favorites",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(favorites)
+}
+
+type DelFavRequest struct {
+	BlogID uint64 `json:"blog_id"`
 }
 
 func DelFav(c *fiber.Ctx) error {
-	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-		"status": "error",
+	req := new(DelFavRequest)
+
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Cannot parse JSON",
+		})
+	}
+
+	if req.BlogID == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid blog ID",
+		})
+	}
+
+	user := c.Locals("user").(models.UserResponse)
+
+	var favorite models.Favorite
+	if err := initializers.DB.First(&favorite, "blog_id = ? AND user_id = ?", req.BlogID, user.ID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Favorite not found",
+		})
+	}
+
+	if err := initializers.DB.Delete(&favorite).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not delete favorite",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "success",
 	})
 }
 
