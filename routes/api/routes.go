@@ -176,7 +176,7 @@ func Register(micro *fiber.App) {
 		router.Get("/taketags", controllers.Get10RandomBlogHashtags)
 		router.Post("/filterByIds", controllers.AddFav)
 
-		router.Post("/addFav", middleware.DeserializeUser, controllers.DelFav)
+		router.Post("/addFav", middleware.DeserializeUser, controllers.AddFav)
 		router.Get("/getFav", middleware.DeserializeUser, controllers.GetFavorites)
 		router.Delete("/delFav", middleware.DeserializeUser, controllers.DelFav)
 
