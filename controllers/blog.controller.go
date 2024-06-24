@@ -141,7 +141,13 @@ func AddFav(c *fiber.Ctx) error {
 		})
 	}
 
-	user := c.Locals("user").(models.UserResponse)
+	userInterface := c.Locals("user")
+	user, ok := userInterface.(models.UserResponse)
+	if !ok {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "User information is missing or invalid",
+		})
+	}
 
 	var blog models.Blog
 	if err := initializers.DB.First(&blog, "id = ?", favorite.BlogID).Error; err != nil {
