@@ -174,6 +174,17 @@ func AddFav(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(favorite)
 }
 
+func GetFavorites(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.UserResponse)
+	var favorites []models.Favorite
+	if err := initializers.DB.Preload("User").Preload("Blog").Where("user_id = ?", user.ID).Find(&favorites).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not retrieve favorites",
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(favorites)
+}
+
 type DelFavRequest struct {
 	BlogID uint64 `json:"blog_id"`
 }
