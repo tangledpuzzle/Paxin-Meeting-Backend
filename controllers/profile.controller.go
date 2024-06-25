@@ -1434,8 +1434,14 @@ func UpdateProfileStreaming(c *fiber.Ctx) error {
 		})
 	}
 
-	profile.Streaming = append(profile.Streaming, streaming)
-
+	if len(profile.Streaming) == 1 {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Can't create streaming more than one",
+		})
+	} else {
+		profile.Streaming = append(profile.Streaming, streaming)
+	}
 	// Save the updated document to the database
 
 	// if err := initializers.DB.Clauses(clause.OnConflict{
