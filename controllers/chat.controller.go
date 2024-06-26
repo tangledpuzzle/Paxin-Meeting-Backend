@@ -616,6 +616,10 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	} else {
 		// When msgType is not present, it's implicitly understood that message.ParentMessageID is nil
 		fmt.Println("Creating new message with content, default msgType is 0...")
+		roomIDStr := strconv.FormatUint(message.RoomID, 10)
+		pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
+		sendPushNotificationToOwner(user.ID, "Вам новое сообщение", message.Content, pageURL)
+
 	}
 
 	if err := initializers.DB.Create(&message).Error; err != nil {
@@ -647,12 +651,6 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		if _, err := CentrifugoBroadcastRoom(fmt.Sprint(message.RoomID), broadcastPayload); err != nil {
 			log.Printf("Failed to broadcast new message: %s", err)
 		}
-
-		roomIDStr := strconv.FormatUint(message.RoomID, 10)
-		pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
-
-		sendPushNotificationToOwner(user.ID, "Вам новое сообщение", message.Content, pageURL)
-
 	}
 
 	roomIDStr := strconv.FormatUint(message.RoomID, 10)
