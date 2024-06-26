@@ -128,6 +128,11 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 			}
 		}
 
+		roomIDStr := strconv.FormatUint(newRoom.ID, 10)
+		pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
+
+		sendPushNotificationToOwner(acceptorUser.ID, "Вам новое сообщение", initialMessage.Content, pageURL)
+
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"status": "success",
 			"data": fiber.Map{
@@ -595,6 +600,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	} else {
 		// When ParentMessageID is not present, it's implicitly understood that message.ParentMessageID is nil
 		fmt.Println("Creating new message with content")
+
 	}
 
 	// Check whether there is a msgType
@@ -616,10 +622,6 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	} else {
 		// When msgType is not present, it's implicitly understood that message.ParentMessageID is nil
 		fmt.Println("Creating new message with content, default msgType is 0...")
-		roomIDStr := strconv.FormatUint(message.RoomID, 10)
-		pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
-		sendPushNotificationToOwner(user.ID, "Вам новое сообщение", message.Content, pageURL)
-
 	}
 
 	if err := initializers.DB.Create(&message).Error; err != nil {
