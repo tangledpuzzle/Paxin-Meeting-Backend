@@ -75,6 +75,11 @@ func sendPushNotificationToFollowers(userID uuid.UUID, title, text, pageURL stri
 	}
 
 	for _, follower := range followers {
+
+		if follower.DeviceIOS == "" {
+			continue
+		}
+
 		err := utils.Push(
 			title,
 			text,
