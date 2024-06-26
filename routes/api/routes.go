@@ -35,6 +35,7 @@ func Register(micro *fiber.App) {
 	micro.Route("/relations", func(router fiber.Router) {
 		router.Get("/following", middleware.DeserializeUser, controllers.GetFollowing)
 		router.Get("/followers", middleware.DeserializeUser, controllers.GetFollowers)
+		router.Post("/send-push", middleware.DeserializeUser, controllers.SendPushNotification)
 	})
 
 	micro.Route("/newreq", func(router fiber.Router) {

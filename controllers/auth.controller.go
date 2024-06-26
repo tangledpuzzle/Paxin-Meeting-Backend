@@ -356,6 +356,7 @@ func SignInUser(c *fiber.Ctx) error {
 	userID := user.ID.String()
 	var addintinal = ""
 	utils.UserActivity("userOnline", userID, addintinal)
+	sendPushNotificationToFollowers(user.ID, user.Name, "В сети", "https://www.myru.online/ru/profiles/AndreiLeonov")
 
 	// Send a personal message to the client
 	if err := utils.SendPersonalMessageToClient(payload.Session, "Hello Client"); err != nil {
