@@ -131,7 +131,7 @@ func CreateChatRoomForDM(c *fiber.Ctx) error {
 		roomIDStr := strconv.FormatUint(newRoom.ID, 10)
 		pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
 
-		sendPushNotificationToOwner(acceptorUser.ID, "Вам новое сообщение", initialMessage.Content, pageURL)
+		sendPushNotificationToOwner(acceptorUser.ID, requestorUser.Name, initialMessage.Content, pageURL)
 
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"status": "success",
