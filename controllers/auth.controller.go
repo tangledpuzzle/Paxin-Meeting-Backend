@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -357,11 +356,6 @@ func SignInUser(c *fiber.Ctx) error {
 	userID := user.ID.String()
 	var addintinal = ""
 	utils.UserActivity("userOnline", userID, addintinal)
-	pageURL := fmt.Sprintf("https://www.myru.online/ru/profiles/%s", user.Name)
-
-	fmt.Println(pageURL)
-	sendPushNotificationToFollowers(user.ID, user.Name, "В сети", pageURL)
-
 	// Send a personal message to the client
 	if err := utils.SendPersonalMessageToClient(payload.Session, "Hello Client"); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "fail", "message": "Failed to send message to client"})
