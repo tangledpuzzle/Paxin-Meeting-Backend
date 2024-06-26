@@ -559,6 +559,16 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "error", "message": "User is not subscribed to the room"})
 	}
 
+	// Check if there's another subscribed member in this room
+	var recipient models.ChatRoomMember
+	initializers.DB.Model(&models.ChatRoomMember{}).
+		Where("room_id = ? AND user_id != ? AND is_subscribed = ?", u64, user.ID, true).
+		First(&recipient)
+	if recipient.UserID == uuid.Nil {
+		// This means the other member is not subscribed or does not exist
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "The other member is not subscribed or does not exist"})
+	}
+
 	// Check if the user is a member of the room and if the other member is subscribed.
 	var count int64
 	initializers.DB.Model(&models.ChatRoomMember{}).
@@ -658,7 +668,7 @@ func SendMessageForDM(c *fiber.Ctx) error {
 	roomIDStr := strconv.FormatUint(message.RoomID, 10)
 	pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
 
-	sendPushNotificationToOwner(member.UserID, user.Name, message.Content, pageURL)
+	sendPushNotificationToOwner(recipient.UserID, user.Name, message.Content, pageURL)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"message": message}})
 }
