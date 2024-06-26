@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"hyperpage/initializers"
 	"hyperpage/models"
 	"hyperpage/utils"
 
@@ -90,6 +91,34 @@ func sendPushNotificationToFollowers(userID uuid.UUID, title, text, pageURL stri
 		if err != nil {
 			fmt.Println("Failed to send push notification: ", err)
 		}
+	}
+
+	return nil
+}
+
+func sendPushNotificationToOwner(userID uuid.UUID, title, text, pageURL string) error {
+	var user models.User
+	if err := initializers.DB.
+		Where("id = ?", userID).
+		First(&user).Error; err != nil {
+		fmt.Println("Failed to fetch user from the database: ", err)
+		return err
+	}
+
+	if user.DeviceIOS == "" {
+		fmt.Println("No device_ios for user: ", userID)
+		return nil
+	}
+
+	err := utils.Push(
+		title,
+		text,
+		user.DeviceIOS,
+		pageURL,
+	)
+
+	if err != nil {
+		fmt.Println("Failed to send push notification: ", err)
 	}
 
 	return nil

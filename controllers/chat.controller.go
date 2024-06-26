@@ -649,6 +649,11 @@ func SendMessageForDM(c *fiber.Ctx) error {
 		}
 	}
 
+	roomIDStr := strconv.FormatUint(message.RoomID, 10)
+	pageURL := fmt.Sprintf("https://www.myru.online/ru/chat/%s", roomIDStr)
+
+	sendPushNotificationToOwner(user.ID, "Вам новое сообщение", message.Content, pageURL)
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"message": message}})
 }
 
