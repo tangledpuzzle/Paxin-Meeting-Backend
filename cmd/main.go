@@ -225,7 +225,7 @@ func main() {
 	app.Use(logger.New())
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "*",
+		AllowOrigins:     "https://*.myru.online",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Access-Control-Allow-Headers, Session, Mode",
 		AllowMethods:     "GET, POST, PATCH, DELETE",
 		AllowCredentials: true,
