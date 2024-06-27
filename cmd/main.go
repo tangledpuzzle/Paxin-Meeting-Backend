@@ -877,6 +877,22 @@ func main() {
 				}
 			}
 
+			if Message.MessageType == "updateProfile" {
+				type Message struct {
+					MessageType string `json:"MessageType"`
+					Data        []struct {
+						UserID string `json:"id"`
+					} `json:"data"`
+				}
+				var data Message
+				if err := json.Unmarshal([]byte(message), &data); err != nil {
+					fmt.Println("Ошибка при разборе JSON:", err)
+					return
+				}
+
+				fmt.Println("user online again:", data)
+
+			}
 			if Message.MessageType == "reject" {
 				type RejectMessage struct {
 					Command string `json:"command"`
