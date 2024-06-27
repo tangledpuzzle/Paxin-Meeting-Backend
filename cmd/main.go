@@ -473,30 +473,6 @@ func main() {
 		utils.Clients[idStr] = c
 		ClientsLock.Unlock()
 
-		stunServer := webrtc.ICEServer{
-			URLs: []string{"stun:stun.l.google.com:19302"}, // Use a publicly available STUN server
-		}
-
-		// Create a new WebRTC peer connection with STUN server configuration
-		configrtc := webrtc.Configuration{
-			ICEServers: []webrtc.ICEServer{stunServer},
-		}
-
-		peerConnection, err := webrtc.NewPeerConnection(configrtc)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-
-		peer := &Peer{
-			Conn:           c,
-			PeerConnection: peerConnection,
-		}
-
-		peersLock.Lock()
-		peers[idStr] = peer
-		peersLock.Unlock()
-
 		//CHECK USER LOGIN OR NOT
 		authToken := c.Cookies("access_token")
 
@@ -708,6 +684,32 @@ func main() {
 			fmt.Println("error setting client info in Redis:", err)
 			return
 		}
+
+		go func() {
+			ticker := time.NewTicker(10 * time.Second)
+			defer ticker.Stop()
+
+			for range ticker.C {
+				if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
+					fmt.Println("Ошибка при отправке ping сообщения:", err)
+					return
+				}
+			}
+		}()
+
+		c.SetPingHandler(func(appData string) error {
+			fmt.Println("Получено ping сообщение")
+			if err := c.WriteControl(websocket.PongMessage, nil, time.Now().Add(time.Second)); err != nil {
+				fmt.Println("Ошибка при отправке pong сообщения:", err)
+				return err
+			}
+			return nil
+		})
+
+		// c.SetPongHandler(func(appData string) error {
+		// 	fmt.Println("Получено pong сообщение")
+		// 	return nil
+		// })
 
 		// Wait for messages from the client
 		for {
