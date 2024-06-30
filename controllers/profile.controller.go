@@ -1415,6 +1415,13 @@ func Get10RandomTags(c *fiber.Ctx) error {
 	})
 }
 
+func SendDonat(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   "donat",
+	})
+}
+
 func UpdateProfileStreaming(c *fiber.Ctx) error {
 
 	var streaming models.Streaming
