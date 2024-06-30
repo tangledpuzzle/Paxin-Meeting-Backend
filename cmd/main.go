@@ -225,7 +225,7 @@ func main() {
 	app.Use(logger.New())
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "https://*.myru.online",
+		AllowOrigins:     "https://*.myru.online, https://www.myru.online",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Access-Control-Allow-Headers, Session, Mode",
 		AllowMethods:     "GET, POST, PATCH, DELETE",
 		AllowCredentials: true,
@@ -893,6 +893,7 @@ func main() {
 				fmt.Println("user online again:", data)
 
 			}
+
 			if Message.MessageType == "reject" {
 				type RejectMessage struct {
 					Command string `json:"command"`
