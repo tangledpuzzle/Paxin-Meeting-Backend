@@ -1416,6 +1416,147 @@ func Get10RandomTags(c *fiber.Ctx) error {
 }
 
 func SendDonat(c *fiber.Ctx) error {
+	// Проверка авторизации пользователя
+	IDUSER := c.Locals("user")
+	if IDUSER == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
+	}
+
+	userResp, ok := IDUSER.(models.UserResponse)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user type",
+		})
+	}
+
+	// Чтение тела запроса
+	type DonatRequest struct {
+		Author string `json:"author"`
+		Amount string `json:"amount"`
+		Sms    string `json:"sms"`
+	}
+
+	var donatReq DonatRequest
+	if err := c.BodyParser(&donatReq); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to parse request body",
+		})
+	}
+
+	// Конвертация суммы в float
+	priceFloat, err := strconv.ParseFloat(donatReq.Amount, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid amount",
+		})
+	}
+
+	// Получение текущего баланса пользователя
+	var billing models.Billing
+	err = initializers.DB.Where("user_id = ?", userResp.ID).First(&billing).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch balance",
+		})
+	}
+
+	// Проверка достаточности баланса
+	if billing.Amount < priceFloat {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Insufficient balance",
+		})
+	}
+
+	// Обновление баланса пользователя
+	err = initializers.DB.Model(&models.Billing{}).
+		Where("user_id = ?", userResp.ID).
+		Updates(map[string]interface{}{
+			"amount": gorm.Expr("amount - ?", priceFloat),
+		}).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update balance",
+		})
+	}
+
+	// Создание транзакции
+	transaction := models.Transaction{
+		UserID:      userResp.ID,
+		Total:       strconv.FormatFloat(priceFloat, 'f', 2, 64),
+		Amount:      priceFloat,
+		Description: "Донат пользователю " + donatReq.Author,
+		Module:      "donat",
+		Type:        "deduction",
+		Status:      "CLOSED_1",
+	}
+
+	err = initializers.DB.Create(&transaction).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to create transaction",
+		})
+	}
+
+	// Получение ID автора стрима
+	var author models.User
+	err = initializers.DB.Where("name = ?", donatReq.Author).First(&author).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch author ID",
+		})
+	}
+
+	// Увеличение баланса автора стрима
+	var authorBilling models.Billing
+	err = initializers.DB.Where("name = ?", donatReq.Author).First(&authorBilling).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to fetch author balance",
+		})
+	}
+
+	// Увеличение баланса автора стрима
+	err = initializers.DB.Model(&models.Billing{}).
+		Where("user_id = ?", author.ID).
+		Updates(map[string]interface{}{
+			"amount": gorm.Expr("amount + ?", priceFloat),
+		}).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update author balance",
+		})
+	}
+
+	// Создание транзакции для автора стрима
+	transactionReceiver := models.Transaction{
+		UserID:      author.ID,
+		Total:       strconv.FormatFloat(priceFloat, 'f', 2, 64),
+		Amount:      priceFloat,
+		Description: "Получение доната от пользователя " + userResp.Name,
+		Module:      "donat",
+		Type:        "addition",
+		Status:      "CLOSED_1",
+	}
+
+	err = initializers.DB.Create(&transactionReceiver).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to create transaction for receiver",
+		})
+	}
+
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   "donat",
