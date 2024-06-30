@@ -1515,9 +1515,12 @@ func SendDonat(c *fiber.Ctx) error {
 		})
 	}
 
+	// Ensure author.ID is a UUID (string)
+	authorIDStr := author.ID
+
 	// Увеличение баланса автора стрима
 	var authorBilling models.Billing
-	err = initializers.DB.Where("name = ?", donatReq.Author).First(&authorBilling).Error
+	err = initializers.DB.Where("user_id = ?", authorIDStr).First(&authorBilling).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -1527,7 +1530,7 @@ func SendDonat(c *fiber.Ctx) error {
 
 	// Увеличение баланса автора стрима
 	err = initializers.DB.Model(&models.Billing{}).
-		Where("user_id = ?", author.ID).
+		Where("user_id = ?", authorIDStr).
 		Updates(map[string]interface{}{
 			"amount": gorm.Expr("amount + ?", priceFloat),
 		}).Error
@@ -1540,7 +1543,7 @@ func SendDonat(c *fiber.Ctx) error {
 
 	// Создание транзакции для автора стрима
 	transactionReceiver := models.Transaction{
-		UserID:      author.ID,
+		UserID:      authorIDStr,
 		Total:       strconv.FormatFloat(priceFloat, 'f', 2, 64),
 		Amount:      priceFloat,
 		Description: "Получение доната от пользователя " + userResp.Name,
