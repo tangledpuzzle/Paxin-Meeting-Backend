@@ -562,6 +562,69 @@ func main() {
 			//CHECK USER IS LOGIN OR NOT
 			authToken := c.Cookies("access_token")
 			// fmt.Println("authToken", authToken)
+			var user models.User
+			zeroUUID := uuid.Nil // Zero UUID значение
+
+			if user.ID == zeroUUID { // если пользователь не найден по токену
+				initializers.DB.Where("session = ?", idStr).First(&user)
+			}
+
+			if user.ID != zeroUUID { // пользователь найден
+				existingHours := user.OnlineHours
+
+				hours := int(durationComponents[0].Hour)
+				minutes := int(durationComponents[0].Minutes)
+				seconds := int(durationComponents[0].Seconds)
+
+				if len(existingHours) > 0 {
+					lastEntry := existingHours[len(existingHours)-1]
+					totalSeconds := lastEntry.Seconds + seconds
+					totalMinutes := lastEntry.Minutes + minutes + totalSeconds/60
+					totalHours := lastEntry.Hour + hours + totalMinutes/60
+
+					lastEntry.Seconds = totalSeconds % 60
+					lastEntry.Minutes = totalMinutes % 60
+					lastEntry.Hour = totalHours % 24
+
+					existingHours[len(existingHours)-1] = lastEntry
+				} else {
+					timeEntry := models.TimeEntry{
+						Hour:    hours,
+						Minutes: minutes,
+						Seconds: seconds,
+					}
+					existingHours = append(existingHours, timeEntry)
+				}
+
+				jsonBytes, err := json.Marshal(existingHours)
+				if err != nil {
+					fmt.Println("Ошибка маршалинга онлайн часов:", err)
+					return
+				}
+
+				var updatedHours []models.TimeEntry
+				err = json.Unmarshal(jsonBytes, &updatedHours)
+				if err != nil {
+					fmt.Println("Ошибка анмаршалинга онлайн часов:", err)
+					return
+				}
+
+				user.OnlineHours = updatedHours
+				formattedTime := string(jsonBytes)
+
+				initializers.DB.Model(&user).Updates(map[string]interface{}{
+					"online":       false,
+					"last_online":  now,
+					"online_hours": formattedTime,
+					"session":      nil,
+				})
+
+				userName := user.Name
+				lastTimeStr := user.LastOnline.Format("2006-01-02 15:04:05")
+				utils.UserActivity("userOffline", userName, lastTimeStr)
+			} else {
+				fmt.Println("Пользователь не залогинен")
+			}
 
 			if authToken != "" {
 
