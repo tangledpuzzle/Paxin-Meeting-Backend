@@ -1560,6 +1560,12 @@ func SendDonat(c *fiber.Ctx) error {
 		})
 	}
 
+	err = utils.SendPersonalMessageToClient(author.Session, "newDonat")
+	if err != nil {
+		// handle error
+		_ = err
+	}
+
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   "donat",
