@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgtype"
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"hyperpage/initializers"
 	"hyperpage/models"
@@ -1178,15 +1179,33 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 		})
 	}
 
-	// Save the BlogPhoto object to the database
-	if err := initializers.DB.Create(&blogPhoto).Error; err != nil {
+	// Begin a new transaction
+	tx := initializers.DB.Begin()
+	if tx.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to start transaction",
+		})
+	}
+
+	// Save the BlogPhoto object to the database with ON CONFLICT DO NOTHING
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}}, // or another unique constraint
+		DoNothing: true,
+	}).Create(&blogPhoto).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Error saving to database",
 		})
 	}
 
-	var path string
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to commit transaction",
+		})
+	}
 
+	var path string
 	if len(blogPhoto.Files.Bytes) > 0 {
 		var jsonData []map[string]interface{}
 		if err := json.Unmarshal(blogPhoto.Files.Bytes, &jsonData); err != nil {
@@ -1272,15 +1291,6 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				msgText += hashtagsText
 			}
 
-			// // Create a new message for the user's private chat
-			// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
-
-			// // Send the private message
-			// _, err = bot.Send(privateMsg)
-			// if err != nil {
-			// 	log.Println("Error sending private message:", err)
-			// }
-
 			config, _ := initializers.LoadConfig(".")
 
 			cfg := &initializers.Config{
@@ -1315,7 +1325,6 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				// chatID := int64(-userResp.Tcid)
 
 				// Create a photo message configuration
-				// Create a photo message configuration
 				photoConfig := tgbotapi.NewPhoto(user.Tid, tgbotapi.FileBytes{
 					Name:  "image.jpg",
 					Bytes: imageBytes,
@@ -1333,15 +1342,7 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				if err != nil {
 					log.Fatal(err)
 				}
-
-				// privateMsg := tgbotapi.NewMessage(user.Tid, msgText)
-				// _, err = bot.Send(privateMsg)
-				// if err != nil {
-				// 	log.Println("Error sending private message:", err)
-				// }
 			}
-
-			// Call the controller to process the message
 
 			// Set up an image file to send
 			absolutePath := filepath.Join(config.IMGStorePath, path)
@@ -1359,10 +1360,6 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 				log.Fatal(err)
 			}
 
-			// Replace with the chat ID you want to send the image to
-			// chatID := int64(-userResp.Tcid)
-
-			// Create a photo message configuration
 			// Create a photo message configuration
 			photoConfig := tgbotapi.NewPhoto(-userResp.Tcid, tgbotapi.FileBytes{
 				Name:  "image.jpg",
@@ -1389,36 +1386,9 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 					}
 				}
 
-				// msg := tgbotapi.NewMessage(int64(-userResp.Tcid), msgText)
-				// sentMessage, err := bot.Send(msg)
-				// if err != nil {
-				// 	// Check if the error is due to a not found or kicked chat
-				// 	if strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "bot was kicked") || strings.Contains(err.Error(), "chat_id is empty") {
-				// 		fmt.Println("Chat not found or bot was kicked, skipping send message.")
-				// 	} else {
-				// 		// Handle other errors
-				// 		log.Panic(err)
-				// 	}
-				// }
-				// Prepare the private message
-
 				messageID := sentMessage.MessageID
 				blog.TmId = float64(messageID)
 			}
-
-			// blog.UserAvatar = user.Photo
-
-			// user.TotalBlogs += 1
-
-			// if blog.Total == 0 {
-			// 	blog.NotAds = true
-			// } else {
-			// 	blog.NotAds = false
-			// }
-
-			// if err := initializers.DB.Save(&user).Error; err != nil {
-			// 	log.Println("Could not update user's total blogs count:", err)
-			// }
 
 			// Create blog record in database
 			if err := initializers.DB.Save(&blog).Error; err != nil {
@@ -1434,13 +1404,11 @@ func CreateBlogPhoto(c *fiber.Ctx) error {
 	}
 
 	// Wait for the goroutine to complete
-
 	fmt.Println("hello 2")
 
 	return c.JSON(fiber.Map{
 		"message": "Blog photo created successfully",
 	})
-
 }
 
 func GetBlogById(c *fiber.Ctx) error {
