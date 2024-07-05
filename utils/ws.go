@@ -110,6 +110,12 @@ func SendPersonalMessageToClient(clientID, message string) error {
 		}
 	}
 
+	if message == "newDonat" {
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
+			return err
+		}
+	}
+
 	if message == "newblog" {
 
 		// Get the total count of records in the "blog" table
