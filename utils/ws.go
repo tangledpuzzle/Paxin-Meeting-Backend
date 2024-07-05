@@ -70,25 +70,42 @@ func SendBlogMessageToClients(message string, userName string) error {
 
 }
 
-func SendPersonalMessageToClient(clientID, message string) error {
+type AdditionalData struct {
+	Name  string `json:"name"`
+	Total string `json:"total"`
+	Msg   string `json:"msg"`
+}
 
-	type ClientMessage struct {
-		Command string `json:"command"`
+type ClientMessage struct {
+	Command string      `json:"command"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func SendPersonalMessageToClientWithData(clientID string, command string, additionalData []AdditionalData) error {
+	message := ClientMessage{
+		Command: command,
+		Data:    additionalData,
 	}
+	return sendMessage(clientID, message)
+}
 
-	clientMessage := ClientMessage{
-		Command: message,
+func SendPersonalMessageToClient(clientID, command string) error {
+	message := ClientMessage{
+		Command: command,
 	}
+	return sendMessage(clientID, message)
+}
 
-	jsonData, err := json.Marshal(clientMessage)
+func sendMessage(clientID string, message ClientMessage) error {
+	jsonData, err := json.Marshal(message)
 	if err != nil {
-		return err
+		return fmt.Errorf("error marshalling message: %v", err)
 	}
 
 	// Get client connection from Redis
 	conn, err := GetClientConnFromRedis(clientID)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting client connection from Redis: %v", err)
 	}
 
 	// Check if the conn variable is nil
@@ -96,45 +113,27 @@ func SendPersonalMessageToClient(clientID, message string) error {
 		return errors.New("connection is nil")
 	}
 
-	if message == "Activated" {
-
+	switch message.Command {
+	case "Activated", "BalanceAdded", "newDonat":
 		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			return err
+			return fmt.Errorf("error writing message to client: %v", err)
 		}
 
-	}
-
-	if message == "BalanceAdded" {
-		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			return err
-		}
-	}
-
-	if message == "newDonat" {
-		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			return err
-		}
-	}
-
-	if message == "newblog" {
-
+	case "newblog":
 		// Get the total count of records in the "blog" table
 		var count int64
 		if err := initializers.DB.Table("blogs").Count(&count).Error; err != nil {
-			panic(err)
+			return fmt.Errorf("error getting blog count: %v", err)
 		}
 
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(strconv.FormatInt(count, 10))); err != nil {
-			return err
+			return fmt.Errorf("error writing blog count to client: %v", err)
 		}
 
-		return nil
-
-	}
-
-	// Send message to client
-	if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-		return err
+	default:
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
+			return fmt.Errorf("error writing default message to client: %v", err)
+		}
 	}
 
 	return nil

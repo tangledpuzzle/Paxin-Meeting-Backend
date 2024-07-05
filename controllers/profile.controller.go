@@ -1560,7 +1560,11 @@ func SendDonat(c *fiber.Ctx) error {
 		})
 	}
 
-	err = utils.SendPersonalMessageToClient(author.Session, "newDonat")
+	data := []utils.AdditionalData{
+		{Name: userResp.Name, Total: strconv.FormatFloat(priceFloat, 'f', 2, 64), Msg: donatReq.Sms},
+	}
+
+	err = utils.SendPersonalMessageToClientWithData(author.Session, "newDonat", data)
 	if err != nil {
 		// handle error
 		_ = err
