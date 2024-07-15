@@ -13,7 +13,7 @@ func GetNotifications(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.UserResponse)
 
 	var notifications []models.Notification
-	db := initializers.DB.Where("user_id = ?", user.ID)
+	db := initializers.DB.Where("user_id = ?", user.ID).Order("created_at DESC")
 
 	limit, err := strconv.Atoi(c.Query("limit", "10"))
 	if err != nil {
