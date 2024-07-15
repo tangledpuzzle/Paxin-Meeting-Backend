@@ -130,3 +130,19 @@ func sendPushNotificationToOwner(userID uuid.UUID, title, text, pageURL string) 
 
 	return nil
 }
+
+func sendNotificationToOwner(userID, title, text, pageURL string) error {
+
+	err := utils.Notification(
+		title,
+		text,
+		userID,
+		pageURL,
+	)
+
+	if err != nil {
+		fmt.Println("Failed to send notification: ", err)
+	}
+
+	return nil
+}
