@@ -107,7 +107,6 @@ func DeleteNotification(c *fiber.Ctx) error {
 		})
 	}
 
-	// Ищем и удаляем уведомление в базе данных
 	if err := initializers.DB.Delete(&models.Notification{}, id).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
