@@ -114,11 +114,10 @@ func sendMessage(clientID string, message ClientMessage) error {
 	}
 
 	switch message.Command {
-	case "Activated", "BalanceAdded", "newDonat":
+	case "Activated", "BalanceAdded", "newDonat", "new_notification":
 		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
 			return fmt.Errorf("error writing message to client: %v", err)
 		}
-
 	case "newblog":
 		// Get the total count of records in the "blog" table
 		var count int64

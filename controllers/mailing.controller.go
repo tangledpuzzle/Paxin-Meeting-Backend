@@ -133,6 +133,18 @@ func sendPushNotificationToOwner(userID uuid.UUID, title, text, pageURL string) 
 
 func sendNotificationToOwner(userID, title, text, pageURL string) error {
 
+	var user models.User
+	if err := initializers.DB.
+		Where("id = ?", userID).
+		First(&user).Error; err != nil {
+		fmt.Println("Failed to fetch user from the database: ", err)
+		return err
+	}
+
+	if user.Session != "" {
+		utils.SendPersonalMessageToClient(user.Session, "new_notification")
+	}
+
 	err := utils.Notification(
 		title,
 		text,
