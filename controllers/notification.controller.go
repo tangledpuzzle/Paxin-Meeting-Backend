@@ -96,3 +96,27 @@ func MarkNotificationAsRead(c *fiber.Ctx) error {
 		"data":   notification,
 	})
 }
+
+func DeleteNotification(c *fiber.Ctx) error {
+	notificationID := c.Params("id")
+	id, err := strconv.Atoi(notificationID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid notification ID",
+		})
+	}
+
+	// Ищем и удаляем уведомление в базе данных
+	if err := initializers.DB.Delete(&models.Notification{}, id).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to delete notification",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Notification deleted successfully",
+	})
+}
