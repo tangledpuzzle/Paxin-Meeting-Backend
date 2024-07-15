@@ -64,3 +64,35 @@ func GetNotifications(c *fiber.Ctx) error {
 		},
 	})
 }
+
+func MarkNotificationAsRead(c *fiber.Ctx) error {
+	notificationID := c.Params("id")
+	id, err := strconv.Atoi(notificationID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Invalid notification ID",
+		})
+	}
+
+	var notification models.Notification
+	if err := initializers.DB.First(&notification, id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Notification not found",
+		})
+	}
+
+	notification.Read = true
+	if err := initializers.DB.Save(&notification).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to update notification status",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   notification,
+	})
+}
