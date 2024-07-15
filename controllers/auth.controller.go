@@ -18,6 +18,7 @@ import (
 	"hyperpage/models"
 	"hyperpage/utils"
 
+	"io"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -59,10 +60,11 @@ func SignUpUser(c *fiber.Ctx) error {
 	}
 
 	src := filepath.Join(config.IMGStorePath, "default.jpg")
+	srcFile, _ := os.Open(src)
 	dst := filepath.Join(config.IMGStorePath, dirName, "default.jpg")
-	if err := os.Symlink(src, dst); err != nil {
-		// Handle error
-		_ = err
+	dstFile, err := os.Create(dst)
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	}
 
 	newUser := models.User{
@@ -191,10 +193,11 @@ func SignUpBot(c *fiber.Ctx) error {
 	}
 
 	src := filepath.Join(config.IMGStorePath, "default.jpg")
+	srcFile, _ := os.Open(src)
 	dst := filepath.Join(config.IMGStorePath, dirName, "default.jpg")
-	if err := os.Symlink(src, dst); err != nil {
-		// Handle error
-		_ = err
+	dstFile, _ := os.Create(dst)
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "fail", "message": err.Error()})
 	}
 
 	newUser := models.User{
