@@ -143,6 +143,13 @@ func sendNotificationToOwner(userID, title, text, pageURL string) error {
 
 	if user.Session != "" {
 		utils.SendPersonalMessageToClient(user.Session, "new_notification")
+	} else {
+		parsedUserID, err := uuid.FromString(userID)
+		if err != nil {
+			fmt.Println("Invalid UUID format: ", err)
+			return err
+		}
+		sendPushNotificationToOwner(parsedUserID, title, text, pageURL)
 	}
 
 	err := utils.Notification(
