@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"hyperpage/initializers"
 	"hyperpage/models"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/sideshow/apns2"
@@ -21,6 +23,28 @@ func GetFollowers(userID uuid.UUID) ([]models.User, error) {
 	}
 
 	return followers, nil
+}
+
+func Notification(title, message, userIDStr, URL string) error {
+	userID, err := uuid.FromString(userIDStr)
+	if err != nil {
+		return errors.New("invalid UUID format for userID")
+	}
+
+	notification := &models.Notification{
+		Title:     title,
+		Message:   message,
+		UserID:    userID,
+		CreatedAt: time.Now(),
+		URL:       URL,
+		Read:      false,
+	}
+
+	if err := initializers.DB.Create(notification).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func Push(title, text, deviceToken, pageURL string) error {

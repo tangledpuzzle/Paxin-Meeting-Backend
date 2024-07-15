@@ -61,6 +61,13 @@ func SendPushNotification(c *fiber.Ctx) error {
 
 		if err != nil {
 			fmt.Println("Failed to send push notification: ", err)
+		} else {
+			err := utils.Notification(reqBody.Title, reqBody.Text, follower.ID.String(), reqBody.PageURL)
+			if err != nil {
+				fmt.Println("Failed to create notification:", err)
+			} else {
+				fmt.Println("Notification created successfully.")
+			}
 		}
 	}
 
@@ -69,32 +76,32 @@ func SendPushNotification(c *fiber.Ctx) error {
 	})
 }
 
-func sendPushNotificationToFollowers(userID uuid.UUID, title, text, pageURL string) error {
-	followers, err := utils.GetFollowers(userID)
-	if err != nil {
-		fmt.Println("Failed to send push notification: ", err)
-	}
+// func sendPushNotificationToFollowers(userID uuid.UUID, title, text, pageURL string) error {
+// 	followers, err := utils.GetFollowers(userID)
+// 	if err != nil {
+// 		fmt.Println("Failed to send push notification: ", err)
+// 	}
 
-	for _, follower := range followers {
+// 	for _, follower := range followers {
 
-		if follower.DeviceIOS == "" {
-			continue
-		}
+// 		if follower.DeviceIOS == "" {
+// 			continue
+// 		}
 
-		err := utils.Push(
-			title,
-			text,
-			follower.DeviceIOS,
-			pageURL,
-		)
+// 		err := utils.Push(
+// 			title,
+// 			text,
+// 			follower.DeviceIOS,
+// 			pageURL,
+// 		)
 
-		if err != nil {
-			fmt.Println("Failed to send push notification: ", err)
-		}
-	}
+// 		if err != nil {
+// 			fmt.Println("Failed to send push notification: ", err)
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func sendPushNotificationToOwner(userID uuid.UUID, title, text, pageURL string) error {
 	var user models.User

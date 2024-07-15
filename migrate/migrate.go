@@ -39,6 +39,9 @@ func main() {
 	if err := initializers.DB.AutoMigrate(&models.Billing{}); err != nil {
 		panic(err)
 	}
+	if err := initializers.DB.AutoMigrate(&models.Notification{}); err != nil {
+		panic(err)
+	}
 	if err := initializers.DB.AutoMigrate(&models.Transaction{}); err != nil {
 		panic(err)
 	}
