@@ -19,6 +19,7 @@ import (
 	"hyperpage/utils"
 
 	"io"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -370,7 +371,7 @@ func SignInUser(c *fiber.Ctx) error {
 		Value:    *accessTokenDetails.Token,
 		Path:     "/",
 		SameSite: "Lax",
-		MaxAge:   config.AccessTokenMaxAge * 60,
+		MaxAge:   10,
 		Secure:   true,  // Consider setting this to true in production
 		HTTPOnly: false, // Consider making this true for better security
 		Domain:   config.ClientOrigin,
