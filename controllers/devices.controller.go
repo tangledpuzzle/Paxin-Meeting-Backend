@@ -35,6 +35,7 @@ func SendNot(c *fiber.Ctx) error {
 	keyID := "485K6P55G9"   // Идентификатор ключа (Key ID) из Apple Developer Console
 	teamID := "DBJ8D3U6HY"  // Идентификатор команды (Team ID) из Apple Developer Console
 	bundleID := "ddrw.myru" // Bundle ID вашего приложения
+	// bundleID := "BTeam.myru" // Bundle ID вашего приложения
 
 	authKey, err := token.AuthKeyFromFile(privateKeyPath)
 	if err != nil {
@@ -47,8 +48,8 @@ func SendNot(c *fiber.Ctx) error {
 		AuthKey: authKey,
 	}
 
-	client := apns2.NewTokenClient(tokenSource).Development()
-	// client := apns2.NewTokenClient(tokenSource).Production()
+	// client := apns2.NewTokenClient(tokenSource).Development()
+	client := apns2.NewTokenClient(tokenSource).Production()
 
 	// Токен устройства, который вы получили после успешной регистрации на уведомления
 	deviceToken := reqBody.DeviceToken
