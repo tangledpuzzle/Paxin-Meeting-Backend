@@ -511,24 +511,32 @@ func UpdateProfileAdditional(c *fiber.Ctx) error {
 	profile := models.Profile{}
 	err := initializers.DB.Where("user_id = ?", user.ID).First(&profile).Error
 	if err != nil {
-		_ = err
-		// Handle the error appropriately (e.g., return an error response)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not find profile",
+		})
 	}
 
 	// Fetch languages from the database
 	var langs []models.Langs
 	err = initializers.DB.Raw("SELECT * FROM langs").Scan(&langs).Error
 	if err != nil {
-		return err
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not fetch languages",
+		})
 	}
-
 	translations := make(map[string]string)
 
 	for _, lang := range langs {
-
-		result, _ := gt.Translate(requestBody.Additional, profile.Lang, lang.Code)
+		result, err := gt.Translate(requestBody.Additional, profile.Lang, lang.Code)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"status":  "error",
+				"message": fmt.Sprintf("Could not translate to %s: %v", lang.Code, err),
+			})
+		}
 		translations[lang.Code] = result
-
 	}
 
 	// Set the translated values in the TitleLangs field
@@ -543,8 +551,10 @@ func UpdateProfileAdditional(c *fiber.Ctx) error {
 	// Save the updated profile back to the database
 	err = initializers.DB.Save(&profile).Error
 	if err != nil {
-		_ = err
-		// Handle the error appropriately (e.g., return an error response)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not save profile",
+		})
 	}
 
 	// Return a success response
