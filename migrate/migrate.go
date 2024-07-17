@@ -26,7 +26,9 @@ func init() {
 
 func main() {
 	config, _ := initializers.LoadConfig(".")
-
+	if err := initializers.DB.AutoMigrate(&models.System{}); err != nil {
+		panic(err)
+	}
 	if err := initializers.DB.AutoMigrate(&models.User{}); err != nil {
 		panic(err)
 	}
