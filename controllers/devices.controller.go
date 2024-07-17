@@ -47,8 +47,8 @@ func SendNot(c *fiber.Ctx) error {
 		AuthKey: authKey,
 	}
 
-	client := apns2.NewTokenClient(tokenSource).Development()
-	// client := apns2.NewTokenClient(tokenSource).Production()
+	// client := apns2.NewTokenClient(tokenSource).Development()
+	client := apns2.NewTokenClient(tokenSource).Production()
 
 	// Токен устройства, который вы получили после успешной регистрации на уведомления
 	deviceToken := reqBody.DeviceToken
