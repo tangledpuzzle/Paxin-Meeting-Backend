@@ -122,31 +122,6 @@ If you'd like to request a new function, feel free to do so by opening an issue 
 [<img target="_blank" src="https://opencv.org/wp-content/uploads/2020/07/cropped-OpenCV_logo_white_600x.png" width=200>](https://opencv.org/wp-content/uploads/2020/07/cropped-OpenCV_logo_white_600x.png)
 
 
-
-## Team
-Ashish Agarwal
-
-LinkedIn Profile: [https://www.linkedin.com/in/ashish-agarwal-502203113/](https://www.linkedin.com/in/ashish-agarwal-502203113/)
-
-
-## License
-[![Apache license](https://img.shields.io/badge/license-apache-blue?style=for-the-badge&logo=appveyor)](http://www.apache.org/licenses/LICENSE-2.0e)
-
-Copyright 2020 Ashish Agarwal
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
 ## Resources
 1. https://pjreddie.com/darknet/yolo/
 2. https://arxiv.org/pdf/1802.09567.pdf
